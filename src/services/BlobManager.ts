@@ -1,56 +1,54 @@
-import { put, del } from "@vercel/blob";
-
 class BlobManager {
-    private token: string;
+    private apiUrl: string;
 
-    constructor(tokenVercel: string) {
-        this.token = tokenVercel;
+    constructor() {
+        this.apiUrl = '/api'; // Utilise les API routes locales
     }
 
     async createBlob(fileBlob: File, metadata?: Record<string, any>) {
-        // La fonction put accepte (pathname, body, options)
-        const result = await put(fileBlob.name, fileBlob, {
-            access: "public",
-            token: this.token,
-            addRandomSuffix: true, // Recommandé pour éviter les conflits
+        const formData = new FormData();
+        formData.append('file', fileBlob);
+        if (metadata) {
+            formData.append('metadata', JSON.stringify(metadata));
+        }
+
+        const response = await fetch(`${this.apiUrl}/upload`, {
+            method: 'POST',
+            body: formData,
         });
-        
-        // result contient { pathname, contentType, contentDisposition, url, downloadUrl }
-        return {
-            url: result.url,
-            downloadUrl: result.downloadUrl,
-            pathname: result.pathname,
-            contentType: result.contentType,
-            metadata: metadata || {}, // Les métadonnées ne sont pas stockées directement par Vercel Blob
-        };
+
+        if (!response.ok) {
+            throw new Error('Erreur lors de l\'upload du blob');
+        }
+
+        return await response.json();
     }
 
     async getBlob(pathname: string) {
-        // Vercel Blob n'a pas de méthode get() pour récupérer les métadonnées
-        // Il faut utiliser l'URL directement pour télécharger le blob
-        const response = await fetch(`https://blob.vercel-storage.com/${pathname}`, {
-            headers: {
-                Authorization: `Bearer ${this.token}`,
-            },
-        });
+        // Pour récupérer un blob, on utilise directement son URL
+        const response = await fetch(pathname);
         
         if (!response.ok) {
-            throw new Error("Erreur lors de la récupération du blob");
+            throw new Error('Erreur lors de la récupération du blob');
         }
         
         return {
             blob: await response.blob(),
-            url: response.url,
+            url: pathname,
         };
     }
 
     async deleteBlob(pathname: string) {
-        const result = await del(pathname, {
-            token: this.token,
+        const response = await fetch(`${this.apiUrl}/blob?pathname=${encodeURIComponent(pathname)}`, {
+            method: 'DELETE',
         });
-        
-        return result;
+
+        if (!response.ok) {
+            throw new Error('Erreur lors de la suppression du blob');
+        }
+
+        return await response.json();
     }
 }
 
-export default new BlobManager("vercel_blob_rw_UjimgJlxAOXHk6Kc_diCCt7m888bwt2Wsj1JMW9zEAbVKH6");
+export default new BlobManager();
