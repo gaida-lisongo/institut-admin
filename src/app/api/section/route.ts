@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const SERVER_API_URL = 'https://legendary-barnacle-7v54v7x64jgxcpwvg-3000.app.github.dev/api/v1';
+const SERVER_API_URL = 'https://legendary-barnacle.onrender.com/api/v1';
 
 class SectionApiHandler {
     private async makeRequest(url: string, options: RequestInit = {}): Promise<Response> {

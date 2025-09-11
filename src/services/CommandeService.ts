@@ -54,7 +54,7 @@ class CommandeService {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = 'https://legendary-barnacle-7v54v7x64jgxcpwvg-3000.app.github.dev/api/v1/vente';
+    this.baseUrl = 'https://legendary-barnacle.onrender.com/api/v1/vente';
   }
 
   private async makeRequest(url: string, options: RequestInit = {}): Promise<{status: number, data: any}> {
