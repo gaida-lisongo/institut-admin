@@ -30,19 +30,63 @@ const navItems: NavItem[] = [
   {
     icon: <GridIcon />,
     name: "Dashboard",
-    subItems: [{ name: "Ecommerce", path: "/", pro: false }],
+    path: "/"
   },
   {
-    icon: <CalenderIcon />,
-    name: "Calendar",
-    path: "/calendar",
+    name: "Années",
+    icon: <ListIcon />,
+    path: "/annees",
   },
   {
     icon: <UserCircleIcon />,
-    name: "User Profile",
-    path: "/profile",
+    name: "Utilisateurs",
+    subItems: [
+      { name: "Agents", path: "/profile" },
+      { name: "Etudiants", path: "/etudiants"}
+    ],
   },
+];
 
+const othersItems: NavItem[] = [
+  {
+    name: "Acceuil",
+    icon: <PageIcon />,
+    subItems: [
+      { name: "Offres", path: "/offres"},
+      { name: "Calendrier", path: "/calendar"},
+    ],
+  },
+  {
+    name: "Apropos",
+    icon: <PageIcon />,
+    subItems: [
+      { name: "Mission", path: "/mission"},
+      { name: "Valeurs", path: "/valeurs"},
+      { name: "Historique", path: "/historique"},
+      { name: "Alumin", path: "/alumin"},
+      { name: "Equipe", path: "/equipe"},
+    ],
+  },
+  {
+    name: "Contact",
+    icon: <PageIcon />,
+    subItems: [
+      { name: "Addresse", path: "/addresse"},
+      { name: "Telephone", path: "/telephone"},
+      { name: "Email", path: "/email"},
+      { name: "Site internet", path: "/website"},
+    ],
+  },
+  {
+    name: "Vie Etudiante",
+    icon: <PageIcon />,
+    subItems: [
+      { name: "Agenda", path: "/agenda"},
+      { name: "Galerie", path: "/galerie"},
+      { name: "Association", path: "/association"},
+      { name: "Clubs", path: "/clubs"},
+    ],
+  },
   {
     name: "Forms",
     icon: <ListIcon />,
@@ -61,9 +105,6 @@ const navItems: NavItem[] = [
       { name: "404 Error", path: "/error-404", pro: false },
     ],
   },
-];
-
-const othersItems: NavItem[] = [
   {
     icon: <PieChartIcon />,
     name: "Charts",
@@ -348,7 +389,7 @@ const AppSidebar: React.FC = () => {
                 }`}
               >
                 {isExpanded || isHovered || isMobileOpen ? (
-                  "Menu"
+                  "Administration"
                 ) : (
                   <HorizontaLDots />
                 )}
@@ -365,7 +406,7 @@ const AppSidebar: React.FC = () => {
                 }`}
               >
                 {isExpanded || isHovered || isMobileOpen ? (
-                  "Others"
+                  "Contenu"
                 ) : (
                   <HorizontaLDots />
                 )}
