@@ -120,9 +120,27 @@ interface SectionState {
   deleteSection: (id: string) => Promise<boolean>;
   clearError: () => void;
   
+  // Actions pour les offres
+  addOffreToSection: (sectionId: string, offre: Offre) => Promise<boolean>;
+  updateOffreInSection: (sectionId: string, offreIndex: number, offre: Offre) => Promise<boolean>;
+  removeOffreFromSection: (sectionId: string, offreIndex: number) => Promise<boolean>;
+  
+  // Actions pour les calendriers
+  addCalendrierToSection: (sectionId: string, calendrier: Calendrier) => Promise<boolean>;
+  updateCalendrierInSection: (sectionId: string, calendrierIndex: number, calendrier: Calendrier) => Promise<boolean>;
+  removeCalendrierFromSection: (sectionId: string, calendrierIndex: number) => Promise<boolean>;
+  
+  // Actions pour les activités dans les calendriers
+  updateActivitiesInCalendrier: (sectionId: string, calendrierIndex: number, activities: Activity[]) => Promise<boolean>;
+  
+  // Actions pour le mot du chef
+  updateMotChefInSection: (sectionId: string, motChef: MotChef) => Promise<boolean>;
+  
   // Selectors
   getSectionById: (id: string) => Section | undefined;
   getSectionBysigle: (sigle: string) => Section | undefined;
+  getAllOffres: () => { sectionId: string, sectionName: string, offre: Offre, index: number }[];
+  getOffresBySectionId: (sectionId: string) => Offre[];
 }
 
 export const useSectionStore = create<SectionState>()(
@@ -227,6 +245,372 @@ export const useSectionStore = create<SectionState>()(
 
         getSectionBysigle: (sigle) => {
           return get().sections.find(section => section.description.sigle === sigle);
+        },
+
+        // Méthodes pour gérer les offres
+        addOffreToSection: async (sectionId, offre) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedSection = {
+              ...section,
+              offres: [...section.offres, offre]
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de l\'ajout de l\'offre',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de l\'ajout de l\'offre',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        updateOffreInSection: async (sectionId, offreIndex, offre) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedOffres = [...section.offres];
+            updatedOffres[offreIndex] = offre;
+
+            const updatedSection = {
+              ...section,
+              offres: updatedOffres
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de la modification de l\'offre',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de la modification de l\'offre',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        removeOffreFromSection: async (sectionId, offreIndex) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedOffres = section.offres.filter((_, index) => index !== offreIndex);
+
+            const updatedSection = {
+              ...section,
+              offres: updatedOffres
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de la suppression de l\'offre',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de la suppression de l\'offre',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        getAllOffres: () => {
+          const sections = get().sections;
+          const offres: { sectionId: string, sectionName: string, offre: Offre, index: number }[] = [];
+          
+          sections.forEach(section => {
+            section.offres.forEach((offre, index) => {
+              offres.push({
+                sectionId: section._id || '',
+                sectionName: section.description.sigle,
+                offre,
+                index
+              });
+            });
+          });
+          
+          return offres;
+        },
+
+        getOffresBySectionId: (sectionId) => {
+          const section = get().sections.find(s => s._id === sectionId);
+          return section ? section.offres : [];
+        },
+
+        // Méthodes pour gérer les calendriers
+        addCalendrierToSection: async (sectionId, calendrier) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedSection = {
+              ...section,
+              calendrier: [...section.calendrier, calendrier]
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de l\'ajout du calendrier',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de l\'ajout du calendrier',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        updateCalendrierInSection: async (sectionId, calendrierIndex, calendrier) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedCalendriers = [...section.calendrier];
+            updatedCalendriers[calendrierIndex] = calendrier;
+
+            const updatedSection = {
+              ...section,
+              calendrier: updatedCalendriers
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de la modification du calendrier',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de la modification du calendrier',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        removeCalendrierFromSection: async (sectionId, calendrierIndex) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedCalendriers = section.calendrier.filter((_, index) => index !== calendrierIndex);
+
+            const updatedSection = {
+              ...section,
+              calendrier: updatedCalendriers
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de la suppression du calendrier',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de la suppression du calendrier',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        // Méthode pour mettre à jour les activités dans un calendrier
+        updateActivitiesInCalendrier: async (sectionId, calendrierIndex, activities) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedCalendriers = [...section.calendrier];
+            updatedCalendriers[calendrierIndex] = {
+              ...updatedCalendriers[calendrierIndex],
+              activities
+            };
+
+            const updatedSection = {
+              ...section,
+              calendrier: updatedCalendriers
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de la modification des activités',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de la modification des activités',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        // Méthode pour gérer le mot du chef
+        updateMotChefInSection: async (sectionId, motChef) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedSection = {
+              ...section,
+              description: {
+                ...section.description,
+                motChef
+              }
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de la modification du mot du chef',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de la modification du mot du chef',
+              isLoading: false 
+            });
+            return false;
+          }
         },
       }),
       {

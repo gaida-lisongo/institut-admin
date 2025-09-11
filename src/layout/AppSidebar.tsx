@@ -52,8 +52,9 @@ const othersItems: NavItem[] = [
     name: "Acceuil",
     icon: <PageIcon />,
     subItems: [
+      { name: "Mot du chef", path: "/mot-chef"},
       { name: "Offres", path: "/offres"},
-      { name: "Calendrier", path: "/calendar"},
+      { name: "Calendrier", path: "/calendrier"},
     ],
   },
   {
