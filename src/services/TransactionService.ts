@@ -49,7 +49,7 @@ class TransactionService {
 
   constructor() {
     // Utilise l'URL du serveur distant
-    this.baseUrl = 'https://legendary-barnacle-7v54v7x64jgxcpwvg-3000.app.github.dev/api/v1/transaction';
+    this.baseUrl = 'https://legendary-barnacle.onrender.com/api/v1/transaction';
   }
 
   private async makeRequest(url: string, options: RequestInit = {}): Promise<ApiResponse> {
