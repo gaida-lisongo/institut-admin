@@ -71,12 +71,7 @@ const othersItems: NavItem[] = [
   {
     name: "Contact",
     icon: <PageIcon />,
-    subItems: [
-      { name: "Addresse", path: "/addresse"},
-      { name: "Telephone", path: "/telephone"},
-      { name: "Email", path: "/email"},
-      { name: "Site internet", path: "/website"},
-    ],
+    path: "/contact",
   },
   {
     name: "Vie Etudiante",

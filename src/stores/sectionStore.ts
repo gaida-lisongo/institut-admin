@@ -70,6 +70,8 @@ interface Team {
   fonction: string;
 }
 
+
+
 interface MotChef {
   photo?: string;
   description?: string;
@@ -135,6 +137,33 @@ interface SectionState {
   
   // Actions pour le mot du chef
   updateMotChefInSection: (sectionId: string, motChef: MotChef) => Promise<boolean>;
+  
+  // Actions pour les missions
+  addMissionToSection: (sectionId: string, mission: Mission) => Promise<boolean>;
+  updateMissionInSection: (sectionId: string, missionIndex: number, mission: Mission) => Promise<boolean>;
+  removeMissionFromSection: (sectionId: string, missionIndex: number) => Promise<boolean>;
+  
+  // Actions pour les valeurs
+  updateValeursInSection: (sectionId: string, valeurs: string[]) => Promise<boolean>;
+  
+  // Actions pour l'historique
+  addHistoryToSection: (sectionId: string, history: History) => Promise<boolean>;
+  updateHistoryInSection: (sectionId: string, historyIndex: number, history: History) => Promise<boolean>;
+  removeHistoryFromSection: (sectionId: string, historyIndex: number) => Promise<boolean>;
+  
+  // Actions pour les alumni
+  addAlumnToSection: (sectionId: string, alumn: Alumn) => Promise<boolean>;
+  updateAlumnInSection: (sectionId: string, alumnIndex: number, alumn: Alumn) => Promise<boolean>;
+  removeAlumnFromSection: (sectionId: string, alumnIndex: number) => Promise<boolean>;
+  
+  // Actions pour l'équipe
+  addTeamMemberToSection: (sectionId: string, teamMember: Team) => Promise<boolean>;
+  updateTeamMemberInSection: (sectionId: string, teamIndex: number, teamMember: Team) => Promise<boolean>;
+  removeTeamMemberFromSection: (sectionId: string, teamIndex: number) => Promise<boolean>;
+
+  // Action pour le contact
+  updateContactInSection: (sectionId: string, contact: Contact) => Promise<boolean>;
+
   
   // Selectors
   getSectionById: (id: string) => Section | undefined;
@@ -612,6 +641,553 @@ export const useSectionStore = create<SectionState>()(
             return false;
           }
         },
+
+        // Méthodes pour gérer les missions
+        addMissionToSection: async (sectionId, mission) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedSection = {
+              ...section,
+              missions: [...section.missions, mission]
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de l\'ajout de la mission',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de l\'ajout de la mission',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        updateMissionInSection: async (sectionId, missionIndex, mission) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedMissions = [...section.missions];
+            updatedMissions[missionIndex] = mission;
+
+            const updatedSection = {
+              ...section,
+              missions: updatedMissions
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de la modification de la mission',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de la modification de la mission',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        removeMissionFromSection: async (sectionId, missionIndex) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedMissions = section.missions.filter((_, index) => index !== missionIndex);
+
+            const updatedSection = {
+              ...section,
+              missions: updatedMissions
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de la suppression de la mission',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de la suppression de la mission',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        // Méthodes pour gérer les valeurs  
+        updateValeursInSection: async (sectionId, valeurs) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedSection = {
+              ...section,
+              valeurs
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de la modification des valeurs',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de la modification des valeurs',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        // Méthodes pour gérer l'historique
+        addHistoryToSection: async (sectionId, history) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedSection = {
+              ...section,
+              history: [...section.history, history]
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de l\'ajout de l\'historique',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de l\'ajout de l\'historique',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        updateHistoryInSection: async (sectionId, historyIndex, history) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedHistory = [...section.history];
+            updatedHistory[historyIndex] = history;
+
+            const updatedSection = {
+              ...section,
+              history: updatedHistory
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de la modification de l\'historique',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de la modification de l\'historique',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        removeHistoryFromSection: async (sectionId, historyIndex) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedHistory = section.history.filter((_, index) => index !== historyIndex);
+
+            const updatedSection = {
+              ...section,
+              history: updatedHistory
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de la suppression de l\'historique',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de la suppression de l\'historique',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        // Méthodes pour gérer les alumni
+        addAlumnToSection: async (sectionId, alumn) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedSection = {
+              ...section,
+              alumni: [...section.alumni, alumn]
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de l\'ajout de l\'alumni',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de l\'ajout de l\'alumni',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        updateAlumnInSection: async (sectionId, alumnIndex, alumn) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedAlumni = [...section.alumni];
+            updatedAlumni[alumnIndex] = alumn;
+
+            const updatedSection = {
+              ...section,
+              alumni: updatedAlumni
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de la modification de l\'alumni',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de la modification de l\'alumni',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        removeAlumnFromSection: async (sectionId, alumnIndex) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedAlumni = section.alumni.filter((_, index) => index !== alumnIndex);
+
+            const updatedSection = {
+              ...section,
+              alumni: updatedAlumni
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de la suppression de l\'alumni',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de la suppression de l\'alumni',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        // Méthodes pour gérer l'équipe
+        addTeamMemberToSection: async (sectionId, teamMember) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedSection = {
+              ...section,
+              team: [...section.team, teamMember]
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de l\'ajout du membre de l\'équipe',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de l\'ajout du membre de l\'équipe',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        updateTeamMemberInSection: async (sectionId, teamIndex, teamMember) => {
+        },
+
+        // Méthode pour mettre à jour le contact d'une section
+        updateContactInSection: async (sectionId: string, contact: Contact): Promise<boolean> => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedSection = {
+              ...section,
+              contact
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s =>
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({
+                error: result.data?.message || 'Erreur lors de la modification du contact',
+                isLoading: false
+              });
+              return false;
+            }
+          } catch (error) {
+            set({
+              error: error instanceof Error ? error.message : 'Erreur lors de la modification du contact',
+              isLoading: false
+            });
+            return false;
+          }
+        },
+
+        removeTeamMemberFromSection: async (sectionId, teamIndex) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedTeam = section.team.filter((_, index) => index !== teamIndex);
+
+            const updatedSection = {
+              ...section,
+              team: updatedTeam
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de la suppression du membre de l\'équipe',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de la suppression du membre de l\'équipe',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+
       }),
       {
         name: 'section-storage',
