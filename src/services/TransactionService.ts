@@ -18,6 +18,27 @@ export interface Withdraw {
   montant: number;
   orderNumber: string;
   reference: string;
+  description?: string;
+  phoneNumber?: string;
+  status: 'NO' | 'PENDING' | 'OK';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WithdrawAgent {
+  _id?: string;
+  userId: {
+    _id: string;
+    photo: string;
+    nom: string;
+    matricule: string;
+    telephone?: string;
+  };
+  montant: number;
+  orderNumber: string;
+  reference: string;
+  description?: string;
+  phoneNumber?: string;
   status: 'NO' | 'PENDING' | 'OK';
   createdAt?: string;
   updatedAt?: string;
@@ -186,7 +207,7 @@ class TransactionService {
   /**
    * Récupérer tous les retraits
    */
-  async getAllWithdraws(): Promise<ApiResponse<Withdraw[]>> {
+  async getAllWithdraws(): Promise<ApiResponse<WithdrawAgent[]>> {
     const url = `${this.baseUrl}/withdraws`;
     return this.makeRequest(url);
   }
@@ -194,7 +215,7 @@ class TransactionService {
   /**
    * Récupérer les retraits par utilisateur
    */
-  async getWithdrawsByUserId(userId: string): Promise<ApiResponse<Withdraw[]>> {
+  async getWithdrawsByUserId(userId: string): Promise<ApiResponse<WithdrawAgent[]>> {
     const url = `${this.baseUrl}/withdraws/user/${encodeURIComponent(userId)}`;
     return this.makeRequest(url);
   }
@@ -202,7 +223,7 @@ class TransactionService {
   /**
    * Récupérer un retrait par ID
    */
-  async getWithdrawById(id: string): Promise<ApiResponse<Withdraw>> {
+  async getWithdrawById(id: string): Promise<ApiResponse<WithdrawAgent>> {
     const url = `${this.baseUrl}/withdraw/${encodeURIComponent(id)}`;
     return this.makeRequest(url);
   }
@@ -233,7 +254,7 @@ class TransactionService {
   /**
    * Récupérer toutes les transactions d'un utilisateur (dépôts + retraits)
    */
-  async getAllTransactionsByUserId(userId: string): Promise<ApiResponse<{deposits: Deposit[], withdraws: Withdraw[]}>> {
+  async getAllTransactionsByUserId(userId: string): Promise<ApiResponse<{deposits: Deposit[], withdraws: WithdrawAgent[]}>> {
     const url = `${this.baseUrl}/user/${encodeURIComponent(userId)}/all`;
     return this.makeRequest(url);
   }

@@ -15,6 +15,7 @@ interface AgentState {
   createAgent: (agentData: AgentFormData) => Promise<Agent>;
   updateAgent: (id: string, agentData: Partial<AgentFormData>) => Promise<Agent>;
   deleteAgent: (id: string) => Promise<void>;
+  creditSolde: (id: string, montant: number) => Promise<void>;
   createAgentsFromCSV: (agents: AgentFormData[]) => Promise<Agent[]>;
   setSelectedAgent: (agent: Agent | null) => void;
   clearError: () => void;
@@ -28,7 +29,28 @@ export const useAgentStore = create<AgentState>()(
       selectedAgent: null,
       isLoading: false,
       error: null,
-
+      creditSolde: async (id: string, montant: number) => {
+        set({ isLoading: true, error: null });
+        try {
+          const updatedAgent = await AgentService.creditAgentAccount(id, montant);
+          const { solde } = updatedAgent;
+          if (solde === undefined) {
+            throw new Error("Solde non défini dans la réponse de l'API");
+          }
+          
+          set(state => ({
+            agents: state.agents.map(agent => 
+              agent._id === id ? { ...agent, solde } : agent
+            ),
+            selectedAgent: state.selectedAgent?._id === id ? { ...state.selectedAgent, solde } : state.selectedAgent,
+            isLoading: false
+          }));
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Erreur lors du crédit du solde";
+          set({ error: errorMessage, isLoading: false });
+          throw new Error(errorMessage);
+        }
+      },
       fetchAgents: async () => {
         set({ isLoading: true, error: null });
         try {

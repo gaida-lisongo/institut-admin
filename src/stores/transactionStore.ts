@@ -37,13 +37,17 @@ export const useTransactionStore = create<TransactionState>()(
           set({ isLoading: true, error: null });
           try {
             const result = await TransactionService.getAllDeposits();
-            
+            const {
+              success,
+              data,
+              message
+            } = result;
+
             // Supposons que result.data est de la forme { success, data, message }
-            const response = result.data as { success: boolean; data: Deposit[]; message?: string };
-            if (response.success) {
-              set({ deposits: response.data || [], isLoading: false });
+            if (success) {
+              set({ deposits: data || [], isLoading: false });
             } else {
-              set({ error: response.message || 'Erreur lors du chargement', isLoading: false });
+              set({ error: message || 'Erreur lors du chargement', isLoading: false });
             }
           } catch (error) {
             console.error('Error fetching deposits:', error);
@@ -55,17 +59,19 @@ export const useTransactionStore = create<TransactionState>()(
           set({ isLoading: true, error: null });
           try {
             const result = await TransactionService.getAllWithdraws();
-            
-            if (result.status === 200) {
-              const { success, data, message } = result.data;
-              if (success) {
+            const {
+              success,
+              data,
+              message
+            } = result;
+
+            if (success) {
                 set({ withdraws: data || [], isLoading: false });
-              } else {
-                set({ error: message || 'Erreur lors du chargement', isLoading: false });
-              }
+              
             } else {
-              set({ error: result.data?.message || 'Erreur lors du chargement', isLoading: false });
+              set({ error: message || 'Erreur lors du chargement', isLoading: false });
             }
+
           } catch (error) {
             console.error('Error fetching withdraws:', error);
             set({ error: 'Erreur lors du chargement des retraits', isLoading: false });
@@ -119,7 +125,7 @@ export const useTransactionStore = create<TransactionState>()(
           try {
             const result = await TransactionService.createWithdraw(withdrawData);
             
-            const { success, message } = result.data || {};
+            const { success, message, data } = result || {};
             if (success) {
               await get().fetchWithdraws();
               return true;
@@ -139,7 +145,7 @@ export const useTransactionStore = create<TransactionState>()(
           try {
             const result = await TransactionService.updateDeposit(id, data);
             
-            const { success, message } = result.data || {};
+            const { success, message } = result || {};
             if (success) {
               await get().fetchDeposits();
               return true;
@@ -159,7 +165,7 @@ export const useTransactionStore = create<TransactionState>()(
           try {
             const result = await TransactionService.updateWithdraw(id, data);
             
-            const { success, message } = result.data || {};
+            const { success, message } = result || {};
             if (success) {
               await get().fetchWithdraws();
               return true;
@@ -179,7 +185,7 @@ export const useTransactionStore = create<TransactionState>()(
           try {
             const result = await TransactionService.deleteDeposit(id);
             
-            const { success, message } = result.data || {};
+            const { success, message } = result || {};
             if (success) {
               await get().fetchDeposits();
               return true;
@@ -199,7 +205,7 @@ export const useTransactionStore = create<TransactionState>()(
           try {
             const result = await TransactionService.deleteWithdraw(id);
             
-            const { success, message } = result.data || {};
+            const { success, message } = result || {};
             if (success) {
               await get().fetchWithdraws();
               return true;

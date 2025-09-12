@@ -109,6 +109,24 @@ export class AgentService {
     }
   }
 
+  static async creditAgentAccount(id: string, montant: number): Promise<any> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/agent/${id}/credit`, {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ montant }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors du crédit du compte de l'agent:", error);
+      throw error;
+    }
+  }
+
   // Mettre à jour un agent
   static async updateAgent(id: string, agentData: Partial<AgentFormData>): Promise<Agent> {
     try {
