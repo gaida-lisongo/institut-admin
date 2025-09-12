@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import TransactionService from '../services/TransactionService';
-import type { Deposit, Withdraw, TransactionStats } from '../services/TransactionService';
+import type { Deposit, Withdraw, WithdrawAgent, TransactionStats } from '../services/TransactionService';
 
 interface TransactionState {
   deposits: Deposit[];
-  withdraws: Withdraw[];
+  withdraws: WithdrawAgent[];
   stats: TransactionStats | null;
   isLoading: boolean;
   error: string | null;
@@ -17,7 +17,7 @@ interface TransactionState {
   createDeposit: (depositData: Omit<Deposit, '_id' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
   createWithdraw: (withdrawData: Omit<Withdraw, '_id' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
   updateDeposit: (id: string, data: Partial<Deposit>) => Promise<boolean>;
-  updateWithdraw: (id: string, data: Partial<Withdraw>) => Promise<boolean>;
+  updateWithdraw: (id: string, data: any) => Promise<boolean>;
   deleteDeposit: (id: string) => Promise<boolean>;
   deleteWithdraw: (id: string) => Promise<boolean>;
   clearError: () => void;
@@ -83,15 +83,11 @@ export const useTransactionStore = create<TransactionState>()(
           try {
             const result = await TransactionService.getTransactionStats();
             
-            if (result.status === 200) {
-              const { success, data, message } = result.data;
-              if (success) {
-                set({ stats: data || null });
-              } else {
-                set({ error: message || 'Erreur lors du chargement des statistiques' });
-              }
+            const { success, data, message } = result;
+            if (success) {
+              set({ stats: data || null });
             } else {
-              set({ error: result.data?.message || 'Erreur lors du chargement des statistiques' });
+              set({ error: message || 'Erreur lors du chargement des statistiques' });
             }
           } catch (error) {
             console.error('Error fetching stats:', error);
@@ -105,7 +101,7 @@ export const useTransactionStore = create<TransactionState>()(
             const result = await TransactionService.createDeposit(depositData);
             
             // Gestion cohérente - pas besoin de type assertion
-            const { success, message } = result.data || {};
+            const { success, message } = result || {};
             if (success) {
               await get().fetchDeposits();
               return true;

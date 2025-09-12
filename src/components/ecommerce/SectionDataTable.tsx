@@ -352,7 +352,13 @@ export default function SectionDataTable() {
                 <TableCell className="py-3">
                   <div className="flex gap-2">
                     <button
-                      onClick={() => handleEdit(section)}
+                      onClick={() => handleEdit({
+                        ...section,
+                        contact: {
+                          ...section.contact,
+                          www: section.contact.www || ''
+                        }
+                      } as Section)}
                       className="text-blue-600 hover:text-blue-800 text-sm"
                     >
                       Modifier
