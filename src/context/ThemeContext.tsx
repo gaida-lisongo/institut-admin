@@ -15,31 +15,28 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [theme, setTheme] = useState<Theme>("light");
+  // Force le thème à toujours être light
+  const [theme] = useState<Theme>("light");
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // This code will only run on the client side
-    const savedTheme = localStorage.getItem("theme") as Theme | null;
-    const initialTheme = savedTheme || "light"; // Default to light theme
-
-    setTheme(initialTheme);
+    // Initialisation côté client - toujours en mode light
     setIsInitialized(true);
   }, []);
 
   useEffect(() => {
     if (isInitialized) {
-      localStorage.setItem("theme", theme);
-      if (theme === "dark") {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-      }
+      // Force le mode light en supprimant toujours la classe dark
+      document.documentElement.classList.remove("dark");
+      // Supprime aussi du localStorage pour éviter tout conflit
+      localStorage.removeItem("theme");
     }
-  }, [theme, isInitialized]);
+  }, [isInitialized]);
 
+  // Fonction toggleTheme désactivée - ne fait rien
   const toggleTheme = () => {
-    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
+    // Ne fait rien - le thème reste toujours light
+    console.log("Theme switching is disabled - always light mode");
   };
 
   return (

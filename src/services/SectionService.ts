@@ -1,3 +1,5 @@
+import useAuthStore from "@/stores/authStore";
+
 class SectionService {
     private baseUrl: string;
 
@@ -6,11 +8,21 @@ class SectionService {
         this.baseUrl = '/api';
     }
 
+    private getAuthHeaders(): HeadersInit {
+        const token = useAuthStore.getState().token;
+        console.log("Retrieved section token:", token);
+        return {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+        };
+    }
+
     private async makeRequest(url: string, options: RequestInit = {}): Promise<any> {
+        console.log("Check Section Headers:", this.getAuthHeaders());
         try {
             const response = await fetch(url, {
                 headers: {
-                    'Content-Type': 'application/json',
+                    ...this.getAuthHeaders(),
                     ...options.headers,
                 },
                 ...options,

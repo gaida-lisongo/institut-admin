@@ -1,13 +1,26 @@
 import { Etudiant, EtudiantFormData } from "@/types/etudiant";
 import { PasswordUtils } from "@/utils/passwordUtils";
+import useAuthStore from "@/stores/authStore";
 
 const API_BASE_URL = "https://legendary-barnacle.onrender.com/api/v1/etudiant";
 
 export class EtudiantService {
+
+  // Fonction helper pour obtenir les headers d'authentification
+  private static getAuthHeaders(): HeadersInit {
+    const token = useAuthStore.getState().token;
+    return {
+      "Content-Type": "application/json",
+      ...(token && { "Authorization": `Bearer ${token}` }),
+    };
+  }
+
   // Récupérer tous les étudiants
   static async getEtudiants(): Promise<Etudiant[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}`);
+      const response = await fetch(`${API_BASE_URL}`, {
+        headers: this.getAuthHeaders(),
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -21,7 +34,9 @@ export class EtudiantService {
   // Récupérer un étudiant spécifique
   static async getEtudiant(id: string): Promise<Etudiant> {
     try {
-      const response = await fetch(`${API_BASE_URL}/${id}`);
+      const response = await fetch(`${API_BASE_URL}/${id}`, {
+        headers: this.getAuthHeaders(),
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -40,9 +55,7 @@ export class EtudiantService {
       
       const response = await fetch(`${API_BASE_URL}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify({
           ...etudiantData,
           secure: hashedPassword, // Utiliser le mot de passe crypté
@@ -86,9 +99,7 @@ export class EtudiantService {
 
       const response = await fetch(`${API_BASE_URL}/${id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(updateData),
       });
 
@@ -107,6 +118,7 @@ export class EtudiantService {
     try {
       const response = await fetch(`${API_BASE_URL}/${id}`, {
         method: "DELETE",
+        headers: this.getAuthHeaders(),
       });
 
       if (!response.ok) {

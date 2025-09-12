@@ -1,15 +1,24 @@
 import { Offre, OffreFormData, CreateOffreData, UpdateOffreData } from "@/types/offre";
+import useAuthStore from "@/stores/authStore";
 
 const API_BASE_URL = "https://legendary-barnacle.onrender.com/api";
 
 export class OffreService {
+
+  // Fonction helper pour obtenir les headers d'authentification
+  private static getAuthHeaders(): HeadersInit {
+    const token = useAuthStore.getState().token;
+    return {
+      "Content-Type": "application/json",
+      ...(token && { "Authorization": `Bearer ${token}` }),
+    };
+  }
+
   static async getOffres(): Promise<Offre[]> {
     try {
       const response = await fetch(`${API_BASE_URL}/offres`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: this.getAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -27,9 +36,7 @@ export class OffreService {
     try {
       const response = await fetch(`${API_BASE_URL}/offres/${id}`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: this.getAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -47,9 +54,7 @@ export class OffreService {
     try {
       const response = await fetch(`${API_BASE_URL}/offres?sectionId=${sectionId}`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: this.getAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -67,9 +72,7 @@ export class OffreService {
     try {
       const response = await fetch(`${API_BASE_URL}/offres`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(offreData),
       });
 
@@ -89,9 +92,7 @@ export class OffreService {
     try {
       const response = await fetch(`${API_BASE_URL}/offres/${id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(offreData),
       });
 
@@ -111,9 +112,7 @@ export class OffreService {
     try {
       const response = await fetch(`${API_BASE_URL}/offres/${id}`, {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: this.getAuthHeaders(),
       });
 
       if (!response.ok) {

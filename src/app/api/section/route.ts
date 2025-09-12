@@ -28,6 +28,11 @@ class SectionApiHandler {
 
     async handleGet(request: NextRequest): Promise<NextResponse> {
         try {
+            const autorisationHeader = request.headers.get('Authorization');
+            
+            if (!autorisationHeader) {
+                return this.createErrorResponse('Unauthorized', 401);
+            }
             const { searchParams } = new URL(request.url);
             const id = searchParams.get('id');
             const name = searchParams.get('name');
@@ -45,7 +50,9 @@ class SectionApiHandler {
                 url += `?${searchParams.toString()}`;
             }
 
-            const response = await this.makeRequest(url);
+            const response = await this.makeRequest(url, {
+                headers: {'Authorization': autorisationHeader},
+            });
             
             const resp = await response.json();
             
@@ -58,11 +65,17 @@ class SectionApiHandler {
 
     async handlePost(request: NextRequest): Promise<NextResponse> {
         try {
+            const autorisationHeader = request.headers.get('Authorization');
+            if (!autorisationHeader) {
+                return this.createErrorResponse('Unauthorized', 401);
+            }
+
             const body = await request.json();
             
             const response = await this.makeRequest(`${SERVER_API_URL}/section`, {
                 method: 'POST',
                 body: JSON.stringify(body),
+                headers: {'Authorization': autorisationHeader},
             });
 
             const data = await response.json();
@@ -75,6 +88,10 @@ class SectionApiHandler {
 
     async handlePut(request: NextRequest): Promise<NextResponse> {
         try {
+            const autorisationHeader = request.headers.get('Authorization');
+            if (!autorisationHeader) {
+                return this.createErrorResponse('Unauthorized', 401);
+            }
             const body = await request.json();
             const { id, ...updateData } = body;
 
@@ -85,6 +102,7 @@ class SectionApiHandler {
             const response = await this.makeRequest(`${SERVER_API_URL}/section/${id}`, {
                 method: 'PUT',
                 body: JSON.stringify(updateData),
+                headers: {'Authorization': autorisationHeader},
             });
 
             const data = await response.json();
@@ -97,6 +115,10 @@ class SectionApiHandler {
 
     async handleDelete(request: NextRequest): Promise<NextResponse> {
         try {
+            const autorisationHeader = request.headers.get('Authorization');
+            if (!autorisationHeader) {
+                return this.createErrorResponse('Unauthorized', 401);
+            }
             const { searchParams } = new URL(request.url);
             const id = searchParams.get('id');
 
@@ -106,6 +128,7 @@ class SectionApiHandler {
 
             const response = await this.makeRequest(`${SERVER_API_URL}/section/${id}`, {
                 method: 'DELETE',
+                headers: {'Authorization': autorisationHeader},
             });
 
             const data = await response.json();
@@ -120,6 +143,7 @@ class SectionApiHandler {
 const sectionHandler = new SectionApiHandler();
 
 export async function GET(request: NextRequest) {
+
     return sectionHandler.handleGet(request);
 }
 

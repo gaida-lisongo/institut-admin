@@ -1,4 +1,5 @@
 import { ApiResponse } from "./CommandeService";
+import useAuthStore from "@/stores/authStore";
 
 export interface Article {
   title: string;
@@ -28,14 +29,26 @@ export interface Annee {
 class AnneeService {
   private baseUrl = "https://legendary-barnacle.onrender.com/api/v1/annee";
 
+  private getAuthHeaders(): HeadersInit {
+    const token = useAuthStore.getState().token;
+    return {
+      "Content-Type": "application/json",
+      ...(token && { "Authorization": `Bearer ${token}` }),
+    };
+  }
+
   async getAnnees(): Promise<Annee[]> {
-    const res = await fetch(this.baseUrl);
+    const res = await fetch(this.baseUrl, {
+      headers: this.getAuthHeaders(),
+    });
     if (!res.ok) throw new Error("Erreur lors du chargement des années");
     return await res.json();
   }
 
   async getAnnee(id: string): Promise<Annee> {
-    const res = await fetch(`${this.baseUrl}/${id}`);
+    const res = await fetch(`${this.baseUrl}/${id}`, {
+      headers: this.getAuthHeaders(),
+    });
     if (!res.ok) throw new Error("Année non trouvée");
     return await res.json();
   }
@@ -43,7 +56,7 @@ class AnneeService {
   async createAnnee(data: Partial<Annee>): Promise<Annee> {
     const res = await fetch(this.baseUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error("Erreur lors de la création");
@@ -53,7 +66,7 @@ class AnneeService {
   async updateAnnee(id: string, data: Partial<Annee>): Promise<Annee> {
     const res = await fetch(`${this.baseUrl}/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error("Erreur lors de la modification");
@@ -63,6 +76,7 @@ class AnneeService {
   async deleteAnnee(id: string): Promise<{ message: string }> {
     const res = await fetch(`${this.baseUrl}/${id}`, {
       method: "DELETE",
+      headers: this.getAuthHeaders(),
     });
     if (!res.ok) throw new Error("Erreur lors de la suppression");
     return await res.json();

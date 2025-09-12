@@ -1,3 +1,5 @@
+import useAuthStore from "@/stores/authStore";
+
 // Types pour les transactions
 export interface Deposit {
   _id?: string;
@@ -52,11 +54,19 @@ class TransactionService {
     this.baseUrl = 'https://legendary-barnacle.onrender.com/api/v1/transaction';
   }
 
+  private getAuthHeaders(): HeadersInit {
+    const token = useAuthStore.getState().token;
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+    };
+  }
+
   private async makeRequest(url: string, options: RequestInit = {}): Promise<ApiResponse> {
     try {
       const response = await fetch(url, {
         headers: {
-          'Content-Type': 'application/json',
+          ...this.getAuthHeaders(),
           ...options.headers,
         },
         ...options,

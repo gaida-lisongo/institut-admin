@@ -1,3 +1,5 @@
+import useAuthStore from "@/stores/authStore";
+
 export interface Commande {
   _id?: string;
   productId: string;
@@ -57,11 +59,19 @@ class CommandeService {
     this.baseUrl = 'https://legendary-barnacle.onrender.com/api/v1/vente';
   }
 
+  private getAuthHeaders(): HeadersInit {
+    const token = useAuthStore.getState().token;
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+    };
+  }
+
   private async makeRequest(url: string, options: RequestInit = {}): Promise<{status: number, data: any}> {
     try {
       const response = await fetch(url, {
         headers: {
-          'Content-Type': 'application/json',
+          ...this.getAuthHeaders(),
           ...options.headers,
         },
         ...options,

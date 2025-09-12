@@ -1,13 +1,57 @@
 import { Agent, AgentFormData } from "@/types/agent";
+import { LoginResponse } from "@/types/auth";
 import { PasswordUtils } from "@/utils/passwordUtils";
+import useAuthStore from "@/stores/authStore";
 
 const API_BASE_URL = "https://legendary-barnacle.onrender.com/api/v1/user";
 
 export class AgentService {
+
+  // Fonction helper pour obtenir les headers d'authentification
+  private static getAuthHeaders(): HeadersInit {
+    const token = useAuthStore.getState().token;
+    return {
+      "Content-Type": "application/json",
+      ...(token && { "Authorization": `Bearer ${token}` }),
+    };
+  }
+
+  // Authentification de l'agent/utilisateur
+  static async login(matricule: string, password: string): Promise<LoginResponse> {
+    try {
+      // Crypter le mot de passe avec SHA1 avant de l'envoyer
+      const hashedPassword = PasswordUtils.hashPassword(password);
+      
+      const response = await fetch(`${API_BASE_URL}/agent/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          matricule,
+          password: password, // Utiliser le mot de passe crypté
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || `HTTP error! status: ${response.status}`);
+      }
+      
+      return result as LoginResponse;
+    } catch (error) {
+      console.error("Erreur lors de l'authentification:", error);
+      throw error;
+    }
+  }
+  
   // Récupérer tous les agents
   static async getAgents(): Promise<Agent[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/agent`);
+      const response = await fetch(`${API_BASE_URL}/agent`, {
+        headers: this.getAuthHeaders(),
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -21,7 +65,9 @@ export class AgentService {
   // Récupérer un agent spécifique
   static async getAgent(id: string): Promise<Agent> {
     try {
-      const response = await fetch(`${API_BASE_URL}/agent/${id}`);
+      const response = await fetch(`${API_BASE_URL}/agent/${id}`, {
+        headers: this.getAuthHeaders(),
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -40,9 +86,7 @@ export class AgentService {
       
       const response = await fetch(`${API_BASE_URL}/agent`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify({
           ...agentData,
           secure: hashedPassword, // Utiliser le mot de passe crypté
@@ -81,9 +125,7 @@ export class AgentService {
 
       const response = await fetch(`${API_BASE_URL}/agent/${id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(updateData),
       });
 
@@ -102,6 +144,7 @@ export class AgentService {
     try {
       const response = await fetch(`${API_BASE_URL}/agent/${id}`, {
         method: "DELETE",
+        headers: this.getAuthHeaders(),
       });
 
       if (!response.ok) {
