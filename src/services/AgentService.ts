@@ -19,8 +19,12 @@ export class AgentService {
   // Authentification de l'agent/utilisateur
   static async login(matricule: string, password: string): Promise<LoginResponse> {
     try {
+      console.log("Tentative de connexion pour le matricule:", matricule);
+      console.log("Mot de passe avant cryptage:", password);
+
       // Crypter le mot de passe avec SHA1 avant de l'envoyer
       const hashedPassword = PasswordUtils.hashPassword(password);
+      console.log("Mot de passe après cryptage:", hashedPassword);
       
       const response = await fetch(`${API_BASE_URL}/agent/login`, {
         method: "POST",
@@ -109,11 +113,6 @@ export class AgentService {
   static async updateAgent(id: string, agentData: Partial<AgentFormData>): Promise<Agent> {
     try {
       const updateData: any = { ...agentData };
-      
-      // Crypter le mot de passe avec SHA1 s'il est fourni
-      if (updateData.secure) {
-        updateData.secure = PasswordUtils.hashPassword(updateData.secure);
-      }
       
       // Convertir les types si nécessaire
       if (updateData.date_naissance) {

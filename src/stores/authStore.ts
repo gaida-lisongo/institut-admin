@@ -60,7 +60,9 @@ const useAuthStore = create<AuthStore>()(
               sexe: userData?.sexe as "" | "M" | "F" | undefined,
               nationalite: userData?.nationalite,
               lieu_naissance: userData?.lieu_naissance,
-              date_naissance: userData?.date_naissance?.toISOString(),
+              date_naissance: userData?.date_naissance 
+                ? (typeof userData.date_naissance === 'string' ? userData.date_naissance : userData.date_naissance.toISOString())
+                : (typeof currentUser.date_naissance === 'string' ? currentUser.date_naissance : currentUser.date_naissance.toISOString()),
               matricule: userData?.matricule,
               solde: userData?.solde,
               grade: userData?.grade,
@@ -69,8 +71,12 @@ const useAuthStore = create<AuthStore>()(
               telephone: userData?.telephone,
               email: userData?.email,
               adresse: userData?.adresse,
+              secure: userData?.secure, // Le mot de passe sera crypté dans le service
             };
 
+            console.log("Mise à jour de l'utilisateur avec les données:", userData);
+            console.log("Utilisateur à mettre à jour:", userToUpdate);
+            
             AgentService.updateAgent(currentUser._id!, userToUpdate).then((updatedUser) => {
               console.log("Utilisateur mis à jour avec succès:", updatedUser);
               set({
