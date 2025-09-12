@@ -3,15 +3,53 @@ import React from "react";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
-import Input from "../form/input/InputField";
 import Label from "../form/Label";
+import useAuthStore from "@/stores/authStore";
 
 export default function UserAddressCard() {
   const { isOpen, openModal, closeModal } = useModal();
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving changes...");
-    closeModal();
+  const { user, updateUser } = useAuthStore();
+
+  // Références pour les champs du formulaire
+  const telephoneRef = React.useRef<HTMLInputElement>(null);
+  const emailRef = React.useRef<HTMLInputElement>(null);
+  const adresseRef = React.useRef<HTMLTextAreaElement>(null);
+
+  React.useEffect(() => {
+    console.log("User data from store:", user);
+  }, [user]);
+
+  // Fonction pour réinitialiser le formulaire avec les données utilisateur
+  const resetForm = () => {
+    if (user && isOpen) {
+      if (telephoneRef.current) telephoneRef.current.value = user.telephone || '';
+      if (emailRef.current) emailRef.current.value = user.email || '';
+      if (adresseRef.current) adresseRef.current.value = user.adresse || '';
+    }
+  };
+
+  React.useEffect(() => {
+    resetForm();
+  }, [isOpen, user]);
+
+  const handleSave = async () => {
+    try {
+      // Récupérer les valeurs des champs
+      const updateData: any = {
+        telephone: telephoneRef.current?.value || '',
+        email: emailRef.current?.value || '',
+        adresse: adresseRef.current?.value || '',
+      };
+
+      // Mettre à jour l'utilisateur
+      await updateUser(updateData);
+      
+      console.log("Coordonnées mises à jour avec succès");
+      closeModal();
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour:", error);
+      alert("Erreur lors de la mise à jour des coordonnées. Veuillez réessayer.");
+    }
   };
   return (
     <>
@@ -19,43 +57,33 @@ export default function UserAddressCard() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-6">
-              Address
+              Coordonnées
             </h4>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  Country
+                  Telephone
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  United States
+                  {user?.telephone ?? "Téléphone non renseigné"}
+                </p>
+              </div>
+              <div>
+                <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                  E-mail
+                </p>
+                <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                  {user?.email ?? "E-mail non renseigné"}
                 </p>
               </div>
 
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  City/State
+                  Adresse
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  Phoenix, Arizona, United States.
-                </p>
-              </div>
-
-              <div>
-                <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  Postal Code
-                </p>
-                <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  ERT 2489
-                </p>
-              </div>
-
-              <div>
-                <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  TAX ID
-                </p>
-                <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  AS4568384
+                  {user?.adresse ?? "Adresse non renseignée"}
                 </p>
               </div>
             </div>
@@ -80,7 +108,7 @@ export default function UserAddressCard() {
                 fill=""
               />
             </svg>
-            Edit
+            Modifier les Coordonnées
           </button>
         </div>
       </div>
@@ -88,33 +116,46 @@ export default function UserAddressCard() {
         <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Edit Address
+              Modifier les Coordonnées
             </h4>
             <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-              Update your details to keep your profile up-to-date.
+              Mettez à jour vos informations de contact.
             </p>
           </div>
           <form className="flex flex-col">
             <div className="px-2 overflow-y-auto custom-scrollbar">
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-x-6 gap-y-5">
                 <div>
-                  <Label>Country</Label>
-                  <Input type="text" defaultValue="United States" />
+                  <Label>Téléphone</Label>
+                  <input
+                    ref={telephoneRef}
+                    type="tel"
+                    defaultValue={user?.telephone || ''}
+                    placeholder="Entrez votre numéro de téléphone"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                  />
                 </div>
 
                 <div>
-                  <Label>City/State</Label>
-                  <Input type="text" defaultValue="Arizona, United States." />
+                  <Label>E-mail</Label>
+                  <input
+                    ref={emailRef}
+                    type="email"
+                    defaultValue={user?.email || ''}
+                    placeholder="Entrez votre adresse e-mail"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                  />
                 </div>
 
                 <div>
-                  <Label>Postal Code</Label>
-                  <Input type="text" defaultValue="ERT 2489" />
-                </div>
-
-                <div>
-                  <Label>TAX ID</Label>
-                  <Input type="text" defaultValue="AS4568384" />
+                  <Label>Adresse</Label>
+                  <textarea
+                    ref={adresseRef}
+                    defaultValue={user?.adresse || ''}
+                    placeholder="Entrez votre adresse complète"
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white resize-vertical"
+                  />
                 </div>
               </div>
             </div>

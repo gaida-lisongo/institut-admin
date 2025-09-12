@@ -13,6 +13,11 @@ export interface Agent {
   grade: string;
   titre: string;
   photo?: string;
+  telephone?: string;
+  email?: string;
+  adresse?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface AgentFormData {
@@ -29,6 +34,9 @@ export interface AgentFormData {
   grade: string;
   titre: string;
   photo?: string;
+  telephone?: string;
+  email?: string;
+  adresse?: string;
 }
 
 export interface AgentCSVTemplate {

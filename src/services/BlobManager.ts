@@ -1,8 +1,17 @@
+import useAuthStore from "@/stores/authStore";
+
 class BlobManager {
     private apiUrl: string;
 
     constructor() {
         this.apiUrl = '/api'; // Utilise les API routes locales
+    }
+
+    private getAuthHeaders(): HeadersInit {
+        const token = useAuthStore.getState().token;
+        return {
+            ...(token && { "Authorization": `Bearer ${token}` }),
+        };
     }
 
     async createBlob(fileBlob: File, metadata?: Record<string, any>) {
@@ -14,6 +23,7 @@ class BlobManager {
 
         const response = await fetch(`${this.apiUrl}/upload`, {
             method: 'POST',
+            headers: this.getAuthHeaders(),
             body: formData,
         });
 
