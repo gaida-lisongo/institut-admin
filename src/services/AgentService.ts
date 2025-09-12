@@ -113,7 +113,7 @@ export class AgentService {
   static async updateAgent(id: string, agentData: Partial<AgentFormData>): Promise<Agent> {
     try {
       const updateData: any = { ...agentData };
-      
+      console.log("Données reçues pour la mise à jour de l'agent:", updateData);
       // Convertir les types si nécessaire
       if (updateData.date_naissance) {
         updateData.date_naissance = new Date(updateData.date_naissance);

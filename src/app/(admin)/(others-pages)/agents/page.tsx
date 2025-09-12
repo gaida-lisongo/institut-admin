@@ -236,7 +236,9 @@ export default function AgentsPage() {
     if (!passwordAgent?._id) return;
     
     try {
-      await updateAgent(passwordAgent._id, { secure: newPassword });
+      console.log("Nouveau mot de passe à définir:", newPassword);
+      console.log("Nouveau mot de passe à définir:", PasswordUtils.hashPassword(newPassword));
+      await updateAgent(passwordAgent._id, { secure: PasswordUtils.hashPassword(newPassword) });
       alert(`Mot de passe mis à jour avec succès pour ${passwordAgent.nom} ${passwordAgent.prenom}`);
     } catch (error) {
       console.error('Erreur lors de la mise à jour du mot de passe:', error);

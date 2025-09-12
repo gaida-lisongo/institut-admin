@@ -85,8 +85,8 @@ export default function UserSecurityCard() {
       // Vérifier si le mot de passe actuel est correct
       // On crypte le mot de passe saisi et on le compare avec celui stocké
       const hashedCurrentPassword = PasswordUtils.hashPassword(currentPassword);
-      console.log("Hashed current password:", hashedCurrentPassword); 
-      console.log("User's stored secure password:", user.secure);
+
+      
       if (hashedCurrentPassword !== user.secure) {
         alert('Le mot de passe actuel est incorrect');
         return;
