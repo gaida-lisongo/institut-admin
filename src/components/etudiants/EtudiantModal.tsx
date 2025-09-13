@@ -48,10 +48,10 @@ export default function EtudiantModal({
         lieu_naissance: etudiant.lieu_naissance,
         date_naissance: etudiant.date_naissance instanceof Date 
           ? etudiant.date_naissance.toISOString().split('T')[0]
-          : etudiant.date_naissance.split('T')[0],
+          : etudiant.date_naissance ? etudiant.date_naissance.split('T')[0] : "",
         matricule: etudiant.matricule,
         secure: etudiant.secure,
-        solde: etudiant.solde,
+        solde: etudiant.solde || 0,
         photo: etudiant.photo || "",
       });
     } else {

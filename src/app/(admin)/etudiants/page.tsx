@@ -159,14 +159,16 @@ export default function EtudiantsPage() {
       key: "solde" as keyof Etudiant,
       header: "Solde",
       render: (etudiant: Etudiant) => {
-        const solde = etudiant.solde || 0;
+        if (etudiant.solde === undefined || etudiant.solde === null) {
+          return <span className="text-gray-400">Non défini</span>;
+        }
         return (
           <span className={`font-medium ${
-            solde >= 0 
+            etudiant.solde >= 0 
               ? 'text-green-600 dark:text-green-400' 
               : 'text-red-600 dark:text-red-400'
           }`}>
-            {solde.toLocaleString('fr-FR')} CDF
+            {etudiant.solde.toLocaleString('fr-FR')} CDF
           </span>
         );
       },
