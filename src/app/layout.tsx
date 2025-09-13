@@ -10,7 +10,7 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: 'Institut Admin - Système de Gestion',
+  title: 'Institut Admin - Gestion des sites',
   description: 'Plateforme d\'administration complète pour la gestion des sections, étudiants, offres, agendas, galeries et équipes de l\'institut. Interface moderne et intuitive pour une gestion efficace de tous les aspects administratifs.',
   keywords: 'institut, administration, gestion, étudiants, sections, offres, agenda, galerie, équipe',
   authors: [{ name: 'Institut Admin Team' }],
