@@ -50,7 +50,7 @@ export default function AgentModal({
         lieu_naissance: agent.lieu_naissance,
         date_naissance: agent.date_naissance instanceof Date 
           ? agent.date_naissance.toISOString().split('T')[0]
-          : agent.date_naissance.split('T')[0],
+          : agent.date_naissance ? agent.date_naissance.split('T')[0] : "",
         matricule: agent.matricule,
         secure: agent.secure,
         solde: agent.solde,
