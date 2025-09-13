@@ -85,7 +85,7 @@ class SectionService {
     }
 
     async deleteSection(id: string): Promise<any> {
-        const url = `${this.baseUrl}/section?id=${encodeURIComponent(id)}`;
+        const url = `${this.baseUrl}/section/${encodeURIComponent(id)}`;
         return this.makeRequest(url, {
             method: 'DELETE',
         });
