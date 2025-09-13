@@ -77,7 +77,7 @@ class SectionService {
     }
 
     async updateSection(id: string, sectionData: any): Promise<any> {
-        const url = `${this.baseUrl}/section`;
+        const url = `${this.baseUrl}/section/${encodeURIComponent(id)}`;
         return this.makeRequest(url, {
             method: 'PUT',
             body: JSON.stringify({ id, ...sectionData }),
