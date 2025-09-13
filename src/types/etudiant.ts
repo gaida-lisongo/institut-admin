@@ -14,7 +14,7 @@ export interface Etudiant {
   date_naissance: Date | string;
   matricule: string;
   secure: string; // mot de passe
-  solde: number;
+  solde?: number;
   documents?: string[]; // URLs des documents
   photo?: string;
   semestres?: Semestre[]; // Géré par l'étudiant lui-même

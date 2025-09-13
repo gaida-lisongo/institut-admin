@@ -70,7 +70,7 @@ export default function EtudiantsPage() {
 
   // Calcul des statistiques
   const totalEtudiants = etudiants.length;
-  const totalSolde = etudiants.reduce((sum, etudiant) => sum + etudiant.solde, 0);
+  const totalSolde = etudiants.reduce((sum, etudiant) => sum + (etudiant.solde || 0), 0);
   const etudiantsHommes = etudiants.filter(e => e.sexe === 'M').length;
   const etudiantsFemmes = etudiants.filter(e => e.sexe === 'F').length;
   const soldeMoyen = totalEtudiants > 0 ? totalSolde / totalEtudiants : 0;
@@ -158,15 +158,18 @@ export default function EtudiantsPage() {
     {
       key: "solde" as keyof Etudiant,
       header: "Solde",
-      render: (etudiant: Etudiant) => (
-        <span className={`font-medium ${
-          etudiant.solde >= 0 
-            ? 'text-green-600 dark:text-green-400' 
-            : 'text-red-600 dark:text-red-400'
-        }`}>
-          {etudiant.solde.toLocaleString('fr-FR')} CDF
-        </span>
-      ),
+      render: (etudiant: Etudiant) => {
+        const solde = etudiant.solde || 0;
+        return (
+          <span className={`font-medium ${
+            solde >= 0 
+              ? 'text-green-600 dark:text-green-400' 
+              : 'text-red-600 dark:text-red-400'
+          }`}>
+            {solde.toLocaleString('fr-FR')} CDF
+          </span>
+        );
+      },
     },
     {
       key: "created_at" as keyof Etudiant,
