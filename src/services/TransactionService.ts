@@ -72,7 +72,7 @@ class TransactionService {
 
   constructor() {
     // Utilise l'URL du serveur distant
-    this.baseUrl = 'https://legendary-barnacle.onrender.com/api/v1/transaction';
+    this.baseUrl = 'https://server.inbtp.net/api/v1/transaction';
   }
 
   private getAuthHeaders(): HeadersInit {

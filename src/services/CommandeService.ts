@@ -56,7 +56,7 @@ class CommandeService {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = 'https://legendary-barnacle.onrender.com/api/v1/vente';
+    this.baseUrl = 'https://server.inbtp.net/api/v1/vente';
   }
 
   private getAuthHeaders(): HeadersInit {

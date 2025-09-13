@@ -3,7 +3,7 @@ import { LoginResponse } from "@/types/auth";
 import { PasswordUtils } from "@/utils/passwordUtils";
 import useAuthStore from "@/stores/authStore";
 
-const API_BASE_URL = "https://legendary-barnacle.onrender.com/api/v1/user";
+const API_BASE_URL = "https://server.inbtp.net/api/v1/user";
 
 export class AgentService {
 

@@ -1,7 +1,7 @@
 import { Offre, OffreFormData, CreateOffreData, UpdateOffreData } from "@/types/offre";
 import useAuthStore from "@/stores/authStore";
 
-const API_BASE_URL = "https://legendary-barnacle.onrender.com/api";
+const API_BASE_URL = "https://server.inbtp.net/api";
 
 export class OffreService {
 

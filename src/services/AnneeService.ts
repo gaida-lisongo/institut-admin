@@ -27,7 +27,7 @@ export interface Annee {
 }
 
 class AnneeService {
-  private baseUrl = "https://legendary-barnacle.onrender.com/api/v1/annee";
+  private baseUrl = "https://server.inbtp.net/api/v1/annee";
 
   private getAuthHeaders(): HeadersInit {
     const token = useAuthStore.getState().token;

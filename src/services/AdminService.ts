@@ -1,7 +1,7 @@
 import { Admin, AdminWithAgent, CreateAdminRequest, UpdateAdminRequest } from "@/types/admin";
 import useAuthStore from "@/stores/authStore";
 
-const API_BASE_URL = "https://admin.inbtp.net/api/v1/admin";
+const API_BASE_URL = "https://server.inbtp.net/api/v1/admin";
 
 export class AdminService {
 
