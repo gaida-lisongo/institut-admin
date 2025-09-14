@@ -1,4 +1,4 @@
-import { Agent, AgentFormData } from "@/types/agent";
+import { Agent, AgentFormData, Privilge } from "@/types/agent";
 import { LoginResponse } from "@/types/auth";
 import { PasswordUtils } from "@/utils/passwordUtils";
 import useAuthStore from "@/stores/authStore";
@@ -169,6 +169,73 @@ export class AgentService {
       }
     } catch (error) {
       console.error("Erreur lors de la suppression de l'agent:", error);
+      throw error;
+    }
+  }
+
+  static async getPrivilegesByAgent(id: string): Promise<Privilge[] | null> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/privilege/user/${id}`, {
+        headers: this.getAuthHeaders(),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la récupération des privilèges de l'agent:", error);
+      throw error;
+    }
+  }
+
+  async createPrivilege(privilegeData: Privilge): Promise<Privilge> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/privilege`, {
+        method: "POST",
+        headers: AgentService.getAuthHeaders(),
+        body: JSON.stringify(privilegeData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la création du privilège:", error);
+      throw error;
+    }
+  }
+
+  async deletePrivilege(id: string): Promise<void> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/privilege/${id}`, {
+        method: "DELETE",
+        headers: AgentService.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la suppression du privilège:", error);
+      throw error;
+    }
+  }
+
+  async updatePrivilege(id: string, privilegeData: Partial<Privilge>): Promise<Privilge> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/privilege/${id}`, {
+        method: "PUT",
+        headers: AgentService.getAuthHeaders(),
+        body: JSON.stringify(privilegeData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du privilège:", error);
       throw error;
     }
   }
