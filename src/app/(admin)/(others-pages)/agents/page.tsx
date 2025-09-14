@@ -9,13 +9,18 @@ import { useAgentStore } from "@/stores/agentStore";
 import { useModal } from "@/hooks/useModal";
 import { Agent, AgentFormData } from "@/types/agent";
 import { PasswordUtils } from "@/utils/passwordUtils";
+import PrivilegeModal from "@/components/agents/PrivilegeModal";
 
 export default function AgentsPage() {
   const { isOpen: isModalOpen, openModal, closeModal } = useModal();
   const { isOpen: isCSVModalOpen, openModal: openCSVModal, closeModal: closeCSVModal } = useModal();
   const { isOpen: isPasswordModalOpen, openModal: openPasswordModal, closeModal: closePasswordModal } = useModal();
+  const { isOpen: isPrivilegeModalOpen, openModal: openPrivilegeModal, closeModal: closePrivilegeModal } = useModal();
+  
+
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [passwordAgent, setPasswordAgent] = useState<Agent | null>(null);
+  const [privilegeAgent, setPrivilegeAgent] = useState<Agent | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
 
   const {
@@ -181,6 +186,16 @@ export default function AgentsPage() {
           <button
             onClick={(e) => {
               e.stopPropagation();
+              handleManagePrivileges(agent);
+            }}
+            className="p-1 text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300"
+            title="Gérer les privilèges"
+          >
+            🛡️
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
               handleUpdateMatricule(agent);
             }}
             className="p-1 text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300"
@@ -204,6 +219,11 @@ export default function AgentsPage() {
     },
   ];
 
+
+  const handleManagePrivileges = (agent: Agent) => {
+    setPrivilegeAgent(agent);
+    openPrivilegeModal();
+  };
   // Actions pour chaque ligne
   const handleEdit = (agent: Agent) => {
     setSelectedAgent(agent);
@@ -410,6 +430,12 @@ export default function AgentsPage() {
         onClose={closePasswordModal}
         onConfirm={handlePasswordConfirm}
         agentName={passwordAgent ? `${passwordAgent.nom} ${passwordAgent.prenom}` : ''}
+      />
+      {/* Modal pour la gestion des privilèges */}
+      <PrivilegeModal
+        isOpen={isPrivilegeModalOpen}
+        onClose={closePrivilegeModal}
+        agent={privilegeAgent}
       />
     </div>
   );
