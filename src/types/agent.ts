@@ -53,3 +53,11 @@ export interface AgentCSVTemplate {
   grade: string;
   titre: string;
 }
+
+
+export interface Privilge {
+  _id?: string;
+  role: string;
+  sectionId: string;
+  userId: string;
+}

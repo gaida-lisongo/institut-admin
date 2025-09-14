@@ -1,4 +1,4 @@
-import { Agent, AgentFormData } from "@/types/agent";
+import { Agent, AgentFormData, Privilge } from "@/types/agent";
 import { LoginResponse } from "@/types/auth";
 import { PasswordUtils } from "@/utils/passwordUtils";
 import useAuthStore from "@/stores/authStore";
