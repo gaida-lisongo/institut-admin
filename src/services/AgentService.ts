@@ -173,6 +173,21 @@ export class AgentService {
     }
   }
 
+  static async getPrivilegesByAgent(id: string): Promise<Privilge[] | null> {
+    try {
+      const response = await fetch(`https://server.inbtp.net/api/v1/privilege/user/${id}`, {
+        headers: this.getAuthHeaders(),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la récupération des privilèges de l'agent:", error);
+      throw error;
+    }
+  }
+
   // Créer plusieurs agents via CSV
   static async createAgentsFromCSV(agents: AgentFormData[]): Promise<Agent[]> {
     try {
