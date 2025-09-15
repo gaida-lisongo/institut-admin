@@ -18,6 +18,8 @@ import {
   UserCircleIcon,
 } from "../icons/index";
 import SidebarWidget from "./SidebarWidget";
+import { Privilge } from "@/types/agent";
+import { useSectionStore } from "@/stores/sectionStore";
 
 type NavItem = {
   name: string;
@@ -25,6 +27,12 @@ type NavItem = {
   path?: string;
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
+
+type MenuItem = {
+  role: string; 
+  category: string; 
+  menu:NavItem[];
+}
 
 const navItems: NavItem[] = [
   {
@@ -83,70 +91,238 @@ const othersItems: NavItem[] = [
       // { name: "Clubs", path: "/clubs"},
     ],
   },
-  // {
-  //   name: "Forms",
-  //   icon: <ListIcon />,
-  //   subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
-  // },
-  // {
-  //   name: "Tables",
-  //   icon: <TableIcon />,
-  //   subItems: [{ name: "Basic Tables", path: "/basic-tables", pro: false }],
-  // },
-  // {
-  //   name: "Pages",
-  //   icon: <PageIcon />,
-  //   subItems: [
-  //     { name: "Blank Page", path: "/blank", pro: false },
-  //     { name: "404 Error", path: "/error-404", pro: false },
-  //   ],
-  // },
-  // {
-  //   icon: <PieChartIcon />,
-  //   name: "Charts",
-  //   subItems: [
-  //     { name: "Line Chart", path: "/line-chart", pro: false },
-  //     { name: "Bar Chart", path: "/bar-chart", pro: false },
-  //   ],
-  // },
-  // {
-  //   icon: <BoxCubeIcon />,
-  //   name: "UI Elements",
-  //   subItems: [
-  //     { name: "Alerts", path: "/alerts", pro: false },
-  //     { name: "Avatar", path: "/avatars", pro: false },
-  //     { name: "Badge", path: "/badge", pro: false },
-  //     { name: "Buttons", path: "/buttons", pro: false },
-  //     { name: "Images", path: "/images", pro: false },
-  //     { name: "Videos", path: "/videos", pro: false },
-  //   ],
-  // },
-  // {
-  //   icon: <PlugInIcon />,
-  //   name: "Authentication",
-  //   subItems: [
-  //     { name: "Sign In", path: "/signin", pro: false },
-  //     { name: "Sign Up", path: "/signup", pro: false },
-  //   ],
-  // },
 ];
 
+const renderMenu = ({item, isExpanded, isHovered, isMobileOpen, renderMenuItems, menuKey} : {
+  item:MenuItem, 
+  isExpanded: boolean, 
+  isHovered: boolean, 
+  isMobileOpen: boolean, 
+  renderMenuItems: (items: NavItem[], menuKey: string) => any,
+  menuKey: string
+}) => {
+  return (    
+      <div>
+        <h2
+          className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
+            !isExpanded && !isHovered
+              ? "lg:justify-center"
+              : "justify-start"
+          }`}
+        >
+          {isExpanded || isHovered || isMobileOpen ? (
+            item.category
+          ) : (
+            <HorizontaLDots />
+          )}
+        </h2>
+        {renderMenuItems(item.menu, menuKey)}
+      </div>
+  )
+};
+
 const AppSidebar: React.FC = () => {
+  const { sections } = useSectionStore();
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const [privileges, setPrivileges] = useState<Privilge[]>([]);
+  const [menuAdmin, setMenuAdmin] = useState<MenuItem[]>([]);
   const pathname = usePathname();
+
+  const makeMenuAdministration = (sectionsId: string[]): NavItem[] => {
+    const cyclesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
+      const section = sections.find(sec => sec._id === sectionId);
+      return {
+        name: section ? `Cycles ${section.description.sigle}` : "Section inconnue",
+        path: section ? `/cycles/${section._id}` : "/cycles/inconnu",
+      };
+    });
+
+    const jurySection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
+      const section = sections.find(sec => sec._id === sectionId);
+      return {
+        name: section ? `Jury ${section.description.sigle}` : "Section inconnue",
+        path: section ? `/jury/${section._id}` : "/jury/inconnu",
+      };
+    });
+
+    const adminSection: NavItem[] = [
+      {
+        icon: <GridIcon />,
+        name: "Dashboard",
+        path: "/"
+      },
+      {
+        name: "Cycles",
+        icon: <BoxCubeIcon />,
+        subItems: cyclesSection,
+      },
+      {
+        icon: <PieChartIcon />,
+        name: "Bureaux du Jury",
+        subItems: jurySection,
+      },
+    ];
+
+    return adminSection;
+
+  }
+
+  const makeMenuEnseignement = (sectionsId: string[]): NavItem[] => {
+    const unitesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
+      const section = sections.find(sec => sec._id === sectionId);
+      return {
+        name: section ? `Unites ${section.description.sigle}` : "Section inconnue",
+        path: section ? `/unites/${section._id}` : "/unites/inconnu",
+      };
+    });
+
+    const chargesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
+      const section = sections.find(sec => sec._id === sectionId);
+      return {
+        name: section ? `Charges ${section.description.sigle}` : "Section inconnue",
+        path: section ? `/charges/${section._id}` : "/charges/inconnu",
+      };
+    });
+
+    
+    const enseignementsSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
+      const section = sections.find(sec => sec._id === sectionId);
+      return {
+        name: section ? `Semestres ${section.description.sigle}` : "Section inconnue",
+        path: section ? `/semestres/${section._id}` : "/semestres/inconnu",
+      };
+    });
+
+    const adminSection: NavItem[] = [
+      {
+        icon: <PageIcon />,
+        name: "Unités d'Enseignement",
+        subItems: unitesSection,
+      },
+      {
+        name: "Charges Horaires",
+        icon: <PageIcon />,
+        subItems: chargesSection,
+      },
+      {
+        icon: <PageIcon />,
+        name: "Etats d'avancement",
+        subItems: enseignementsSection,
+      },
+    ];
+
+    return adminSection;
+
+  }
+
+  const makeMenuRecherche = (sectionsId: string[]): NavItem[] => {
+    const thematiquesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
+      const section = sections.find(sec => sec._id === sectionId);
+      return {
+        name: section ? `Sujets ${section.description.sigle}` : "Section inconnue",
+        path: section ? `/sujets/${section._id}` : "/sujets/inconnu",
+      };
+    });
+
+    const sujetsSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
+      const section = sections.find(sec => sec._id === sectionId);
+      return {
+        name: section ? `Stages ${section.description.sigle}` : "Section inconnue",
+        path: section ? `/stages/${section._id}` : "/stages/inconnu",
+      };
+    });
+
+    
+    const recherchesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
+      const section = sections.find(sec => sec._id === sectionId);
+      return {
+        name: section ? `Recherche ${section.description.sigle}` : "Section inconnue",
+        path: section ? `/recherches/${section._id}` : "/recherches/inconnu",
+      };
+    });
+
+    const adminSection: NavItem[] = [
+      {
+        icon: <PageIcon />,
+        name: "Sujets de recherche",
+        subItems: thematiquesSection,
+      },
+      {
+        name: "Stages de de recherche",
+        icon: <PageIcon />,
+        subItems: sujetsSection,
+      },
+      {
+        icon: <PageIcon />,
+        name: "Etats de la recherche",
+        subItems: recherchesSection,
+      },
+    ];
+
+    return adminSection;
+
+  }
+
+  const makeMenuSection = (sectionsId: string[]): NavItem[] => {
+    const retraitsSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
+      const section = sections.find(sec => sec._id === sectionId);
+      return {
+        name: section ? `Retraits ${section.description.sigle}` : "Section inconnue",
+        path: section ? `/retraits/${section._id}` : "/retraits/inconnu",
+      };
+    });
+
+    const autorisationsSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
+      const section = sections.find(sec => sec._id === sectionId);
+      return {
+        name: section ? `Autorisations ${section.description.sigle}` : "Section inconnue",
+        path: section ? `/autorisations/${section._id}` : "/autorisations/inconnu",
+      };
+    });
+
+    
+    const messagesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
+      const section = sections.find(sec => sec._id === sectionId);
+      return {
+        name: section ? `Messages ${section.description.sigle}` : "Section inconnue",
+        path: section ? `/messages/${section._id}` : "/messages/inconnu",
+      };
+    });
+
+    const adminSection: NavItem[] = [
+      {
+        icon: <PageIcon />,
+        name: "Retraits",
+        subItems: retraitsSection,
+      },
+      {
+        name: "Autorisations",
+        icon: <PageIcon />,
+        subItems: autorisationsSection,
+      },
+      {
+        icon: <PageIcon />,
+        name: "Messageries",
+        subItems: messagesSection,
+      },
+    ];
+
+    return adminSection;
+
+  }
 
   const renderMenuItems = (
     navItems: NavItem[],
-    menuType: "main" | "others"
+    menuKey: string
   ) => (
     <ul className="flex flex-col gap-4">
       {navItems.map((nav, index) => (
         <li key={nav.name}>
           {nav.subItems ? (
             <button
-              onClick={() => handleSubmenuToggle(index, menuType)}
+              onClick={() => handleSubmenuToggle(index, menuKey)}
               className={`menu-item group  ${
-                openSubmenu?.type === menuType && openSubmenu?.index === index
+                openSubmenu?.menuKey === menuKey && openSubmenu?.index === index
                   ? "menu-item-active"
                   : "menu-item-inactive"
               } cursor-pointer ${
@@ -157,7 +333,7 @@ const AppSidebar: React.FC = () => {
             >
               <span
                 className={` ${
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
+                  openSubmenu?.menuKey === menuKey && openSubmenu?.index === index
                     ? "menu-item-icon-active"
                     : "menu-item-icon-inactive"
                 }`}
@@ -170,7 +346,7 @@ const AppSidebar: React.FC = () => {
               {(isExpanded || isHovered || isMobileOpen) && (
                 <ChevronDownIcon
                   className={`ml-auto w-5 h-5 transition-transform duration-200  ${
-                    openSubmenu?.type === menuType &&
+                    openSubmenu?.menuKey === menuKey &&
                     openSubmenu?.index === index
                       ? "rotate-180 text-brand-500"
                       : ""
@@ -204,13 +380,13 @@ const AppSidebar: React.FC = () => {
           {nav.subItems && (isExpanded || isHovered || isMobileOpen) && (
             <div
               ref={(el) => {
-                subMenuRefs.current[`${menuType}-${index}`] = el;
+                subMenuRefs.current[`${menuKey}-${index}`] = el;
               }}
               className="overflow-hidden transition-all duration-300"
               style={{
                 height:
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? `${subMenuHeight[`${menuType}-${index}`]}px`
+                  openSubmenu?.menuKey === menuKey && openSubmenu?.index === index
+                    ? `${subMenuHeight[`${menuKey}-${index}`]}px`
                     : "0px",
               }}
             >
@@ -262,7 +438,7 @@ const AppSidebar: React.FC = () => {
   );
 
   const [openSubmenu, setOpenSubmenu] = useState<{
-    type: "main" | "others";
+    menuKey: string;
     index: number;
   } | null>(null);
   const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
@@ -273,17 +449,30 @@ const AppSidebar: React.FC = () => {
   // const isActive = (path: string) => path === pathname;
    const isActive = useCallback((path: string) => path === pathname, [pathname]);
 
+   useEffect(() => {
+     // Fetch user privileges from the API or context
+     const fetchUserPrivileges = async () => {
+      const privilegesData = localStorage.getItem("privileges");
+      if (privilegesData) {
+        setPrivileges(JSON.parse(privilegesData));
+      }
+     };
+
+     fetchUserPrivileges();
+   }, []);
+
   useEffect(() => {
     // Check if the current path matches any submenu item
     let submenuMatched = false;
-    ["main", "others"].forEach((menuType) => {
-      const items = menuType === "main" ? navItems : othersItems;
-      items.forEach((nav, index) => {
+    
+    // Vérifier dans menuAdmin d'abord
+    menuAdmin.forEach((menuItem, menuIdx) => {
+      menuItem.menu.forEach((nav, index) => {
         if (nav.subItems) {
           nav.subItems.forEach((subItem) => {
             if (isActive(subItem.path)) {
               setOpenSubmenu({
-                type: menuType as "main" | "others",
+                menuKey: `${menuItem.role}-${menuIdx}`,
                 index,
               });
               submenuMatched = true;
@@ -293,16 +482,16 @@ const AppSidebar: React.FC = () => {
       });
     });
 
-    // If no submenu item matches, close the open submenu
+    // Si aucun sous-menu ne correspond, fermer le sous-menu ouvert
     if (!submenuMatched) {
       setOpenSubmenu(null);
     }
-  }, [pathname,isActive]);
+  }, [pathname, isActive, menuAdmin]);
 
   useEffect(() => {
     // Set the height of the submenu items when the submenu is opened
     if (openSubmenu !== null) {
-      const key = `${openSubmenu.type}-${openSubmenu.index}`;
+      const key = `${openSubmenu.menuKey}-${openSubmenu.index}`;
       if (subMenuRefs.current[key]) {
         setSubMenuHeight((prevHeights) => ({
           ...prevHeights,
@@ -312,19 +501,91 @@ const AppSidebar: React.FC = () => {
     }
   }, [openSubmenu]);
 
-  const handleSubmenuToggle = (index: number, menuType: "main" | "others") => {
+  const handleSubmenuToggle = (index: number, menuKey: string) => {
     setOpenSubmenu((prevOpenSubmenu) => {
       if (
         prevOpenSubmenu &&
-        prevOpenSubmenu.type === menuType &&
+        prevOpenSubmenu.menuKey === menuKey &&
         prevOpenSubmenu.index === index
       ) {
         return null;
       }
-      return { type: menuType, index };
+      return { menuKey, index };
     });
   };
 
+  console.log("Privileges in Sidebar:", privileges);
+  useEffect(() => {
+    let sectionsId: string[] = [];
+    let typesPrivileges: {
+      role: string;
+      category: string;
+      menu: NavItem[];
+    }[] = [
+      {
+        role: "chef",
+        category: "Chef de section",
+        menu: []
+      },
+      {
+        role: "enseignement",
+        category: "Enseignement",
+        menu: []
+      },
+      {
+        role: "recherche",
+        category: "Recherche",
+        menu: []
+      }
+    ];
+
+    privileges.forEach((privilege) => {
+      // Verfier si la sectionId n'est pas déjà dans le tableau
+      const typePriv = typesPrivileges.find(tp => tp.role === privilege.role);
+      if (typePriv) {
+        if (privilege.role === "chef" || privilege.role === "enseignement" || privilege.role === "recherche") {
+          if (!sectionsId.includes(privilege.sectionId)) {
+            sectionsId.push(privilege.sectionId);
+          }
+        }
+      }
+    });
+
+    console.log("Sections ID:", sectionsId);
+    let allMenus: MenuItem[] = [];
+    typesPrivileges.forEach((tp) => {
+      if (tp.role === "chef") {
+        allMenus.push({
+          ...tp,
+          menu: makeMenuSection(sectionsId)
+        });
+      } else if (tp.role === "enseignement") {
+        allMenus.push({
+          ...tp,
+          menu: makeMenuEnseignement(sectionsId)
+        });
+      } else if (tp.role === "recherche") {
+        allMenus.push({
+          ...tp,
+          menu: makeMenuRecherche(sectionsId)
+        });
+      }
+    });
+
+    allMenus = [...allMenus, {
+      role: "all",
+      category: "Direction",
+      menu: makeMenuAdministration(sectionsId)
+    }];
+
+    setMenuAdmin(allMenus.sort((a, b) => {
+      if (a.role === "all") return -1;
+      if (b.role === "all") return 1;
+      return 0;
+    }));
+    console.log("Menu Admin:", allMenus);
+
+  }, [privileges]);
   return (
     <aside
       className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
@@ -376,42 +637,20 @@ const AppSidebar: React.FC = () => {
       <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
-            <div>
-              <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                  !isExpanded && !isHovered
-                    ? "lg:justify-center"
-                    : "justify-start"
-                }`}
-              >
-                {isExpanded || isHovered || isMobileOpen ? (
-                  "Administration"
-                ) : (
-                  <HorizontaLDots />
-                )}
-              </h2>
-              {renderMenuItems(navItems, "main")}
-            </div>
-
-            <div className="">
-              <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                  !isExpanded && !isHovered
-                    ? "lg:justify-center"
-                    : "justify-start"
-                }`}
-              >
-                {isExpanded || isHovered || isMobileOpen ? (
-                  "Contenu"
-                ) : (
-                  <HorizontaLDots />
-                )}
-              </h2>
-              {renderMenuItems(othersItems, "others")}
-            </div>
+            {menuAdmin ? menuAdmin.map((item, idx) => (
+              <div key={`${item.role}-${idx}`}>
+                {renderMenu({
+                  item, 
+                  isExpanded, 
+                  isHovered, 
+                  isMobileOpen, 
+                  renderMenuItems, 
+                  menuKey: `${item.role}-${idx}`
+                })}
+              </div>
+            )) : null}
           </div>
         </nav>
-        {/* {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null} */}
       </div>
     </aside>
   );
