@@ -20,6 +20,8 @@ import {
 import SidebarWidget from "./SidebarWidget";
 import { Privilge } from "@/types/agent";
 import { useSectionStore } from "@/stores/sectionStore";
+import { useAnneeStore } from "@/stores/anneeStore";
+import { Annee } from "@/services/AnneeService";
 
 type NavItem = {
   name: string;
@@ -123,9 +125,12 @@ const renderMenu = ({item, isExpanded, isHovered, isMobileOpen, renderMenuItems,
 
 const AppSidebar: React.FC = () => {
   const { sections } = useSectionStore();
+  const { annees, fetchAnnees, isLoading: anneesLoading } = useAnneeStore();
+
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const [privileges, setPrivileges] = useState<Privilge[]>([]);
   const [menuAdmin, setMenuAdmin] = useState<MenuItem[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
   const pathname = usePathname();
 
   const makeMenuAdministration = (sectionsId: string[]): NavItem[] => {
@@ -167,7 +172,7 @@ const AppSidebar: React.FC = () => {
 
   }
 
-  const makeMenuEnseignement = (sectionsId: string[]): NavItem[] => {
+  const makeMenuEnseignement = (sectionsId: string[], anneesOrdered: Annee[]): NavItem[] => {
     const unitesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
       const section = sections.find(sec => sec._id === sectionId);
       return {
@@ -176,15 +181,14 @@ const AppSidebar: React.FC = () => {
       };
     });
 
-    const chargesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
-      const section = sections.find(sec => sec._id === sectionId);
+    // Utiliser les années pour les charges horaires
+    const anneesCharge: { name: string; path: string }[] = anneesOrdered.map((annee) => {
       return {
-        name: section ? `Charges ${section.description.sigle}` : "Section inconnue",
-        path: section ? `/charges/${section._id}` : "/charges/inconnu",
+        name: `Charges ${annee.debut}-${annee.fin}`,
+        path: `/charges/${annee._id}`,
       };
     });
 
-    
     const enseignementsSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
       const section = sections.find(sec => sec._id === sectionId);
       return {
@@ -202,7 +206,9 @@ const AppSidebar: React.FC = () => {
       {
         name: "Charges Horaires",
         icon: <PageIcon />,
-        subItems: chargesSection,
+        subItems: anneesCharge.length > 0 ? anneesCharge : [
+          { name: "Aucune année configurée", path: "/annees" }
+        ],
       },
       {
         icon: <PageIcon />,
@@ -212,7 +218,6 @@ const AppSidebar: React.FC = () => {
     ];
 
     return adminSection;
-
   }
 
   const makeMenuRecherche = (sectionsId: string[]): NavItem[] => {
@@ -260,7 +265,6 @@ const AppSidebar: React.FC = () => {
     ];
 
     return adminSection;
-
   }
 
   const makeMenuSection = (sectionsId: string[]): NavItem[] => {
@@ -308,7 +312,6 @@ const AppSidebar: React.FC = () => {
     ];
 
     return adminSection;
-
   }
 
   const renderMenuItems = (
@@ -446,76 +449,41 @@ const AppSidebar: React.FC = () => {
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // const isActive = (path: string) => path === pathname;
-   const isActive = useCallback((path: string) => path === pathname, [pathname]);
+  const isActive = useCallback((path: string) => path === pathname, [pathname]);
 
-   useEffect(() => {
-     // Fetch user privileges from the API or context
-     const fetchUserPrivileges = async () => {
-      const privilegesData = localStorage.getItem("privileges");
-      if (privilegesData) {
-        setPrivileges(JSON.parse(privilegesData));
-      }
-     };
-
-     fetchUserPrivileges();
-   }, []);
-
+  // Chargement initial des données
   useEffect(() => {
-    // Check if the current path matches any submenu item
-    let submenuMatched = false;
-    
-    // Vérifier dans menuAdmin d'abord
-    menuAdmin.forEach((menuItem, menuIdx) => {
-      menuItem.menu.forEach((nav, index) => {
-        if (nav.subItems) {
-          nav.subItems.forEach((subItem) => {
-            if (isActive(subItem.path)) {
-              setOpenSubmenu({
-                menuKey: `${menuItem.role}-${menuIdx}`,
-                index,
-              });
-              submenuMatched = true;
-            }
-          });
+    const initializeData = async () => {
+      try {
+        // Charger les privilèges depuis localStorage
+        const privilegesData = localStorage.getItem("privileges");
+        if (privilegesData) {
+          setPrivileges(JSON.parse(privilegesData));
         }
-      });
+
+        // Charger les années
+        await fetchAnnees();
+        
+        setIsInitialized(true);
+      } catch (error) {
+        console.error("Erreur lors de l'initialisation:", error);
+        setIsInitialized(true); // Continuer même en cas d'erreur
+      }
+    };
+
+    initializeData();
+  }, [fetchAnnees]);
+
+  // Mise à jour du menu quand les données changent
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    console.log("Updating menu with:", { 
+      privilegesLength: privileges.length, 
+      anneesLength: annees.length, 
+      sectionsLength: sections.length 
     });
 
-    // Si aucun sous-menu ne correspond, fermer le sous-menu ouvert
-    if (!submenuMatched) {
-      setOpenSubmenu(null);
-    }
-  }, [pathname, isActive, menuAdmin]);
-
-  useEffect(() => {
-    // Set the height of the submenu items when the submenu is opened
-    if (openSubmenu !== null) {
-      const key = `${openSubmenu.menuKey}-${openSubmenu.index}`;
-      if (subMenuRefs.current[key]) {
-        setSubMenuHeight((prevHeights) => ({
-          ...prevHeights,
-          [key]: subMenuRefs.current[key]?.scrollHeight || 0,
-        }));
-      }
-    }
-  }, [openSubmenu]);
-
-  const handleSubmenuToggle = (index: number, menuKey: string) => {
-    setOpenSubmenu((prevOpenSubmenu) => {
-      if (
-        prevOpenSubmenu &&
-        prevOpenSubmenu.menuKey === menuKey &&
-        prevOpenSubmenu.index === index
-      ) {
-        return null;
-      }
-      return { menuKey, index };
-    });
-  };
-
-  console.log("Privileges in Sidebar:", privileges);
-  useEffect(() => {
     let sectionsId: string[] = [];
     let typesPrivileges: {
       role: string;
@@ -540,7 +508,6 @@ const AppSidebar: React.FC = () => {
     ];
 
     privileges.forEach((privilege) => {
-      // Verfier si la sectionId n'est pas déjà dans le tableau
       const typePriv = typesPrivileges.find(tp => tp.role === privilege.role);
       if (typePriv) {
         if (privilege.role === "chef" || privilege.role === "enseignement" || privilege.role === "recherche") {
@@ -553,6 +520,7 @@ const AppSidebar: React.FC = () => {
 
     console.log("Sections ID:", sectionsId);
     let allMenus: MenuItem[] = [];
+    
     typesPrivileges.forEach((tp) => {
       if (tp.role === "chef") {
         allMenus.push({
@@ -560,9 +528,11 @@ const AppSidebar: React.FC = () => {
           menu: makeMenuSection(sectionsId)
         });
       } else if (tp.role === "enseignement") {
+        console.log("Creating enseignement menu with annees:", annees);
+        const anneesOrdered = [...annees].sort((a, b) => b.fin - a.fin);
         allMenus.push({
           ...tp,
-          menu: makeMenuEnseignement(sectionsId)
+          menu: makeMenuEnseignement(sectionsId, anneesOrdered)
         });
       } else if (tp.role === "recherche") {
         allMenus.push({
@@ -583,9 +553,71 @@ const AppSidebar: React.FC = () => {
       if (b.role === "all") return 1;
       return 0;
     }));
-    console.log("Menu Admin:", allMenus);
 
-  }, [privileges]);
+    console.log("Menu Admin created:", allMenus);
+  }, [privileges, annees, sections, isInitialized]);
+
+  useEffect(() => {
+    // Check if the current path matches any submenu item
+    let submenuMatched = false;
+    
+    menuAdmin.forEach((menuItem, menuIdx) => {
+      menuItem.menu.forEach((nav, index) => {
+        if (nav.subItems) {
+          nav.subItems.forEach((subItem) => {
+            if (isActive(subItem.path)) {
+              setOpenSubmenu({
+                menuKey: `${menuItem.role}-${menuIdx}`,
+                index,
+              });
+              submenuMatched = true;
+            }
+          });
+        }
+      });
+    });
+
+    if (!submenuMatched) {
+      setOpenSubmenu(null);
+    }
+  }, [pathname, isActive, menuAdmin]);
+
+  useEffect(() => {
+    if (openSubmenu !== null) {
+      const key = `${openSubmenu.menuKey}-${openSubmenu.index}`;
+      if (subMenuRefs.current[key]) {
+        setSubMenuHeight((prevHeights) => ({
+          ...prevHeights,
+          [key]: subMenuRefs.current[key]?.scrollHeight || 0,
+        }));
+      }
+    }
+  }, [openSubmenu]);
+
+  const handleSubmenuToggle = (index: number, menuKey: string) => {
+    setOpenSubmenu((prevOpenSubmenu) => {
+      if (
+        prevOpenSubmenu &&
+        prevOpenSubmenu.menuKey === menuKey &&
+        prevOpenSubmenu.index === index
+      ) {
+        return null;
+      }
+      return { menuKey, index };
+    });
+  };
+
+  // Afficher un spinner pendant le chargement
+  if (!isInitialized || anneesLoading) {
+    return (
+      <aside className="fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen w-[290px] border-r border-gray-200">
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </aside>
+    );
+  }
+
   return (
     <aside
       className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 

@@ -19,6 +19,18 @@ export default function UniteDetails({ unite, sectionId }: UniteDetailsProps) {
   const [sortField, setSortField] = useState<keyof Cours>("titre");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
+  // NOUVEAU: État pour la recherche des cours disponibles
+  const [availableSearchTerm, setAvailableSearchTerm] = useState("");
+  const [showAllAvailable, setShowAllAvailable] = useState(false);
+
+  // État pour l'édition de cours
+  const [editingCours, setEditingCours] = useState<Cours | null>(null);
+  const [editCoursData, setEditCoursData] = useState({
+    titre: "",
+    description: "",
+    credit: 1
+  });
+
   // Stores
   const { cours, fetchCours, createCours, updateCours, deleteCours, loading: coursLoading } = useCoursStore();
   const { updateUnite, loading: uniteLoading } = useUniteStore();
@@ -66,6 +78,17 @@ export default function UniteDetails({ unite, sectionId }: UniteDetailsProps) {
     setAvailableCours(available);
   }, [cours, unite._id]);
 
+  // NOUVEAU: Filtrer les cours disponibles selon la recherche
+  const filteredAvailableCours = availableCours.filter(cours => 
+    cours.titre.toLowerCase().includes(availableSearchTerm.toLowerCase()) ||
+    (cours.description && cours.description.toLowerCase().includes(availableSearchTerm.toLowerCase()))
+  );
+
+  // NOUVEAU: Cours disponibles à afficher (avec ou sans limite)
+  const displayedAvailableCours = showAllAvailable 
+    ? filteredAvailableCours 
+    : filteredAvailableCours.slice(0, 6);
+
   // Filtrer et trier les cours assignés
   const filteredAndSortedCours = assignedCours
     .filter(cours => 
@@ -93,6 +116,55 @@ export default function UniteDetails({ unite, sectionId }: UniteDetailsProps) {
     }
   };
 
+  // Gestionnaire pour ouvrir l'édition d'un cours
+  const handleEditCours = (cours: Cours) => {
+    setEditingCours(cours);
+    setEditCoursData({
+      titre: cours.titre,
+      description: cours.description || "",
+      credit: cours.credit
+    });
+  };
+
+  // Gestionnaire pour fermer l'édition
+  const handleCloseEditCours = () => {
+    setEditingCours(null);
+    setEditCoursData({
+      titre: "",
+      description: "",
+      credit: 1
+    });
+  };
+
+  // Gestionnaire pour sauvegarder les modifications
+  const handleSaveEditCours = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCours || !editingCours._id) return;
+
+    try {
+      setActionLoading(true);
+      
+      const updatedCoursData = {
+        ...editingCours,
+        titre: editCoursData.titre,
+        description: editCoursData.description,
+        credit: editCoursData.credit
+      };
+
+      await updateCours(editingCours._id, updatedCoursData);
+      await fetchCours();
+      
+      handleCloseEditCours();
+      alert("Cours modifié avec succès !");
+      
+    } catch (error) {
+      console.error("Erreur lors de la modification:", error);
+      alert("Erreur lors de la modification du cours");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleCreateCours = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -102,7 +174,7 @@ export default function UniteDetails({ unite, sectionId }: UniteDetailsProps) {
         titre: newCoursData.titre,
         description: newCoursData.description,
         credit: newCoursData.credit,
-        enseignement: [], // CORRECTION: Laisser vide à la création
+        enseignement: [],
         contenu: [],
         repartition: [],
         plan: [],
@@ -112,17 +184,14 @@ export default function UniteDetails({ unite, sectionId }: UniteDetailsProps) {
       
       console.log("Création d'un nouveau cours (non assigné)");
       
-      // ÉTAPE 1: Créer le cours (sans assignation)
       const coursCreated = await createCours(newCours as Cours);
       console.log("Cours créé avec ID:", coursCreated._id);
       
-      // ÉTAPE 2: Assigner automatiquement le cours à cette unité
       if (coursCreated._id) {
         await handleAssignCours(coursCreated._id);
         console.log("Cours automatiquement assigné à l'unité");
       }
       
-      // Reset form
       setNewCoursData({ titre: "", description: "", credit: 1 });
       setIsAddingCours(false);
       
@@ -439,6 +508,14 @@ export default function UniteDetails({ unite, sectionId }: UniteDetailsProps) {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
                         <button
+                          onClick={() => handleEditCours(cours)}
+                          disabled={loading}
+                          className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 disabled:opacity-50 transition-colors p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                          title="Modifier le cours"
+                        >
+                          ✏️
+                        </button>
+                        <button
                           onClick={() => handleUnassignCours(cours._id!)}
                           disabled={loading}
                           className="text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300 disabled:opacity-50 transition-colors p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20"
@@ -464,50 +541,255 @@ export default function UniteDetails({ unite, sectionId }: UniteDetailsProps) {
         )}
       </div>
 
-      {/* Section cours disponibles pour assignation */}
+      {/* SECTION COURS DISPONIBLES AMÉLIORÉE AVEC RECHERCHE */}
       {availableCours.length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+          {/* En-tête avec recherche */}
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              📋 Cours disponibles pour assignation ({availableCours.length})
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  📋 Cours disponibles pour assignation
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  Recherchez et assignez des cours existants à cette unité
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {availableCours.length} cours disponible{availableCours.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
+
+            {/* NOUVELLE: Barre de recherche pour les cours disponibles */}
+            <div className="flex items-center justify-between">
+              <div className="flex-1 max-w-md">
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center">
+                    <span className="text-gray-400">🔍</span>
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Rechercher dans les cours disponibles..."
+                    value={availableSearchTerm}
+                    onChange={(e) => setAvailableSearchTerm(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center space-x-2 ml-4">
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {filteredAvailableCours.length} trouvé{filteredAvailableCours.length !== 1 ? 's' : ''}
+                </span>
+                {filteredAvailableCours.length > 6 && (
+                  <button
+                    onClick={() => setShowAllAvailable(!showAllAvailable)}
+                    className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium transition-colors"
+                  >
+                    {showAllAvailable ? "Afficher moins" : `Voir tous (${filteredAvailableCours.length})`}
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
+
           <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {availableCours.slice(0, 6).map((cours) => (
-                <div key={cours._id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:border-blue-300 dark:hover:border-blue-600 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-1">
-                        {cours.titre}
-                      </h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">
-                        {cours.description || "Description à préciser"}
+            {filteredAvailableCours.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-3">🔍</div>
+                <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                  Aucun cours trouvé
+                </h4>
+                <p className="text-gray-500 dark:text-gray-400">
+                  {availableSearchTerm 
+                    ? `Aucun cours disponible ne correspond à "${availableSearchTerm}"`
+                    : "Aucun cours disponible pour le moment"
+                  }
+                </p>
+                {availableSearchTerm && (
+                  <button
+                    onClick={() => setAvailableSearchTerm("")}
+                    className="mt-3 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
+                  >
+                    Effacer la recherche
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {displayedAvailableCours.map((cours) => (
+                    <div key={cours._id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:border-blue-300 dark:hover:border-blue-600 transition-colors">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900 dark:text-white mb-1">
+                            {cours.titre}
+                          </h4>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">
+                            {cours.description || "Description à préciser"}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {cours.credit} crédit{cours.credit > 1 ? 's' : ''}
+                            </span>
+                            <button
+                              onClick={() => handleAssignCours(cours._id!)}
+                              disabled={loading}
+                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium disabled:opacity-50 transition-colors"
+                            >
+                              ➡️ Assigner
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* NOUVEAU: Indicateurs et contrôles d'affichage */}
+                {filteredAvailableCours.length > 6 && (
+                  <div className="mt-6 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-4">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Affichage de {displayedAvailableCours.length} sur {filteredAvailableCours.length} cours
+                      {availableSearchTerm && ` pour "${availableSearchTerm}"`}
+                    </div>
+                    <button
+                      onClick={() => setShowAllAvailable(!showAllAvailable)}
+                      className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      {showAllAvailable 
+                        ? "Afficher moins" 
+                        : `Afficher tous les ${filteredAvailableCours.length} cours`
+                      }
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal d'édition de cours */}
+      {editingCours && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-gray-500 opacity-75" onClick={handleCloseEditCours}></div>
+            </div>
+
+            <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <form onSubmit={handleSaveEditCours}>
+                <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div className="flex items-center mb-4">
+                    <div className="flex-shrink-0 h-10 w-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mr-3">
+                      <span className="text-blue-600 dark:text-blue-400 text-lg font-medium">
+                        ✏️
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                        Modifier le cours
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        ID: {editingCours._id?.slice(-8)}
                       </p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {cours.credit} crédit{cours.credit > 1 ? 's' : ''}
-                        </span>
-                        <button
-                          onClick={() => handleAssignCours(cours._id!)}
-                          disabled={loading}
-                          className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium disabled:opacity-50 transition-colors"
-                        >
-                          ➡️ Assigner
-                        </button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Titre *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={editCoursData.titre}
+                        onChange={(e) => setEditCoursData(prev => ({ ...prev, titre: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="Ex: Introduction aux algorithmes"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Crédits *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min="1"
+                        value={editCoursData.credit}
+                        onChange={(e) => setEditCoursData(prev => ({ ...prev, credit: parseInt(e.target.value) || 1 }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Description
+                      </label>
+                      <textarea
+                        rows={4}
+                        value={editCoursData.description}
+                        onChange={(e) => setEditCoursData(prev => ({ ...prev, description: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="Description du cours..."
+                      />
+                    </div>
+
+                    {/* Aperçu des modifications */}
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-3">
+                      <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-2">
+                        📝 Modifications à appliquer:
+                      </h4>
+                      <div className="text-xs text-yellow-700 dark:text-yellow-300 space-y-1">
+                        {editCoursData.titre !== editingCours.titre && (
+                          <div>• Titre: "{editingCours.titre}" → "{editCoursData.titre}"</div>
+                        )}
+                        {editCoursData.credit !== editingCours.credit && (
+                          <div>• Crédits: {editingCours.credit} → {editCoursData.credit}</div>
+                        )}
+                        {editCoursData.description !== (editingCours.description || "") && (
+                          <div>• Description modifiée</div>
+                        )}
+                        {editCoursData.titre === editingCours.titre && 
+                         editCoursData.credit === editingCours.credit && 
+                         editCoursData.description === (editingCours.description || "") && (
+                          <div className="text-gray-500 dark:text-gray-400">Aucune modification détectée</div>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
-              ))}
+                
+                <div className="bg-gray-50 dark:bg-gray-900 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Sauvegarde...</span>
+                      </div>
+                    ) : (
+                      "Sauvegarder les modifications"
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCloseEditCours}
+                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </form>
             </div>
-            {availableCours.length > 6 && (
-              <div className="text-center mt-4">
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Et {availableCours.length - 6} autres cours disponibles...
-                </span>
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -527,7 +809,6 @@ export default function UniteDetails({ unite, sectionId }: UniteDetailsProps) {
                     Créer un nouveau cours pour cette unité
                   </h3>
                   
-                  {/* Message d'information corrigé */}
                   <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded">
                     <p className="text-sm text-blue-800 dark:text-blue-200">
                       <strong>📌 Processus:</strong> Le cours sera créé puis automatiquement assigné à l'unité 
