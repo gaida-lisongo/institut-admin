@@ -134,38 +134,13 @@ const AppSidebar: React.FC = () => {
   const pathname = usePathname();
 
   const makeMenuAdministration = (sectionsId: string[]): NavItem[] => {
-    const cyclesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
-      const section = sections.find(sec => sec._id === sectionId);
-      return {
-        name: section ? `Cycles ${section.description.sigle}` : "Section inconnue",
-        path: section ? `/cycles/${section._id}` : "/cycles/inconnu",
-      };
-    });
-
-    const jurySection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
-      const section = sections.find(sec => sec._id === sectionId);
-      return {
-        name: section ? `Jury ${section.description.sigle}` : "Section inconnue",
-        path: section ? `/jury/${section._id}` : "/jury/inconnu",
-      };
-    });
 
     const adminSection: NavItem[] = [
       {
         icon: <GridIcon />,
         name: "Dashboard",
         path: "/"
-      },
-      {
-        name: "Cycles",
-        icon: <BoxCubeIcon />,
-        subItems: cyclesSection,
-      },
-      {
-        icon: <PieChartIcon />,
-        name: "Bureaux du Jury",
-        subItems: jurySection,
-      },
+      }
     ];
 
     return adminSection;
@@ -270,48 +245,35 @@ const AppSidebar: React.FC = () => {
     return adminSection;
   }
 
-  const makeMenuSection = (sectionsId: string[]): NavItem[] => {
-    const retraitsSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
+  const makeMenuSection = (sectionsId: string[], anneesOrdered: Annee[]): NavItem[] => {
+    const cyclesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
       const section = sections.find(sec => sec._id === sectionId);
       return {
-        name: section ? `Retraits ${section.description.sigle}` : "Section inconnue",
-        path: section ? `/retraits/${section._id}` : "/retraits/inconnu",
+        name: section ? `Cycles ${section.description.sigle}` : "Section inconnue",
+        path: section ? `/cycles/${section._id}` : "/cycles/inconnu",
       };
     });
 
-    const autorisationsSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
-      const section = sections.find(sec => sec._id === sectionId);
-      return {
-        name: section ? `Autorisations ${section.description.sigle}` : "Section inconnue",
-        path: section ? `/autorisations/${section._id}` : "/autorisations/inconnu",
-      };
-    });
-
-    
-    const messagesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
-      const section = sections.find(sec => sec._id === sectionId);
-      return {
-        name: section ? `Messages ${section.description.sigle}` : "Section inconnue",
-        path: section ? `/messages/${section._id}` : "/messages/inconnu",
-      };
+    let jurySection: { name: string; path: string }[] = []
+    anneesOrdered.map((annee) => {
+      const findSections = sectionsId.map(id => sections.find(sec => sec._id === id)).filter(Boolean);
+      jurySection = [...jurySection, ...findSections.map(section => ({
+        name: `Jury ${section?.description.sigle} (${annee.debut}-${annee.fin})`,
+        path: `/jury/${annee._id}-${section?._id || 'inconnu'}`,
+      }))];
     });
 
     const adminSection: NavItem[] = [
       {
         icon: <PageIcon />,
-        name: "Retraits",
-        subItems: retraitsSection,
+        name: "Etudes",
+        subItems: cyclesSection,
       },
       {
-        name: "Autorisations",
-        icon: <PageIcon />,
-        subItems: autorisationsSection,
-      },
-      {
-        icon: <PageIcon />,
-        name: "Messageries",
-        subItems: messagesSection,
-      },
+        icon: <PieChartIcon />,
+        name: "Bureaux du Jury",
+        subItems: jurySection,
+      }
     ];
 
     return adminSection;
@@ -530,7 +492,7 @@ const AppSidebar: React.FC = () => {
       if (tp.role === "chef") {
         allMenus.push({
           ...tp,
-          menu: makeMenuSection(sectionsId)
+          menu: makeMenuSection(sectionsId, anneesOrdered)
         });
       } else if (tp.role === "enseignement") {
         allMenus.push({

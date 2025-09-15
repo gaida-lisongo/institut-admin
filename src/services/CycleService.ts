@@ -16,6 +16,7 @@ export interface Cycle {
   classes: Classe[];
   createdAt?: string;
   updatedAt?: string;
+  __v?: number;
 }
 
 export interface CycleFormData {
@@ -111,7 +112,7 @@ class CycleService {
     }
   }
 
-  // Mettre à jour un cycle
+  // Mettre à jour un cycle complet
   async updateCycle(id: string, data: Partial<CycleFormData>): Promise<Cycle> {
     try {
       const response = await fetch(`${this.baseUrl}/cycle/${id}`, {
@@ -127,6 +128,52 @@ class CycleService {
       return await response.json();
     } catch (error) {
       console.error("Erreur lors de la mise à jour du cycle:", error);
+      throw error;
+    }
+  }
+
+  // Ajouter un semestre à une classe spécifique (mise à jour optimiste)
+  async addSemestreToClasse(cycleId: string, classeIndex: number, semestreId: string): Promise<Cycle> {
+    try {
+      // Récupérer le cycle actuel
+      const cycle = await this.getCycle(cycleId);
+      
+      // Créer une copie mise à jour des classes
+      const updatedClasses = [...cycle.classes];
+      if (updatedClasses[classeIndex] && !updatedClasses[classeIndex].semestres.includes(semestreId)) {
+        updatedClasses[classeIndex] = {
+          ...updatedClasses[classeIndex],
+          semestres: [...updatedClasses[classeIndex].semestres, semestreId]
+        };
+      }
+
+      // Mettre à jour le cycle avec les nouvelles classes
+      return await this.updateCycle(cycleId, { classes: updatedClasses });
+    } catch (error) {
+      console.error("Erreur lors de l'ajout du semestre à la classe:", error);
+      throw error;
+    }
+  }
+
+  // Supprimer un semestre d'une classe spécifique
+  async removeSemestreFromClasse(cycleId: string, classeIndex: number, semestreId: string): Promise<Cycle> {
+    try {
+      // Récupérer le cycle actuel
+      const cycle = await this.getCycle(cycleId);
+      
+      // Créer une copie mise à jour des classes
+      const updatedClasses = [...cycle.classes];
+      if (updatedClasses[classeIndex]) {
+        updatedClasses[classeIndex] = {
+          ...updatedClasses[classeIndex],
+          semestres: updatedClasses[classeIndex].semestres.filter(id => id !== semestreId)
+        };
+      }
+
+      // Mettre à jour le cycle avec les nouvelles classes
+      return await this.updateCycle(cycleId, { classes: updatedClasses });
+    } catch (error) {
+      console.error("Erreur lors de la suppression du semestre de la classe:", error);
       throw error;
     }
   }
