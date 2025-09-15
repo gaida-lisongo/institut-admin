@@ -189,13 +189,6 @@ const AppSidebar: React.FC = () => {
       };
     });
 
-    const enseignementsSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
-      const section = sections.find(sec => sec._id === sectionId);
-      return {
-        name: section ? `Semestres ${section.description.sigle}` : "Section inconnue",
-        path: section ? `/semestres/${section._id}` : "/semestres/inconnu",
-      };
-    });
 
     const adminSection: NavItem[] = [
       {
@@ -209,42 +202,52 @@ const AppSidebar: React.FC = () => {
         subItems: anneesCharge.length > 0 ? anneesCharge : [
           { name: "Aucune année configurée", path: "/annees" }
         ],
-      },
-      {
-        icon: <PageIcon />,
-        name: "Etats d'avancement",
-        subItems: enseignementsSection,
-      },
+      }
     ];
 
     return adminSection;
   }
 
-  const makeMenuRecherche = (sectionsId: string[]): NavItem[] => {
-    const thematiquesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
-      const section = sections.find(sec => sec._id === sectionId);
+  const makeMenuRecherche = (sectionsId: string[], anneesOrdered: Annee[]): NavItem[] => {
+    
+
+    // Utiliser les années pour les charges horaires
+    const thematiquesSection: { name: string; path: string }[] = anneesOrdered.map((annee) => {
       return {
-        name: section ? `Sujets ${section.description.sigle}` : "Section inconnue",
-        path: section ? `/sujets/${section._id}` : "/sujets/inconnu",
+        name: `Sujets ${annee.debut}-${annee.fin}`,
+        path: `/sujets/${annee._id}`,
       };
     });
 
-    const sujetsSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
-      const section = sections.find(sec => sec._id === sectionId);
+    // const thematiquesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
+    //   const section = sections.find(sec => sec._id === sectionId);
+    //   return {
+    //     name: section ? `Sujets ${section.description.sigle}` : "Section inconnue",
+    //     path: section ? `/sujets/${section._id}` : "/sujets/inconnu",
+    //   };
+    // });
+    const sujetsSection: { name: string; path: string }[] = anneesOrdered.map((annee) => {
       return {
-        name: section ? `Stages ${section.description.sigle}` : "Section inconnue",
-        path: section ? `/stages/${section._id}` : "/stages/inconnu",
+        name: `Stages ${annee.debut}-${annee.fin}`,
+        path: `/stages/${annee._id}`,
       };
     });
+    // const sujetsSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
+    //   const section = sections.find(sec => sec._id === sectionId);
+    //   return {
+    //     name: section ? `Stages ${section.description.sigle}` : "Section inconnue",
+    //     path: section ? `/stages/${section._id}` : "/stages/inconnu",
+    //   };
+    // });
 
     
-    const recherchesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
-      const section = sections.find(sec => sec._id === sectionId);
-      return {
-        name: section ? `Recherche ${section.description.sigle}` : "Section inconnue",
-        path: section ? `/recherches/${section._id}` : "/recherches/inconnu",
-      };
-    });
+    // const recherchesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
+    //   const section = sections.find(sec => sec._id === sectionId);
+    //   return {
+    //     name: section ? `Recherche ${section.description.sigle}` : "Section inconnue",
+    //     path: section ? `/recherches/${section._id}` : "/recherches/inconnu",
+    //   };
+    // });
 
     const adminSection: NavItem[] = [
       {
@@ -257,11 +260,11 @@ const AppSidebar: React.FC = () => {
         icon: <PageIcon />,
         subItems: sujetsSection,
       },
-      {
-        icon: <PageIcon />,
-        name: "Etats de la recherche",
-        subItems: recherchesSection,
-      },
+      // {
+      //   icon: <PageIcon />,
+      //   name: "Etats de la recherche",
+      //   subItems: recherchesSection,
+      // },
     ];
 
     return adminSection;
@@ -522,14 +525,14 @@ const AppSidebar: React.FC = () => {
     let allMenus: MenuItem[] = [];
     
     typesPrivileges.forEach((tp) => {
+      console.log("Creating enseignement menu with annees:", annees);
+      const anneesOrdered = [...annees].sort((a, b) => b.fin - a.fin);
       if (tp.role === "chef") {
         allMenus.push({
           ...tp,
           menu: makeMenuSection(sectionsId)
         });
       } else if (tp.role === "enseignement") {
-        console.log("Creating enseignement menu with annees:", annees);
-        const anneesOrdered = [...annees].sort((a, b) => b.fin - a.fin);
         allMenus.push({
           ...tp,
           menu: makeMenuEnseignement(sectionsId, anneesOrdered)
@@ -537,7 +540,7 @@ const AppSidebar: React.FC = () => {
       } else if (tp.role === "recherche") {
         allMenus.push({
           ...tp,
-          menu: makeMenuRecherche(sectionsId)
+          menu: makeMenuRecherche(sectionsId, anneesOrdered)
         });
       }
     });
