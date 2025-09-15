@@ -18,15 +18,15 @@ export default function Ecommerce() {
         <EcommerceMetrics />
       </div>
 
-      <div className="col-span-12 xl:col-span-6">
+      <div className="col-span-12">
 
-        {/* <MonthlySalesChart /> */}
-        <CommandeStatistics />
+        <MonthlySalesChart />
+        {/* <CommandeStatistics /> */}
       </div>
 
       <div className="col-span-12">
         <SectionDataTable />
-        {/* <RecentOrders /> */}
+        <RecentOrders />
       </div>
     </div>
   );
