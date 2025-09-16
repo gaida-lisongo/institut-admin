@@ -49,17 +49,7 @@ export default function UniteDetails({ unite, sectionId }: UniteDetailsProps) {
 
   const loading = coursLoading || uniteLoading || actionLoading;
 
-  // Vérification de sécurité pour l'ID de l'unité
-  if (!unite._id) {
-    return (
-      <div className="text-center py-8">
-        <div className="text-red-600 dark:text-red-400">
-          Erreur: ID de l'unité manquant
-        </div>
-      </div>
-    );
-  }
-
+  // Hooks doivent être appelés avant toute condition de retour
   useEffect(() => {
     fetchAgents();
   }, [fetchAgents]);
@@ -71,12 +61,25 @@ export default function UniteDetails({ unite, sectionId }: UniteDetailsProps) {
 
   // Mise à jour des listes quand les données changent
   useEffect(() => {
-    const assigned = cours.filter((c: Cours) => c.enseignement && c.enseignement.includes(unite._id!));
-    const available = cours.filter((c: Cours) => !c.enseignement || !c.enseignement.includes(unite._id!));
-    
-    setAssignedCours(assigned);
-    setAvailableCours(available);
+    if (unite._id) {
+      const assigned = cours.filter((c: Cours) => c.enseignement && c.enseignement.includes(unite._id!));
+      const available = cours.filter((c: Cours) => !c.enseignement || !c.enseignement.includes(unite._id!));
+      
+      setAssignedCours(assigned);
+      setAvailableCours(available);
+    }
   }, [cours, unite._id]);
+
+  // Vérification de sécurité pour l'ID de l'unité
+  if (!unite._id) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-red-600 dark:text-red-400">
+          Erreur: ID de l'unité manquant
+        </div>
+      </div>
+    );
+  }
 
   // NOUVEAU: Filtrer les cours disponibles selon la recherche
   const filteredAvailableCours = availableCours.filter(cours => 

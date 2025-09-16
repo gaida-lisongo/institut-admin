@@ -12,8 +12,6 @@ import {
   MagnifyingGlassIcon,
   FunnelIcon,
   EyeIcon,
-  PencilIcon,
-  TrashIcon,
   TagIcon,
   CurrencyDollarIcon,
   ShoppingCartIcon,
@@ -32,17 +30,6 @@ interface ProductFilterState {
   montantMax: number;
 }
 
-// Couleurs pour les badges de catégorie
-const CATEGORY_COLORS: Record<string, string> = {
-  'sujet': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-  'stage': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-  'semestre': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
-  'validation': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
-  'releve': 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
-  'enrollement': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400',
-  'default': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
-};
-
 export default function ProductList() {
   // Store Zustand pour les produits
   const { 
@@ -60,8 +47,7 @@ export default function ProductList() {
   const { 
     commandes, 
     isLoading: isLoadingCommandes, 
-    fetchCommandes,
-    clearError: clearCommandeError 
+    fetchCommandes
   } = useCommandeStore();
 
   // États des filtres
@@ -154,23 +140,6 @@ export default function ProductList() {
       montantMin: 0,
       montantMax: 100000,
     });
-  };
-
-  // Supprimer un produit
-  const handleDelete = async (produit: ProduitWithDetails) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer le produit "${produit.designation}" ?`)) {
-      return;
-    }
-
-    try {
-      await deleteProduit(produit._id!);
-      if (showDetailModal) {
-        setShowDetailModal(false);
-        setSelectedProduct(null);
-      }
-    } catch (error) {
-      console.error('Erreur lors de la suppression:', error);
-    }
   };
 
   // Obtenir le nom de la section

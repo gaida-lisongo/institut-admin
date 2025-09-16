@@ -5,11 +5,11 @@ export interface Inscription {
   produitId: string;
 }
 
-export interface Semestre {
+export interface Semestre<TUnite = string> {
   _id?: string;
   designation: string;
   description: string;
-  unites: string[]; // IDs des unités d'enseignement
+  unites: TUnite[]; // IDs des unités d'enseignement ou détails selon le type
   insription: Inscription[]; // Note: le serveur utilise "insription" (sans 'c')
   createdAt?: string;
   updatedAt?: string;
@@ -33,9 +33,7 @@ export interface UniteDetails {
   };
 }
 
-export interface SemestreWithUnites extends Semestre {
-  unites: UniteDetails[];
-}
+export interface SemestreWithUnites extends Semestre<UniteDetails> {}
 
 class SemestreService {
   private baseUrl = "https://server.inbtp.net/api/v1/enseignement";

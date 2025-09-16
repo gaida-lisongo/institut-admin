@@ -74,7 +74,7 @@ const useSemestreStore = create<SemestreState>((set, get) => ({
       set(state => ({
         semestres: state.semestres.map(s => s._id === id ? updatedSemestre : s),
         currentSemestre: state.currentSemestre?._id === id 
-          ? { ...state.currentSemestre, ...updatedSemestre } 
+          ? { ...state.currentSemestre, ...updatedSemestre, unites: state.currentSemestre.unites }
           : state.currentSemestre,
         loading: false
       }));

@@ -9,7 +9,6 @@ import useAdminStore from "@/stores/adminStore";
 import { useAgentStore } from "@/stores/agentStore";
 import { AdminService } from "@/services/AdminService";
 import { AdminWithAgent, CreateAdminRequest, UpdateAdminRequest } from "@/types/admin";
-import { Agent } from "@/types/agent";
 
 export default function UserAdminsCard() {
   // Modals
@@ -37,7 +36,6 @@ export default function UserAdminsCard() {
     setIsCurrentUserAdmin,
     getFilteredAdmins,
     getUniqueRoles,
-    addAdmin,
     updateAdmin,
     deleteAdmin,
     clearError
@@ -50,11 +48,6 @@ export default function UserAdminsCard() {
   const userIdRef = React.useRef<HTMLSelectElement>(null);
   const roleRef = React.useRef<HTMLInputElement>(null);
   const quotiteRef = React.useRef<HTMLInputElement>(null);
-
-  // Chargement initial des données
-  useEffect(() => {
-    loadInitialData();
-  }, []);
 
   const loadInitialData = async () => {
     setLoading(true);
@@ -78,6 +71,11 @@ export default function UserAdminsCard() {
       setLoading(false);
     }
   };
+
+  // Chargement initial des données
+  useEffect(() => {
+    loadInitialData();
+  }, []);
 
   // Gestion des filtres
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {

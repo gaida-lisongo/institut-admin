@@ -5,19 +5,14 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import {
-  BoxCubeIcon,
-  CalenderIcon,
   ChevronDownIcon,
   GridIcon,
   HorizontaLDots,
   ListIcon,
   PageIcon,
   PieChartIcon,
-  PlugInIcon,
-  TableIcon,
   UserCircleIcon,
 } from "../icons/index";
-import SidebarWidget from "./SidebarWidget";
 import { Privilge } from "@/types/agent";
 import { useSectionStore } from "@/stores/sectionStore";
 import { useAnneeStore } from "@/stores/anneeStore";
@@ -449,8 +444,8 @@ const AppSidebar: React.FC = () => {
       sectionsLength: sections.length 
     });
 
-    let sectionsId: string[] = [];
-    let typesPrivileges: {
+    const sectionsId: string[] = [];
+    const typesPrivileges: {
       role: string;
       category: string;
       menu: NavItem[];
@@ -520,7 +515,7 @@ const AppSidebar: React.FC = () => {
     }));
 
     console.log("Menu Admin created:", allMenus);
-  }, [privileges, annees, sections, isInitialized]);
+  }, [privileges, annees, sections, isInitialized, makeMenuEnseignement, makeMenuSection]);
 
   useEffect(() => {
     // Check if the current path matches any submenu item
