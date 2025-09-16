@@ -24,11 +24,6 @@ export default function Ecommerce() {
         <MonthlySalesChart />
         {/* <CommandeStatistics /> */}
       </div>
-
-      <div className="col-span-12">
-        {/* <SectionDataTable /> */}
-        
-      </div>
     </div>
   );
 }

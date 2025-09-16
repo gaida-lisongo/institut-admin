@@ -20,7 +20,7 @@ export default function Profile() {
         </h3>
         <div className="space-y-6">
           <UserSecurityCard />
-          <UserAdminsCard />
+          {/* <UserAdminsCard /> */}
         </div>
       </div>
     </div>

@@ -6,6 +6,8 @@ import { useTransactionStore } from "../../stores/transactionStore";
 import TransactionService from "../../services/TransactionService";
 import type { WithdrawAgent } from "../../services/TransactionService";
 import { useAgentStore } from "@/stores/agentStore";
+import { useAnneeStore } from "@/stores/anneeStore";
+import { useProduitStore } from "@/stores/produitStore";
 
 // Types pour les transactions combinées
 type TransactionType = 'deposit' | 'withdraw';
@@ -38,6 +40,11 @@ interface FilterState {
 }
 
 export default function RecentOrders() {
+  const { annees, fetchAnnees } = useAnneeStore();
+  const { produits, fetchProduits } = useProduitStore();
+  const [selectedAnnee, setSelectedAnnee] = useState<string>('');
+  const [selectedSection, setSelectedSection] = useState<string>('');
+
   const {
     deposits,
     isLoading,
@@ -107,6 +114,29 @@ export default function RecentOrders() {
     fetchDeposits();
     fetchWithdrawsAgent();
   }, [fetchDeposits]);
+
+  useEffect(() => {
+    if (annees.length === 0) {
+      fetchAnnees();
+    }
+  }, [fetchAnnees]);
+
+  useEffect(() => {
+    if (produits.length === 0) {
+      fetchProduits();
+    }
+  }, [fetchProduits]);
+
+  useEffect(() => {
+    setSelectedAnnee(annees[0]?._id || '');
+    const privilegies = JSON.parse(localStorage.getItem('privilegies') || '[]');
+    console.log("Privilegies from localStorage = ", privilegies);
+  }, [selectedAnnee, selectedSection]);
+
+  const getProduits = ({anneeId, sectionId} : {anneeId: string, sectionId: string}) => {
+    const produitsData = produits.filter(p => p.anneeId._id === anneeId && p.sectionId._id === sectionId);
+    return produitsData;
+  }
 
   // Combiner et filtrer les transactions
   const getCombinedTransactions = (): CombinedTransaction[] => {
