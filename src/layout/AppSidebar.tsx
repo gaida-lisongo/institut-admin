@@ -128,21 +128,18 @@ const AppSidebar: React.FC = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const pathname = usePathname();
 
-  const makeMenuAdministration = (sectionsId: string[]): NavItem[] => {
-
-    const adminSection: NavItem[] = [
+  // Fonctions de génération de menu MEMORISÉES pour éviter toute boucle
+  const makeMenuAdministration = React.useCallback((sectionsId: string[]): NavItem[] => {
+    return [
       {
-        icon: <GridIcon />,
+        icon: <GridIcon />, 
         name: "Dashboard",
         path: "/"
       }
     ];
+  }, []);
 
-    return adminSection;
-
-  }
-
-  const makeMenuEnseignement = (sectionsId: string[], anneesOrdered: Annee[]): NavItem[] => {
+  const makeMenuEnseignement = React.useCallback((sectionsId: string[], anneesOrdered: Annee[]): NavItem[] => {
     const unitesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
       const section = sections.find(sec => sec._id === sectionId);
       return {
@@ -150,97 +147,56 @@ const AppSidebar: React.FC = () => {
         path: section ? `/unites/${section._id}` : "/unites/inconnu",
       };
     });
-
-    // Utiliser les années pour les charges horaires
     const anneesCharge: { name: string; path: string }[] = anneesOrdered.map((annee) => {
       return {
         name: `Charges ${annee.debut}-${annee.fin}`,
         path: `/charges/${annee._id}`,
       };
     });
-
-
-    const adminSection: NavItem[] = [
+    return [
       {
-        icon: <PageIcon />,
+        icon: <PageIcon />, 
         name: "Unités d'Enseignement",
         subItems: unitesSection,
       },
       {
         name: "Charges Horaires",
-        icon: <PageIcon />,
+        icon: <PageIcon />, 
         subItems: anneesCharge.length > 0 ? anneesCharge : [
           { name: "Aucune année configurée", path: "/annees" }
         ],
       }
     ];
+  }, [sections]);
 
-    return adminSection;
-  }
-
-  const makeMenuRecherche = (sectionsId: string[], anneesOrdered: Annee[]): NavItem[] => {
-    
-
-    // Utiliser les années pour les charges horaires
+  const makeMenuRecherche = React.useCallback((sectionsId: string[], anneesOrdered: Annee[]): NavItem[] => {
     const thematiquesSection: { name: string; path: string }[] = anneesOrdered.map((annee) => {
       return {
         name: `Sujets ${annee.debut}-${annee.fin}`,
         path: `/sujets/${annee._id}`,
       };
     });
-
-    // const thematiquesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
-    //   const section = sections.find(sec => sec._id === sectionId);
-    //   return {
-    //     name: section ? `Sujets ${section.description.sigle}` : "Section inconnue",
-    //     path: section ? `/sujets/${section._id}` : "/sujets/inconnu",
-    //   };
-    // });
     const sujetsSection: { name: string; path: string }[] = anneesOrdered.map((annee) => {
       return {
         name: `Stages ${annee.debut}-${annee.fin}`,
         path: `/stages/${annee._id}`,
       };
     });
-    // const sujetsSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
-    //   const section = sections.find(sec => sec._id === sectionId);
-    //   return {
-    //     name: section ? `Stages ${section.description.sigle}` : "Section inconnue",
-    //     path: section ? `/stages/${section._id}` : "/stages/inconnu",
-    //   };
-    // });
-
-    
-    // const recherchesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
-    //   const section = sections.find(sec => sec._id === sectionId);
-    //   return {
-    //     name: section ? `Recherche ${section.description.sigle}` : "Section inconnue",
-    //     path: section ? `/recherches/${section._id}` : "/recherches/inconnu",
-    //   };
-    // });
-
-    const adminSection: NavItem[] = [
+    return [
       {
-        icon: <PageIcon />,
+        icon: <PageIcon />, 
         name: "Sujets de recherche",
         subItems: thematiquesSection,
       },
       {
         name: "Stages de de recherche",
-        icon: <PageIcon />,
+        icon: <PageIcon />, 
         subItems: sujetsSection,
       },
-      // {
-      //   icon: <PageIcon />,
-      //   name: "Etats de la recherche",
-      //   subItems: recherchesSection,
-      // },
     ];
+  }, []);
 
-    return adminSection;
-  }
-
-  const makeMenuSection = (sectionsId: string[], anneesOrdered: Annee[]): NavItem[] => {
+  const makeMenuSection = React.useCallback((sectionsId: string[], anneesOrdered: Annee[]): NavItem[] => {
     const cyclesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
       const section = sections.find(sec => sec._id === sectionId);
       return {
@@ -248,31 +204,27 @@ const AppSidebar: React.FC = () => {
         path: section ? `/cycles/${section._id}` : "/cycles/inconnu",
       };
     });
-
-    let jurySection: { name: string; path: string }[] = []
-    anneesOrdered.map((annee) => {
+    let jurySection: { name: string; path: string }[] = [];
+    anneesOrdered.forEach((annee) => {
       const findSections = sectionsId.map(id => sections.find(sec => sec._id === id)).filter(Boolean);
       jurySection = [...jurySection, ...findSections.map(section => ({
         name: `Jury ${section?.description.sigle} (${annee.debut}-${annee.fin})`,
         path: `/jury/${annee._id}-${section?._id || 'inconnu'}`,
       }))];
     });
-
-    const adminSection: NavItem[] = [
+    return [
       {
-        icon: <PageIcon />,
+        icon: <PageIcon />, 
         name: "Etudes",
         subItems: cyclesSection,
       },
       {
-        icon: <PieChartIcon />,
+        icon: <PieChartIcon />, 
         name: "Bureaux du Jury",
         subItems: jurySection,
       }
     ];
-
-    return adminSection;
-  }
+  }, [sections]);
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -436,7 +388,8 @@ const AppSidebar: React.FC = () => {
 
   // Mise à jour du menu quand les données changent
   useEffect(() => {
-    if (!isInitialized) return;
+  // On ne génère le menu que si tout est prêt
+  if (!isInitialized || !sections || sections.length === 0 || !annees || annees.length === 0) return;
 
     console.log("Updating menu with:", { 
       privilegesLength: privileges.length, 
