@@ -119,7 +119,7 @@ const renderMenu = ({item, isExpanded, isHovered, isMobileOpen, renderMenuItems,
 };
 
 const AppSidebar: React.FC = () => {
-  const { sections } = useSectionStore();
+  const { sections, fetchSections } = useSectionStore();
   const { annees, fetchAnnees, isLoading: anneesLoading } = useAnneeStore();
 
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
@@ -373,8 +373,11 @@ const AppSidebar: React.FC = () => {
           setPrivileges(JSON.parse(privilegesData));
         }
 
-        // Charger les années
-        await fetchAnnees();
+        // Charger les sections et les années en parallèle
+        await Promise.all([
+          fetchSections(),
+          fetchAnnees()
+        ]);
         
         setIsInitialized(true);
       } catch (error) {
@@ -384,17 +387,17 @@ const AppSidebar: React.FC = () => {
     };
 
     initializeData();
-  }, [fetchAnnees]);
+  }, [fetchAnnees, fetchSections]);
 
   // Mise à jour du menu quand les données changent
   useEffect(() => {
-  // On ne génère le menu que si tout est prêt
-  if (!isInitialized || !sections || sections.length === 0 || !annees || annees.length === 0) return;
+  // On ne génère le menu que si les données essentielles sont prêtes
+  if (!isInitialized || !annees || annees.length === 0) return;
 
     console.log("Updating menu with:", { 
       privilegesLength: privileges.length, 
       anneesLength: annees.length, 
-      sectionsLength: sections.length 
+      sectionsLength: sections?.length || 0 
     });
 
     const sectionsId: string[] = [];
@@ -520,8 +523,8 @@ const AppSidebar: React.FC = () => {
     });
   };
 
-  // Afficher un spinner pendant le chargement
-  if (!isInitialized || anneesLoading) {
+  // Afficher un spinner pendant le chargement initial
+  if (!isInitialized) {
     return (
       <aside className="fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen w-[290px] border-r border-gray-200">
         <div className="flex items-center justify-center h-full">
@@ -582,7 +585,26 @@ const AppSidebar: React.FC = () => {
       <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
-            {menuAdmin ? menuAdmin.map((item, idx) => (
+            {/* Menu de base toujours affiché */}
+            <div>
+              <h2
+                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
+                  !isExpanded && !isHovered
+                    ? "lg:justify-center"
+                    : "justify-start"
+                }`}
+              >
+                {isExpanded || isHovered || isMobileOpen ? (
+                  "Navigation"
+                ) : (
+                  <HorizontaLDots />
+                )}
+              </h2>
+              {renderMenuItems(navItems, "base-menu")}
+            </div>
+
+            {/* Menu basé sur les privilèges */}
+            {menuAdmin && menuAdmin.length > 0 ? menuAdmin.map((item, idx) => (
               <div key={`${item.role}-${idx}`}>
                 {renderMenu({
                   item, 
@@ -594,6 +616,24 @@ const AppSidebar: React.FC = () => {
                 })}
               </div>
             )) : null}
+
+            {/* Menu "Autres" toujours affiché */}
+            <div>
+              <h2
+                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
+                  !isExpanded && !isHovered
+                    ? "lg:justify-center"
+                    : "justify-start"
+                }`}
+              >
+                {isExpanded || isHovered || isMobileOpen ? (
+                  "Autres"
+                ) : (
+                  <HorizontaLDots />
+                )}
+              </h2>
+              {renderMenuItems(othersItems, "others-menu")}
+            </div>
           </div>
         </nav>
       </div>
