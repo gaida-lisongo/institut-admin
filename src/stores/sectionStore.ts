@@ -164,6 +164,10 @@ interface SectionState {
   // Action pour le contact
   updateContactInSection: (sectionId: string, contact: Contact) => Promise<boolean>;
 
+  // Actions pour l'agenda
+  addAgendaToSection: (sectionId: string, agenda: Agenda) => Promise<boolean>;
+  updateAgendaInSection: (sectionId: string, agendaIndex: number, agenda: Agenda) => Promise<boolean>;
+  removeAgendaFromSection: (sectionId: string, agendaIndex: number) => Promise<boolean>;
   
   // Selectors
   getSectionById: (id: string) => Section | undefined;
@@ -1221,6 +1225,132 @@ export const useSectionStore = create<SectionState>()(
           } catch (error) {
             set({ 
               error: error instanceof Error ? error.message : 'Erreur lors de la suppression du membre de l\'équipe',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        // Méthodes pour gérer l'agenda
+        addAgendaToSection: async (sectionId, agenda) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedSection = {
+              ...section,
+              agenda: [...section.agenda, agenda]
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de l\'ajout de l\'agenda',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de l\'ajout de l\'agenda',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        updateAgendaInSection: async (sectionId, agendaIndex, agenda) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedAgendas = [...section.agenda];
+            updatedAgendas[agendaIndex] = agenda;
+
+            const updatedSection = {
+              ...section,
+              agenda: updatedAgendas
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de la modification de l\'agenda',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de la modification de l\'agenda',
+              isLoading: false 
+            });
+            return false;
+          }
+        },
+
+        removeAgendaFromSection: async (sectionId, agendaIndex) => {
+          set({ isLoading: true, error: null });
+          try {
+            const section = get().sections.find(s => s._id === sectionId);
+            if (!section) {
+              set({ error: 'Section non trouvée', isLoading: false });
+              return false;
+            }
+
+            const updatedAgendas = section.agenda.filter((_, index) => index !== agendaIndex);
+
+            const updatedSection = {
+              ...section,
+              agenda: updatedAgendas
+            };
+
+            const result = await SectionService.updateSection(sectionId, updatedSection);
+            
+            if (result.status === 200 && result.data.success) {
+              set(state => ({
+                sections: state.sections.map(s => 
+                  s._id === sectionId ? result.data.data : s
+                ),
+                isLoading: false
+              }));
+              return true;
+            } else {
+              set({ 
+                error: result.data?.message || 'Erreur lors de la suppression de l\'agenda',
+                isLoading: false 
+              });
+              return false;
+            }
+          } catch (error) {
+            set({ 
+              error: error instanceof Error ? error.message : 'Erreur lors de la suppression de l\'agenda',
               isLoading: false 
             });
             return false;
