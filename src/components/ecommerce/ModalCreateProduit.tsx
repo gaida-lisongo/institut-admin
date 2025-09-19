@@ -152,16 +152,7 @@ export default function ModalCreateProduit({ open, onClose, onCreate, sectionId,
               <button type="button" className="text-xs px-2 py-1 bg-blue-100 rounded hover:bg-blue-200" onClick={() => setBenefice([...benefice, ""])}>Ajouter un bénéfice</button>
             </div>
           </div>
-          <div>
-            <label className="block text-xs font-medium mb-1">Image</label>
-            <div className="flex items-center gap-2">
-              <input type="file" accept="image/*" ref={fileInputRef} onChange={handleUpload} className="hidden" />
-              <button type="button" className="px-3 py-1 bg-blue-600 text-white rounded text-xs" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                {uploading ? 'Chargement...' : 'Charger une image'}
-              </button>
-              {image && <img src={image} alt="aperçu" className="h-10 w-10 object-cover rounded" />}
-            </div>
-          </div>
+          
           {error && <div className="text-red-500 text-xs mt-2">{error}</div>}
           {success && <div className="text-green-600 text-xs mt-2">{success}</div>}
           <button type="submit" className="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm" disabled={uploading}>
