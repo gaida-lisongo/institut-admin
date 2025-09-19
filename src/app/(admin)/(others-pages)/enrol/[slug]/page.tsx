@@ -23,7 +23,7 @@ export default function ProduitsValidationPage() {
   React.useEffect(() => { fetchProduits(); }, []);
 
   const produitsValidation = produits.filter(p =>
-    p.categorie && p.categorie[0] === 'validation' &&
+    p.categorie && p.categorie[0] === 'enrollement' &&
     String(p.sectionId) === sectionId &&
     String(p.anneeId) === anneeId &&
     (
@@ -34,7 +34,7 @@ export default function ProduitsValidationPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Produits de validation</h1>
+      <h1 className="text-2xl font-bold mb-6">Session d'Examens</h1>
       <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6">
         <input
           type="text"
@@ -47,7 +47,7 @@ export default function ProduitsValidationPage() {
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm shadow"
           onClick={() => setShowCreate(true)}
         >
-          Créer un produit de validation
+          Créer un enrollement
         </button>
       </div>
       <div className="overflow-x-auto mt-4 mb-10">
@@ -87,7 +87,7 @@ export default function ProduitsValidationPage() {
         open={showCreate}
         onClose={() => setShowCreate(false)}
         onCreate={async (data) => {
-          await createProduit({ ...data, categorie: ["validation"], sectionId, anneeId });
+          await createProduit({ ...data, categorie: ["enrollement"], sectionId, anneeId });
           await fetchProduits();
           setShowCreate(false);
         }}
@@ -100,7 +100,7 @@ export default function ProduitsValidationPage() {
         onClose={() => setEditProduit(null)}
         onSave={async (data) => {
           if (!editProduit) return;
-          await updateProduit(editProduit._id, { ...data, categorie: ["validation"], sectionId, anneeId });
+          await updateProduit(editProduit._id, { ...data, categorie: ["enrollement"], sectionId, anneeId });
           await fetchProduits();
           setEditProduit(null);
         }}

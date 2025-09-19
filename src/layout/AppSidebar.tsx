@@ -135,11 +135,6 @@ const AppSidebar: React.FC = () => {
         icon: <GridIcon />, 
         name: "Dashboard",
         path: "/"
-      },
-      {
-        icon: <UserCircleIcon />, 
-        name: "Dossiers Etudiants",
-        path: "/folder"
       }
     ];
   }, []);
@@ -168,12 +163,12 @@ const AppSidebar: React.FC = () => {
     return [
       {
         icon: <PageIcon />, 
-        name: "Gestion des Palmarès",
+        name: "Palmarès",
         subItems: relevesSection,
       },
       {
         icon: <PageIcon />, 
-        name: "Gestion des Enrollements",
+        name: "Enrollements",
         subItems: validationsSection,
       }
     ];
