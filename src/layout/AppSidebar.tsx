@@ -152,8 +152,8 @@ const AppSidebar: React.FC = () => {
     anneesOrdered.forEach((annee) => {
       const findSections = sectionsId.map(id => sections.find(sec => sec._id === id)).filter(Boolean);
       relevesSection = [...relevesSection, ...findSections.map(section => ({
-        name: `Relevés ${section?.description.sigle} (${annee.debut}-${annee.fin})`,
-        path: `/releves/${annee._id}-${section?._id || 'inconnu'}`,
+        name: `Palmarès ${section?.description.sigle} (${annee.debut}-${annee.fin})`,
+        path: `/palmares/${annee._id}-${section?._id || 'inconnu'}`,
       }))];
     });
 
@@ -161,19 +161,19 @@ const AppSidebar: React.FC = () => {
     anneesOrdered.forEach((annee) => {
       const findSections = sectionsId.map(id => sections.find(sec => sec._id === id)).filter(Boolean);
       validationsSection = [...validationsSection, ...findSections.map(section => ({
-        name: `Fiche de Validation ${section?.description.sigle} (${annee.debut}-${annee.fin})`,
-        path: `/validations/${annee._id}-${section?._id || 'inconnu'}`,
+        name: `Enrollement ${section?.description.sigle} (${annee.debut}-${annee.fin})`,
+        path: `/enrol/${annee._id}-${section?._id || 'inconnu'}`,
       }))];
     });
     return [
       {
         icon: <PageIcon />, 
-        name: "Relevés de notes",
+        name: "Gestion des Palmarès",
         subItems: relevesSection,
       },
       {
         icon: <PageIcon />, 
-        name: "Fiches de validation",
+        name: "Gestion des Enrollements",
         subItems: validationsSection,
       }
     ];
