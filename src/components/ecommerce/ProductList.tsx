@@ -75,9 +75,9 @@ export default function ProductList() {
     fetchCommandes();
   }, [fetchProduits, fetchSections, fetchAnnees, fetchCommandes]);
 
-  // Filtrer les produits
+  // Filtrer les produits pour ne garder que "semestre" ou "validation"
   const getFilteredProduits = (): ProduitWithDetails[] => {
-    let filtered = [...produits];
+    let filtered = produits.filter(p => ["semestre", "validation"].includes(p.categorie[0]));
 
     // Filtre par recherche
     if (filters.search) {
@@ -165,7 +165,7 @@ export default function ProductList() {
   const getAllCategories = (): string[] => {
     const categories = new Set<string>();
     produits.forEach(produit => {
-      produit.categorie.forEach(cat => categories.add(cat));
+      produit.categorie.forEach(cat => cat == "semestre" || cat == "validation" ? categories.add(cat) : null);
     });
     return Array.from(categories).sort();
   };

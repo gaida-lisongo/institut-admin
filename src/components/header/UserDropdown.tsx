@@ -160,44 +160,6 @@ export default function UserDropdown() {
               Faire un Retrait
             </DropdownItem>
           </li>
-          <li>
-            <DropdownItem
-              onItemClick={closeDropdown}
-              tag="a"
-              href="/transaction"
-              className="flex items-center gap-3 px-3 py-2 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-            >
-              <svg
-                className="fill-gray-500 group-hover:fill-gray-700 dark:fill-gray-400 dark:group-hover:fill-gray-300"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fillRule="evenodd"
-                  clipRule="evenodd"
-                  d="M2 6C2 4.89543 2.89543 4 4 4H20C21.1046 4 22 4.89543 22 6V18C22 19.1046 21.1046 20 20 20H4C2.89543 20 2 19.1046 2 18V6ZM4 6V8H20V6H4ZM4 10V18H20V10H4Z"
-                  fill=""
-                />
-                <path
-                  fillRule="evenodd"
-                  clipRule="evenodd"
-                  d="M6 13C6 12.4477 6.44772 12 7 12H11C11.5523 12 12 12.4477 12 13C12 13.5523 11.5523 14 11 14H7C6.44772 14 6 13.5523 6 13Z"
-                  fill=""
-                />
-                <path
-                  fillRule="evenodd"
-                  clipRule="evenodd"
-                  d="M14 13C14 12.4477 14.4477 12 15 12H17C17.5523 12 18 12.4477 18 13C18 13.5523 17.5523 14 17 14H15C14.4477 14 14 13.5523 14 13Z"
-                  fill=""
-                />
-                <circle cx="16" cy="15.5" r="1.5" fill=""/>
-              </svg>
-              Transactions
-            </DropdownItem>
-          </li>
         </ul>
         <button
           onClick={handleLogout}
