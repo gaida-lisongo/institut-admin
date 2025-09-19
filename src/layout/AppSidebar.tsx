@@ -586,7 +586,7 @@ const AppSidebar: React.FC = () => {
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
             {/* Menu de base toujours affiché */}
-            <div>
+            {/* <div>
               <h2
                 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
                   !isExpanded && !isHovered
@@ -601,7 +601,7 @@ const AppSidebar: React.FC = () => {
                 )}
               </h2>
               {renderMenuItems(navItems, "base-menu")}
-            </div>
+            </div> */}
 
             {/* Menu basé sur les privilèges */}
             {menuAdmin && menuAdmin.length > 0 ? menuAdmin.map((item, idx) => (
@@ -618,7 +618,7 @@ const AppSidebar: React.FC = () => {
             )) : null}
 
             {/* Menu "Autres" toujours affiché */}
-            <div>
+            {/* <div>
               <h2
                 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
                   !isExpanded && !isHovered
@@ -633,7 +633,7 @@ const AppSidebar: React.FC = () => {
                 )}
               </h2>
               {renderMenuItems(othersItems, "others-menu")}
-            </div>
+            </div> */}
           </div>
         </nav>
       </div>
