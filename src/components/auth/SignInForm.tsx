@@ -4,15 +4,22 @@ import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
+import { AdminService } from "@/services/AdminService";
 import { AgentService } from "@/services/AgentService";
+import useAdminStore from "@/stores/adminStore";
 import useAuthStore from "@/stores/authStore";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 export default function SignInForm() {
   const router = useRouter();
   const { login } = useAuthStore();
+  const {
+    loading,
+    admins,
+    setAdmins
+  } = useAdminStore();
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,19 +50,30 @@ export default function SignInForm() {
       // Appel à l'API d'authentification
       const result = await AgentService.login(matricule, password);
       console.log("Réponse de l'API:", result);
+      const { token, agent } = result;
       // Vérifier la structure de la réponse
-      if (!result.token || !result.agent) {
+      if (!token || !agent) {
         throw new Error(result.message || "Erreur lors de l'authentification");
       }
 
-      if (!result.token || !result.agent) {
+      if (!token || !agent) {
         throw new Error("Réponse invalide du serveur");
       }
-      localStorage.setItem("auth-token", result.token);
-      // Sauvegarder dans le store
-      login(result.token, result.agent);
+
+      if (!agent._id) {
+        throw new Error("ID de l'agent non valide");
+      }
       
-      console.log("Utilisateur connecté:", result.agent);
+      const userIsAdmin = isUserAdmin(agent._id);
+      if (!userIsAdmin) {
+        throw new Error("Vous n'avez pas les privilèges d'accès. Contactez l'administrateur.");
+      }
+
+      localStorage.setItem("auth-token", token);
+      // Sauvegarder dans le store
+      login(token, agent);
+
+      console.log("Utilisateur connecté:", agent);
 
       // Rediriger vers le dashboard
       router.push("/");
@@ -66,6 +84,25 @@ export default function SignInForm() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    const loadingPrivileges = async () => {
+      try {
+        const adminsList = await AdminService.getAdmins();
+        setAdmins(adminsList);
+      } catch (error) {
+        console.error("Erreur lors du chargement des admins:", error);
+      }
+    };
+    loadingPrivileges();
+  }, []);
+
+  const isUserAdmin = (currentId: string) => {
+    console.log("Vérification des privilèges pour l'ID:", currentId);
+    console.log("Liste des admins:", admins);
+    return admins.some((admin) => admin.userId._id === currentId);
+  };
+
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full">
 
