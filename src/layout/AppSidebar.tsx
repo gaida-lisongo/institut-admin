@@ -139,89 +139,42 @@ const AppSidebar: React.FC = () => {
     ];
   }, []);
 
-  const makeMenuEnseignement = React.useCallback((sectionsId: string[], anneesOrdered: Annee[]): NavItem[] => {
-    const unitesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
-      const section = sections.find(sec => sec._id === sectionId);
-      return {
-        name: section ? `Unites ${section.description.sigle}` : "Section inconnue",
-        path: section ? `/unites/${section._id}` : "/unites/inconnu",
-      };
-    });
-    const anneesCharge: { name: string; path: string }[] = anneesOrdered.map((annee) => {
-      return {
-        name: `Charges ${annee.debut}-${annee.fin}`,
-        path: `/charges/${annee._id}`,
-      };
-    });
-    return [
-      {
-        icon: <PageIcon />, 
-        name: "Unités d'Enseignement",
-        subItems: unitesSection,
-      },
-      {
-        name: "Charges Horaires",
-        icon: <PageIcon />, 
-        subItems: anneesCharge.length > 0 ? anneesCharge : [
-          { name: "Aucune année configurée", path: "/annees" }
-        ],
-      }
-    ];
-  }, [sections]);
-
-  const makeMenuRecherche = React.useCallback((sectionsId: string[], anneesOrdered: Annee[]): NavItem[] => {
-    const thematiquesSection: { name: string; path: string }[] = anneesOrdered.map((annee) => {
-      return {
-        name: `Sujets ${annee.debut}-${annee.fin}`,
-        path: `/sujets/${annee._id}`,
-      };
-    });
-    const sujetsSection: { name: string; path: string }[] = anneesOrdered.map((annee) => {
-      return {
-        name: `Stages ${annee.debut}-${annee.fin}`,
-        path: `/stages/${annee._id}`,
-      };
-    });
-    return [
-      {
-        icon: <PageIcon />, 
-        name: "Sujets de recherche",
-        subItems: thematiquesSection,
-      },
-      {
-        name: "Stages de de recherche",
-        icon: <PageIcon />, 
-        subItems: sujetsSection,
-      },
-    ];
-  }, []);
 
   const makeMenuSection = React.useCallback((sectionsId: string[], anneesOrdered: Annee[]): NavItem[] => {
-    const cyclesSection: { name: string; path: string }[] = sectionsId.map((sectionId) => {
-      const section = sections.find(sec => sec._id === sectionId);
-      return {
-        name: section ? `Cycles ${section.description.sigle}` : "Section inconnue",
-        path: section ? `/cycles/${section._id}` : "/cycles/inconnu",
-      };
-    });
-    let jurySection: { name: string; path: string }[] = [];
+    
+
+    let relevesSection: { name: string; path: string }[] = [];
     anneesOrdered.forEach((annee) => {
       const findSections = sectionsId.map(id => sections.find(sec => sec._id === id)).filter(Boolean);
-      jurySection = [...jurySection, ...findSections.map(section => ({
-        name: `Jury ${section?.description.sigle} (${annee.debut}-${annee.fin})`,
-        path: `/jury/${annee._id}-${section?._id || 'inconnu'}`,
+      relevesSection = [...relevesSection, ...findSections.map(section => ({
+        name: `Relevés ${section?.description.sigle} (${annee.debut}-${annee.fin})`,
+        path: `/releves/${annee._id}-${section?._id || 'inconnu'}`,
+      }))];
+    });
+
+    let validationsSection: { name: string; path: string }[] = [];
+    anneesOrdered.forEach((annee) => {
+      const findSections = sectionsId.map(id => sections.find(sec => sec._id === id)).filter(Boolean);
+      validationsSection = [...validationsSection, ...findSections.map(section => ({
+        name: `Fiche de Validation ${section?.description.sigle} (${annee.debut}-${annee.fin})`,
+        path: `/validations/${annee._id}-${section?._id || 'inconnu'}`,
       }))];
     });
     return [
       {
-        icon: <PageIcon />, 
-        name: "Etudes",
-        subItems: cyclesSection,
+        icon: <UserCircleIcon />, 
+        name: "Dossiers Etudiants",
+        path: "/folder"
       },
       {
-        icon: <PieChartIcon />, 
-        name: "Bureaux du Jury",
-        subItems: jurySection,
+        icon: <PageIcon />, 
+        name: "Relevés de notes",
+        subItems: relevesSection,
+      },
+      {
+        icon: <PageIcon />, 
+        name: "Fiches de validation",
+        subItems: validationsSection,
       }
     ];
   }, [sections]);
@@ -391,8 +344,8 @@ const AppSidebar: React.FC = () => {
 
   // Mise à jour du menu quand les données changent
   useEffect(() => {
-  // On ne génère le menu que si les données essentielles sont prêtes
-  if (!isInitialized || !annees || annees.length === 0) return;
+    // On ne génère le menu que si les données essentielles sont prêtes
+    if (!isInitialized || !annees || annees.length === 0) return;
 
     console.log("Updating menu with:", { 
       privilegesLength: privileges.length, 
@@ -407,26 +360,26 @@ const AppSidebar: React.FC = () => {
       menu: NavItem[];
     }[] = [
       {
-        role: "chef",
-        category: "Chef de section",
+        role: "appariteur",
+        category: "Appariteur",
         menu: []
       },
-      {
-        role: "enseignement",
-        category: "Enseignement",
-        menu: []
-      },
-      {
-        role: "recherche",
-        category: "Recherche",
-        menu: []
-      }
+      // {
+      //   role: "enseignement",
+      //   category: "Enseignement",
+      //   menu: []
+      // },
+      // {
+      //   role: "recherche",
+      //   category: "Recherche",
+      //   menu: []
+      // }
     ];
-
+    console.log("Privileges:", privileges);
     privileges.forEach((privilege) => {
       const typePriv = typesPrivileges.find(tp => tp.role === privilege.role);
       if (typePriv) {
-        if (privilege.role === "chef" || privilege.role === "enseignement" || privilege.role === "recherche") {
+        if (privilege.role === "chef" || privilege.role === "appariteur") {
           if (!sectionsId.includes(privilege.sectionId)) {
             sectionsId.push(privilege.sectionId);
           }
@@ -440,27 +393,17 @@ const AppSidebar: React.FC = () => {
     typesPrivileges.forEach((tp) => {
       console.log("Creating enseignement menu with annees:", annees);
       const anneesOrdered = [...annees].sort((a, b) => b.fin - a.fin);
-      if (tp.role === "chef") {
+      if (tp.role === "appariteur") {
         allMenus.push({
           ...tp,
           menu: makeMenuSection(sectionsId, anneesOrdered)
-        });
-      } else if (tp.role === "enseignement") {
-        allMenus.push({
-          ...tp,
-          menu: makeMenuEnseignement(sectionsId, anneesOrdered)
-        });
-      } else if (tp.role === "recherche") {
-        allMenus.push({
-          ...tp,
-          menu: makeMenuRecherche(sectionsId, anneesOrdered)
         });
       }
     });
 
     allMenus = [...allMenus, {
       role: "all",
-      category: "Direction",
+      category: "",
       menu: makeMenuAdministration(sectionsId)
     }];
 
@@ -471,7 +414,7 @@ const AppSidebar: React.FC = () => {
     }));
 
     console.log("Menu Admin created:", allMenus);
-  }, [privileges, annees, sections, isInitialized, makeMenuEnseignement, makeMenuSection]);
+  }, [privileges, annees, sections, isInitialized, makeMenuSection]);
 
   useEffect(() => {
     // Check if the current path matches any submenu item

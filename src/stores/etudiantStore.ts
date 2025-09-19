@@ -34,6 +34,7 @@ export const useEtudiantStore = create<EtudiantState>()(
         set({ loading: true, error: null });
         try {
           const etudiants = await EtudiantService.getEtudiants();
+          console.log("Étudiants récupérés:", etudiants);
           set({ etudiants, loading: false });
         } catch (error) {
           set({ 

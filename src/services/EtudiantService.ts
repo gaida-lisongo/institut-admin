@@ -40,6 +40,9 @@ export class EtudiantService {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.json();
+      console.log("Réponse de l'API pour getEtudiant:", data);
       return await response.json();
     } catch (error) {
       console.error("Erreur lors de la récupération de l'étudiant:", error);
