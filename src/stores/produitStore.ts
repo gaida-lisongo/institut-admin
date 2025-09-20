@@ -13,7 +13,7 @@ interface ProduitState {
   fetchProduitById: (id: string) => Promise<void>;
   fetchProduitsByCategorie: (categorie: string) => Promise<void>;
   fetchProduitByAnneeAndSection: (anneeId: string, sectionId: string) => Promise<void>;
-  createProduit: (data: ProduitFormData) => Promise<void>;
+  createProduit: (data: ProduitFormData) => Promise<Produit>;
   updateProduit: (id: string, data: Partial<ProduitFormData>) => Promise<void>;
   deleteProduit: (id: string) => Promise<void>;
   clearError: () => void;
@@ -93,6 +93,7 @@ export const useProduitStore = create<ProduitState>((set, get) => ({
       }
       
       set({ loading: false });
+      return newProduit;
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Erreur lors de la création du produit', 
