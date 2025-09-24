@@ -18,16 +18,11 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     if (!isHydrated) return;
 
     const checkAuth = () => {
-      console.log('AuthGuard: Vérification de l\'authentification');
-      console.log('isAuthenticated:', isAuthenticated);
-      console.log('token:', token);
-      console.log('isHydrated:', isHydrated);
       
       setLoading(true);
       
       // Vérifier si l'utilisateur est authentifié
       if (!isAuthenticated || !token) {
-        console.log('Utilisateur non authentifié, redirection vers signin');
         router.push('/signin');
         return;
       }

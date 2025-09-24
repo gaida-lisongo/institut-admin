@@ -17,6 +17,7 @@ import { Privilge } from "@/types/agent";
 import { useSectionStore } from "@/stores/sectionStore";
 import { useAnneeStore } from "@/stores/anneeStore";
 import { Annee } from "@/services/AnneeService";
+import useAuthStore from "@/stores/authStore";
 
 type NavItem = {
   name: string;
@@ -121,6 +122,7 @@ const renderMenu = ({item, isExpanded, isHovered, isMobileOpen, renderMenuItems,
 const AppSidebar: React.FC = () => {
   const { sections, fetchSections } = useSectionStore();
   const { annees, fetchAnnees, isLoading: anneesLoading } = useAnneeStore();
+  const { menuData, fetchMenuData, user } = useAuthStore();
 
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const [privileges, setPrivileges] = useState<Privilge[]>([]);
@@ -129,50 +131,57 @@ const AppSidebar: React.FC = () => {
   const pathname = usePathname();
 
   // Fonctions de génération de menu MEMORISÉES pour éviter toute boucle
-  const makeMenuAdministration = React.useCallback((sectionsId: string[]): NavItem[] => {
-    return [
-      {
-        icon: <GridIcon />, 
-        name: "Dashboard",
-        path: "/"
+  const makeMenuUnites = React.useCallback((): NavItem[] => {
+    const { unites } = menuData;
+    let anneeResponsable: NavItem[] = [];
+
+    unites.forEach(u => {
+      u.responsable.forEach(r => {
+        if(typeof r.anneeId === 'object') {
+          anneeResponsable.push({
+            name: `Année ${r.anneeId.debut}-${r.anneeId.fin}`,
+            path: `/unites/${r.anneeId._id}`,
+            icon: <ListIcon />,
+          });
+        }
+      });
+    });
+
+    const anneeFilterByName = [...anneeResponsable].sort((a, b) => a.name.localeCompare(b.name));
+    return anneeFilterByName;
+  }, [menuData]);
+
+  const makeMenuCours = React.useCallback((): NavItem[] => {
+    const { courses } = menuData;
+
+    let anneeCours: NavItem[] = [];
+
+    courses && courses.charges.map(c => {
+      if(typeof c.annee === 'object') {
+        anneeCours.push({ name: `Année ${c.annee.debut}-${c.annee.fin}`, path: `/cours/${c.annee._id}`, icon: <ListIcon /> });
       }
-    ];
-  }, []);
+      return null;
+    });
 
+    const anneeFilterByName = [...anneeCours].sort((a, b) => a.name.localeCompare(b.name));
+    return anneeFilterByName;
 
-  const makeMenuSection = React.useCallback((sectionsId: string[], anneesOrdered: Annee[]): NavItem[] => {
+  }, [menuData]);
+
+  const makeMenuJuries = React.useCallback((): NavItem[] => {
+    const { juries } = menuData;
     
-
-    let relevesSection: { name: string; path: string }[] = [];
-    anneesOrdered.forEach((annee) => {
-      const findSections = sectionsId.map(id => sections.find(sec => sec._id === id)).filter(Boolean);
-      relevesSection = [...relevesSection, ...findSections.map(section => ({
-        name: `Palmarès ${section?.description.sigle} (${annee.debut}-${annee.fin})`,
-        path: `/palmares/${annee._id}-${section?._id || 'inconnu'}`,
-      }))];
-    });
-
-    let validationsSection: { name: string; path: string }[] = [];
-    anneesOrdered.forEach((annee) => {
-      const findSections = sectionsId.map(id => sections.find(sec => sec._id === id)).filter(Boolean);
-      validationsSection = [...validationsSection, ...findSections.map(section => ({
-        name: `Enrollement ${section?.description.sigle} (${annee.debut}-${annee.fin})`,
-        path: `/enrol/${annee._id}-${section?._id || 'inconnu'}`,
-      }))];
-    });
-    return [
-      {
-        icon: <PageIcon />, 
-        name: "Palmarès",
-        subItems: relevesSection,
-      },
-      {
-        icon: <PageIcon />, 
-        name: "Enrollements",
-        subItems: validationsSection,
+    let anneeJuries: NavItem[] = [];
+    
+    juries?.jurys.forEach(j => {
+      if(typeof j.annee === 'object') {
+        anneeJuries.push({ name: `Année ${j.annee.debut}-${j.annee.fin}`, path: `/jurys/${j.annee._id}`, icon: <ListIcon /> });
       }
-    ];
-  }, [sections]);
+    });
+
+    const anneeFilterByName = [...anneeJuries].sort((a, b) => a.name.localeCompare(b.name));
+    return anneeFilterByName;
+  }, [menuData]);
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -180,7 +189,7 @@ const AppSidebar: React.FC = () => {
   ) => (
     <ul className="flex flex-col gap-4">
       {navItems.map((nav, index) => (
-        <li key={nav.name}>
+        <li key={index}>
           {nav.subItems ? (
             <button
               onClick={() => handleSubmenuToggle(index, menuKey)}
@@ -311,96 +320,66 @@ const AppSidebar: React.FC = () => {
 
   const isActive = useCallback((path: string) => path === pathname, [pathname]);
 
-  // Chargement initial des données
-  useEffect(() => {
-    const initializeData = async () => {
-      try {
-        // Charger les privilèges depuis localStorage
-        const privilegesData = localStorage.getItem("privileges");
-        if (privilegesData) {
-          setPrivileges(JSON.parse(privilegesData));
-        }
-
-        // Charger les sections et les années en parallèle
-        await Promise.all([
-          fetchSections(),
-          fetchAnnees()
-        ]);
-        
-        setIsInitialized(true);
-      } catch (error) {
-        console.error("Erreur lors de l'initialisation:", error);
-        setIsInitialized(true); // Continuer même en cas d'erreur
-      }
-    };
-
-    initializeData();
-  }, [fetchAnnees, fetchSections]);
-
   // Mise à jour du menu quand les données changent
   useEffect(() => {
-    // On ne génère le menu que si les données essentielles sont prêtes
-    if (!isInitialized || !annees || annees.length === 0) return;
 
-    console.log("Updating menu with:", { 
-      privilegesLength: privileges.length, 
-      anneesLength: annees.length, 
-      sectionsLength: sections?.length || 0 
-    });
-
-    const sectionsId: string[] = [];
     const typesPrivileges: {
       role: string;
       category: string;
       menu: NavItem[];
     }[] = [
       {
-        role: "appariteur",
-        category: "Appariteur",
+        role: "responsable",
+        category: "Unités d'Enseignement",
         menu: []
       },
-      // {
-      //   role: "enseignement",
-      //   category: "Enseignement",
-      //   menu: []
-      // },
-      // {
-      //   role: "recherche",
-      //   category: "Recherche",
-      //   menu: []
-      // }
-    ];
-    console.log("Privileges:", privileges);
-    privileges.forEach((privilege) => {
-      const typePriv = typesPrivileges.find(tp => tp.role === privilege.role);
-      if (typePriv) {
-        if (privilege.role === "chef" || privilege.role === "appariteur") {
-          if (!sectionsId.includes(privilege.sectionId)) {
-            sectionsId.push(privilege.sectionId);
-          }
-        }
+      {
+        role: "titulaire",
+        category: "Charges Horaires",
+        menu: []
+      },
+      {
+        role: "jury",
+        category: "Bureaux du Jury",
+        menu: []
       }
-    });
+    ];
 
-    console.log("Sections ID:", sectionsId);
+
     let allMenus: MenuItem[] = [];
     
     typesPrivileges.forEach((tp) => {
-      console.log("Creating enseignement menu with annees:", annees);
-      const anneesOrdered = [...annees].sort((a, b) => b.fin - a.fin);
-      if (tp.role === "appariteur") {
+      if (tp.role === "responsable") {
         allMenus.push({
           ...tp,
-          menu: makeMenuSection(sectionsId, anneesOrdered)
+          menu: makeMenuUnites()
+        });
+      } else if (tp.role === "titulaire") {
+        allMenus.push({
+          ...tp,
+          menu: makeMenuCours()
+        });
+      } else if (tp.role === "jury") {
+        allMenus.push({
+          ...tp,
+          menu: makeMenuJuries()
         });
       }
     });
 
-    allMenus = [...allMenus, {
-      role: "all",
-      category: "",
-      menu: makeMenuAdministration(sectionsId)
-    }];
+    allMenus = [
+      ...allMenus,
+      {
+        role: "all",
+        category: "",
+        menu: [{
+          name: "Dashboard",
+          path: "/",
+          icon: <GridIcon />
+        }]
+      }
+    ]
+
 
     setMenuAdmin(allMenus.sort((a, b) => {
       if (a.role === "all") return -1;
@@ -409,7 +388,21 @@ const AppSidebar: React.FC = () => {
     }));
 
     console.log("Menu Admin created:", allMenus);
-  }, [privileges, annees, sections, isInitialized, makeMenuSection]);
+    // setMenuAdmin(allMenus);
+  }, [makeMenuUnites, makeMenuCours, makeMenuJuries]);
+
+  // Charger les données du menu au montage du composant
+  useEffect(() => {
+    if (user && user._id) {
+      console.log("Chargement des données du menu pour l'utilisateur:", user._id);
+      fetchMenuData(user._id);
+    }
+  }, [user, fetchMenuData]);
+
+  // Debug: Afficher les données du menu
+  useEffect(() => {
+    console.log("MenuData updated:", menuData);
+  }, [menuData]);
 
   useEffect(() => {
     // Check if the current path matches any submenu item
@@ -462,15 +455,15 @@ const AppSidebar: React.FC = () => {
   };
 
   // Afficher un spinner pendant le chargement initial
-  if (!isInitialized) {
-    return (
-      <aside className="fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen w-[290px] border-r border-gray-200">
-        <div className="flex items-center justify-center h-full">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      </aside>
-    );
-  }
+  // if (!isInitialized) {
+  //   return (
+  //     <aside className="fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen w-[290px] border-r border-gray-200">
+  //       <div className="flex items-center justify-center h-full">
+  //         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+  //       </div>
+  //     </aside>
+  //   );
+  // }
 
   return (
     <aside
@@ -570,7 +563,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(othersItems, "others-menu")}
+              {renderMenuItem(othersItems, "others-menu")}
             </div> */}
           </div>
         </nav>

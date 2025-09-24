@@ -1,4 +1,5 @@
 import useAuthStore from "@/stores/authStore";
+import { Commande, CommandeWithDetails } from "./CommandeService";
 
 export interface Produit {
   _id?: string;
@@ -43,6 +44,7 @@ export interface AnneeDetails {
 export interface ProduitWithDetails extends Produit {
   sectionId: SectionDetails;
   anneeId: AnneeDetails;
+  commandes?: CommandeWithDetails[];
 }
 
 class ProduitService {

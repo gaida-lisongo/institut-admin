@@ -3,6 +3,10 @@ import { devtools, persist } from 'zustand/middleware';
 import { Agent, AuthState } from '@/types/auth';
 import { AgentService } from '@/services/AgentService';
 import { AgentFormData } from '@/types/agent';
+import { Unite } from '@/services/UniteService';
+import { ChargeWithDetails } from '@/services/ChargeService';
+import { ProduitWithDetails } from '@/services/ProduitService';
+import { JuryClasseWithDetails, JuryTitulaire } from '@/services/JuryService';
 
 interface AuthStore extends AuthState {
   // Actions
@@ -11,9 +15,19 @@ interface AuthStore extends AuthState {
   updateUser: (user: Partial<Agent>) => void;
   clearAuth: () => void;
   setLoading: (loading: boolean) => void;
+  fetchMenuData: (id: string) => Promise<any>;
   // Nouvel état pour la réhydratation
   hasHydrated: boolean;
+  menuData: {
+    unites: Unite[];
+    courses: {
+      charges: ChargeWithDetails[];
+      commandes: ProduitWithDetails[];
+    };
+    juries: JuryTitulaire | null;
+  };
   setHasHydrated: (hasHydrated: boolean) => void;
+  setMenuData: (menuData: any) => void;
 }
 
 const useAuthStore = create<AuthStore>()(
@@ -26,6 +40,14 @@ const useAuthStore = create<AuthStore>()(
         isAuthenticated: false,
         isLoading: false,
         hasHydrated: false,
+        menuData: {
+          unites: [],
+          courses: {
+            charges: [],
+            commandes: []
+          },
+          juries: null
+        },
 
         // Actions
         login: (token: string, user: Agent) => {
@@ -104,6 +126,30 @@ const useAuthStore = create<AuthStore>()(
 
         setHasHydrated: (hasHydrated: boolean) => {
           set({ hasHydrated });
+        },
+
+        fetchMenuData: async (id) => {
+          set({ isLoading: true });
+          try {
+            const reqUnites = await AgentService.getUnitsByAgent(id);
+            const reqCourses = await AgentService.getCoursesByAgent(id);
+            const reqJuries = await AgentService.getJuriesByAgent(id);
+            set({ menuData: { unites: reqUnites.data, courses: reqCourses.data, juries: reqJuries.data } });
+            set({ isLoading: false });
+
+            return {
+              unites: reqUnites.data,
+              courses: reqCourses.data,
+              juries: reqJuries.data
+            }
+          } catch (error) {
+            set({ isLoading: false });
+            return null;
+          }
+        },
+
+        setMenuData: (menuData: any) => {
+          set({ menuData });
         },
       }),
       {

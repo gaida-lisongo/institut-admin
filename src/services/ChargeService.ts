@@ -1,4 +1,7 @@
 import useAuthStore from "@/stores/authStore";
+import { Etudiant } from "@/types/etudiant";
+import { Cours } from "./CoursService";
+import { Annee } from "./AnneeService";
 
 export interface Charge {
   _id?: string;
@@ -11,6 +14,21 @@ export interface Charge {
   updatedAt?: string;
 }
 
+export interface ChargeWithDetails {
+  cours: Cours;
+  annee: Annee;
+  fiche: {
+    _id: string;
+    etudiantId: Etudiant
+    chargeId: string;
+    reference: string;
+    logs: any[];
+    status: "OK" | "PENDING" | "NO";
+    cmi?: number;
+    examen?: number;
+    rattrapage?: number;
+  }[];
+}
 export interface ChargeFormData {
   agentId: string;
   coursId: string;

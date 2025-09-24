@@ -1,4 +1,6 @@
 import useAuthStore from "@/stores/authStore";
+import { Classe, ClasseWithSemestres } from "./CycleService";
+import { Section } from "@/types/section";
 
 export interface Bureau {
   agentId: string | AgentDetails;
@@ -12,6 +14,7 @@ export interface Jury {
   designation: string;
   code: string;
   bureau: Bureau[];
+  classes?: ClasseWithSemestres[];
   createdAt?: string;
   updatedAt?: string;
   __v?: number; // Champ MongoDB version
@@ -91,6 +94,22 @@ export interface JuryWithDetails extends Jury {
 
 export interface JuryClasseWithDetails extends JuryClasse {
   juryId: JuryWithDetails;
+}
+
+export interface JuryTitulaire {
+  jurys: [
+    {
+      juryId: string;
+      annee: AnneeDetails;
+      role: string;
+      designation: string;
+      code: string;
+      classes: JuryClasse[];
+      section: Section;
+    }
+  ];
+  agentId: string;
+
 }
 
 class JuryService {

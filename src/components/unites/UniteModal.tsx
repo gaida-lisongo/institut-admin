@@ -92,6 +92,11 @@ export default function UniteModal({ isOpen, onClose, unite, sectionId }: UniteM
 
   useEffect(() => {
     if (unite) {
+      // Convertir les cours en tableau d'IDs si nécessaire
+      const coursIds = Array.isArray(unite.cours) 
+        ? unite.cours.map(cours => typeof cours === 'string' ? cours : cours._id || '')
+        : [];
+
       setFormData({
         semestreId: unite.semestreId,
         responsable: unite.responsable,
@@ -99,14 +104,15 @@ export default function UniteModal({ isOpen, onClose, unite, sectionId }: UniteM
         ressources: unite.ressources,
         bibliographie: unite.bibliographie,
         videographie: unite.videographie,
-        cours: unite.cours
+        cours: coursIds
       });
       
       // Pré-remplir le responsable s'il existe
       if (unite.responsable.length > 0) {
+        const responsable = unite.responsable[0];
         setSelectedResponsable({
-          titulaireId: unite.responsable[0].titulaireId,
-          anneeId: unite.responsable[0].anneeId
+          titulaireId: responsable.titulaireId,
+          anneeId: typeof responsable.anneeId === 'string' ? responsable.anneeId : responsable.anneeId._id || ''
         });
       }
     } else {
@@ -168,13 +174,16 @@ export default function UniteModal({ isOpen, onClose, unite, sectionId }: UniteM
 
   const getAgentName = (agentId: string) => {
     const agent = agents.find(a => a._id === agentId);
-    return agent ? `${agent.prenom} ${agent.nom}` : agentId;
+    if (!agent) return 'Agent inconnu';
+    const name = `${agent.prenom || ''} ${agent.nom || ''}`.trim();
+    return name || 'Agent inconnu';
   };
 
   // AJOUT: Fonction pour obtenir le nom de l'année
   const getAnneeName = (anneeId: string) => {
     const annee = annees.find(a => a._id === anneeId);
-    return annee ? `${annee.debut} - ${annee.fin}` : anneeId;
+    if (!annee) return 'Année inconnue';
+    return `${annee.debut || ''} - ${annee.fin || ''}`;
   };
 
   if (!isOpen) return null;
@@ -323,7 +332,7 @@ export default function UniteModal({ isOpen, onClose, unite, sectionId }: UniteM
                     <option value="">Sélectionner un agent</option>
                     {agents.map((agent) => (
                       <option key={agent._id} value={agent._id}>
-                        {agent.prenom} {agent.nom} - {agent.grade}
+                        {`${agent.prenom || ''} ${agent.nom || ''}${agent.grade ? ` - ${agent.grade}` : ''}`.trim()}
                       </option>
                     ))}
                   </select>

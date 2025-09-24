@@ -121,26 +121,36 @@ export default function SignInForm() {
       console.log("Réponse de l'API:", result);
       
       // Vérifier la structure de la réponse
-      if (!result.token || !result.agent) {
+      if (!result.data.token || !result.data.agent) {
         showModal("error", "Les identifiants fournis sont incorrects. Veuillez vérifier votre matricule et mot de passe.");
         return;
       }
 
       // Vérification des privilèges
-      const resp = await AgentService.getPrivilegesByAgent(result.agent._id || "");
-      console.log("Privilèges récupérés:", resp);
+      const menuData = await useAuthStore.getState().fetchMenuData(result.data.agent._id!);
       
-      if(!resp || resp.length === 0) {
+      if(!menuData || menuData.length === 0) {
         showModal("error", "Votre compte n'a pas encore de privilèges assignés. Veuillez contacter l'administrateur système pour activer votre accès.");
         return;
       }
 
       // Sauvegarde des données
-      localStorage.setItem("privileges", JSON.stringify(resp));
-      localStorage.setItem("auth-token", result.token);
-      login(result.token, result.agent);
+      localStorage.setItem("privileges", JSON.stringify(menuData));
+      localStorage.setItem("auth-token", result.data.token);
       
-      console.log("Utilisateur connecté:", result.agent);
+      // Conversion de l'agent pour assurer la compatibilité des types
+      const agentForAuth = {
+        ...result.data.agent,
+        date_naissance: typeof result.data.agent.date_naissance === 'string' 
+          ? new Date(result.data.agent.date_naissance) 
+          : result.data.agent.date_naissance,
+        photo: result.data.agent.photo || '', // Assurer que photo n'est pas undefined
+        sexe: result.data.agent.sexe as string // Conversion du type sexe
+      };
+      
+      login(result.data.token, agentForAuth);
+      
+      console.log("Utilisateur connecté:", result.data.agent);
 
       // Succès - redirection
       showModal("success", "Bienvenue ! Vous êtes maintenant connecté. Redirection vers votre tableau de bord...", () => {

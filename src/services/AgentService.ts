@@ -2,8 +2,12 @@ import { Agent, AgentFormData, Privilge } from "@/types/agent";
 import { LoginResponse } from "@/types/auth";
 import { PasswordUtils } from "@/utils/passwordUtils";
 import useAuthStore from "@/stores/authStore";
+import { Unite } from "./UniteService";
+import { Jury, JuryClasseWithDetails, JuryTitulaire } from "./JuryService";
+import { ChargeWithDetails } from "./ChargeService";
+import { ProduitWithDetails } from "./ProduitService";
 
-const API_BASE_URL = "https://server.inbtp.net/api/v1/user";
+const API_BASE_URL = "http://192.168.1.69:4001/api/v1";
 
 export class AgentService {
 
@@ -17,7 +21,14 @@ export class AgentService {
   }
 
   // Authentification de l'agent/utilisateur
-  static async login(matricule: string, password: string): Promise<LoginResponse> {
+  static async login(matricule: string, password: string): Promise<{
+    success: boolean;
+    message: string;
+    data: {
+      token: string;
+      agent: Agent;
+    }
+  }> {
     try {
       console.log("Tentative de connexion pour le matricule:", matricule);
       console.log("Mot de passe avant cryptage:", password);
@@ -26,7 +37,7 @@ export class AgentService {
       const hashedPassword = PasswordUtils.hashPassword(password);
       console.log("Mot de passe après cryptage:", hashedPassword);
       
-      const response = await fetch(`${API_BASE_URL}/agent/login`, {
+      const response = await fetch(`${API_BASE_URL}/titulaire/auth`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -43,9 +54,77 @@ export class AgentService {
         throw new Error(result.message || `HTTP error! status: ${response.status}`);
       }
       
-      return result as LoginResponse;
+      return result as {
+        success: boolean;
+        message: string;
+        data: { token: string; agent: Agent; };
+      };
     } catch (error) {
       console.error("Erreur lors de l'authentification:", error);
+      throw error;
+    }
+  }
+
+  //Recupérer les unites d'enseignements auquel le titulaire est responsable
+  static async getUnitsByAgent(id: string): Promise<{
+    success: boolean;
+    message: string;
+    data: Unite[];
+  }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/titulaire/unites/${id}`, {
+        headers: this.getAuthHeaders(),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la récupération des unites d'enseignements:", error);
+      throw error;
+    }
+  }
+
+  //Recupérer les cours auquel le titulaire est responsable
+  static async getCoursesByAgent(id: string): Promise<{
+    success: boolean;
+    message: string;
+    data: {
+      charges: ChargeWithDetails[];
+      commandes: ProduitWithDetails[];
+    };
+  }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/titulaire/charges/${id}`, {
+        headers: this.getAuthHeaders(),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la récupération des cours:", error);
+      throw error;
+    }
+  }
+
+  // Recupérer tous les jurys auquel le titulaire est memebre du bureau du jury
+  static async getJuriesByAgent(id: string): Promise<{
+    success: boolean;
+    message: string;
+    data: JuryTitulaire;
+  }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/titulaire/juries/${id}`, {
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la récupération des jurys:", error);
       throw error;
     }
   }
@@ -53,7 +132,7 @@ export class AgentService {
   // Récupérer tous les agents
   static async getAgents(): Promise<Agent[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/agent`, {
+      const response = await fetch(`${API_BASE_URL}/user/agent`, {
         headers: this.getAuthHeaders(),
       });
       if (!response.ok) {

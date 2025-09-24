@@ -1,8 +1,10 @@
 import useAuthStore from "@/stores/authStore";
+import { Cours } from "./CoursService";
+import { Annee } from "./AnneeService";
 
 export interface Responsable {
   titulaireId: string;
-  anneeId: string;
+  anneeId: string | Annee;
 }
 
 export interface Descripteur {
@@ -26,7 +28,7 @@ export interface Unite {
   ressources: string[];
   bibliographie: string[];
   videographie: string[];
-  cours: string[]; // IDs des cours
+  cours: string[] | Cours[]; // IDs des cours
   createdAt?: string;
   updatedAt?: string;
 }

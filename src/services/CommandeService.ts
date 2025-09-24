@@ -10,6 +10,20 @@ export interface Commande {
   updatedAt?: string;
 }
 
+export interface CommandeWithDetails {
+  _id?: string;
+  productIds: string[];
+  statu: 'NO' | 'PENDING' | 'OK';
+  reference: string;
+  matricule?: string;
+  telephone?: string;
+  currency?: string;
+  montant?: number;
+  anneeId: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Annee {
   _id?: string;
   debut: number;

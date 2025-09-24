@@ -1,10 +1,18 @@
 import useAuthStore from "@/stores/authStore";
+import { Semestre } from "./SemestreService";
 
 export interface Classe {
   _id?: string;
   designation: string;
   description: string;
   semestres: string[]; // IDs des semestres
+}
+
+export interface ClasseWithSemestres {
+  _id?: string;
+  designation: string;
+  description: string;
+  semestres: Semestre[];
 }
 
 export interface Cycle {
