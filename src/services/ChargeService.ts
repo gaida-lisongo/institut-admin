@@ -14,26 +14,35 @@ export interface Charge {
   updatedAt?: string;
 }
 
-export interface ChargeWithDetails {
-  cours: Cours;
-  annee: Annee;
-  fiche: {
-    _id: string;
-    etudiantId: Etudiant
-    chargeId: string;
-    reference: string;
-    logs: any[];
-    status: "OK" | "PENDING" | "NO";
-    cmi?: number;
-    examen?: number;
-    rattrapage?: number;
-  }[];
-}
 export interface ChargeFormData {
   agentId: string;
   coursId: string;
   anneeId: string;
-  status?: "ok" | "pending" | "no";
+  status?: "OK" | "PENDING" | "NO";
+}
+
+export interface ChargeWithDetails {
+  chargeId?: string;
+  cours: CoursDetails;
+  annee: AnneeDetails;
+  status: "OK" | "PENDING" | "NO";
+  fiches: Fiche[];
+}
+
+export interface Fiche {
+    _id?: string;
+    etudiantId: Etudiant | string;
+    chargeId: string;
+    reference?: string;
+    logs?: {
+      agentId: string;
+      justification: string;
+    }[];
+    author: string;
+    status: "OK" | "PENDING" | "NO";
+    cmi?: number;
+    examen?: number;
+    rattrapage?: number;
 }
 
 export interface AgentDetails {
@@ -86,15 +95,9 @@ export interface AnneeDetails {
   };
 }
 
-export interface ChargeWithDetails extends Charge {
-  agentId: AgentDetails;
-  coursId: CoursDetails;
-  anneeId: AnneeDetails;
-  status: "ok" | "pending" | "no";
-}
 
 class ChargeService {
-  private baseUrl = "https://server.inbtp.net/api/v1";
+  private baseUrl = "https://192.168.1.69:4001/api/v1";
 
   private getAuthHeaders() {
     const { token } = useAuthStore.getState();
@@ -228,6 +231,25 @@ class ChargeService {
       return await response.json();
     } catch (error) {
       console.error("Erreur lors de la mise à jour de la charge:", error);
+      throw error;
+    }
+  }
+
+  async updateFiche(id: string, data: Partial<Fiche>): Promise<Fiche> {
+    try {
+      const response = await fetch(`${this.baseUrl}/agent/fiche/${id}`, {
+        method: "PUT",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour de la fiche:", error);
       throw error;
     }
   }

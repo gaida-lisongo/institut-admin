@@ -13,6 +13,7 @@ interface ChargeState {
   fetchCharges: () => Promise<void>;
   fetchChargeById: (id: string) => Promise<void>;
   fetchChargesByAnnee: (anneeId: string) => Promise<void>;
+  fetchChargesByAgent: (agentId: string) => Promise<void>;
   createCharge: (data: ChargeFormData) => Promise<void>;
   updateCharge: (id: string, data: Partial<ChargeFormData>) => Promise<void>;
   deleteCharge: (id: string) => Promise<void>;
@@ -61,6 +62,19 @@ export const useChargeStore = create<ChargeState>((set, get) => ({
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Erreur lors du chargement des charges de l\'année', 
+        loading: false 
+      });
+    }
+  },
+
+  fetchChargesByAgent: async (agentId: string) => {
+    set({ loading: true, error: null });
+    try {
+      const charges = await ChargeService.getChargesByAgent(agentId);
+      set({ charges, loading: false });
+    } catch (error) {
+      set({ 
+        error: error instanceof Error ? error.message : 'Erreur lors du chargement des charges de l\'agent', 
         loading: false 
       });
     }

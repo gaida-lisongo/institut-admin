@@ -2,16 +2,16 @@ import React from 'react';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Gestion des Unités d\'Enseignement | Institut Admin',
-  description: 'Gérez le contenu pédagogique de vos unités d\'enseignement et des cours associés. Éditez les informations descriptives, organisez les ressources et supervisez les cours.',
-  keywords: ['unités d\'enseignement', 'gestion pédagogique', 'cours', 'éducation', 'administration'],
+  title: 'Gestion des Charges et Cotations | Institut Admin',
+  description: 'Interface de cotation pour les enseignants. Gérez vos charges d\'enseignement et cotez vos étudiants (CMI, examens, rattrapages) par cours et année académique.',
+  keywords: ['charges enseignement', 'cotation étudiants', 'CMI', 'examens', 'rattrapages', 'évaluation'],
 };
 
-interface UnitesLayoutProps {
+interface ChargesLayoutProps {
   children: React.ReactNode;
 }
 
-const UnitesLayout: React.FC<UnitesLayoutProps> = ({ children }) => {
+const ChargesLayout: React.FC<ChargesLayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header Section */}
@@ -21,10 +21,10 @@ const UnitesLayout: React.FC<UnitesLayoutProps> = ({ children }) => {
             <div className="md:flex md:items-center md:justify-between">
               <div className="flex-1 min-w-0">
                 <h1 className="text-2xl font-bold leading-7 text-gray-900 dark:text-white sm:text-3xl sm:truncate">
-                  Gestion des Unités d'Enseignement
+                  Gestion des Charges et Cotations
                 </h1>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Gérez le contenu pédagogique de vos unités d'enseignement et des cours associés
+                  Cotez vos étudiants et gérez vos charges d'enseignement par cours et année académique
                 </p>
               </div>
             </div>
@@ -34,28 +34,29 @@ const UnitesLayout: React.FC<UnitesLayoutProps> = ({ children }) => {
 
       {/* Description Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 mb-6">
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6 mb-6">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                À propos de cette section
+              <h3 className="text-sm font-medium text-green-800 dark:text-green-200">
+                Interface de Cotation Enseignant
               </h3>
-              <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
+              <div className="mt-2 text-sm text-green-700 dark:text-green-300">
                 <p>
-                  Cette section vous permet de gérer le branding et le contenu pédagogique de vos unités d'enseignement. 
-                  En tant que responsable, vous pouvez :
+                  Cette section vous permet de gérer vos charges d'enseignement et de coter vos étudiants. 
+                  En tant qu'enseignant, vous pouvez :
                 </p>
                 <ul className="list-disc list-inside mt-2 space-y-1">
-                  <li>Éditer les informations descriptives des unités d'enseignement</li>
-                  <li>Gérer les objectifs, compétences et approches pédagogiques</li>
-                  <li>Organiser les ressources bibliographiques et vidéographiques</li>
-                  <li>Superviser les cours associés à chaque unité</li>
-                  <li>Définir les modalités d'évaluation et les prérequis</li>
+                  <li>Consulter tous vos cours assignés</li>
+                  <li>Filtrer par année académique pour un suivi précis</li>
+                  <li>Coter les étudiants : CMI (Contrôle Moyen Intégré)</li>
+                  <li>Saisir les notes d'examens finaux</li>
+                  <li>Gérer les notes de rattrapages</li>
+                  <li>Suivre le statut des évaluations (OK, PENDING, NO)</li>
                 </ul>
               </div>
             </div>
@@ -79,7 +80,7 @@ const UnitesLayout: React.FC<UnitesLayoutProps> = ({ children }) => {
                   <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
                 </svg>
                 <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">
-                  Unités d'Enseignement
+                  Charges et Cotations
                 </span>
               </div>
             </li>
@@ -95,4 +96,4 @@ const UnitesLayout: React.FC<UnitesLayoutProps> = ({ children }) => {
   );
 };
 
-export default UnitesLayout;
+export default ChargesLayout;

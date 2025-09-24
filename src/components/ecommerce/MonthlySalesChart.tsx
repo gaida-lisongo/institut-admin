@@ -198,9 +198,13 @@ export default function MonthlySalesChart() {
         no: 0
       };
 
-      unite.cours.forEach((coursId) => {
-        const status = fetchChargeStatus(coursId, anneeId);
-        statusCounts[status as keyof typeof statusCounts]++;
+      unite.cours.forEach((cours) => {
+        // Handle both cases: when cours is a string (ID) or a Cours object
+        const coursId = typeof cours === 'string' ? cours : cours._id;
+        if (coursId) {
+          const status = fetchChargeStatus(coursId, anneeId);
+          statusCounts[status as keyof typeof statusCounts]++;
+        }
       });
 
       return {

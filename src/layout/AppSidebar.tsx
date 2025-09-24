@@ -155,12 +155,17 @@ const AppSidebar: React.FC = () => {
     const { courses } = menuData;
 
     let anneeCours: NavItem[] = [];
+    let uniqueAnnees: any[] = [];
 
-    courses && courses.charges.map(c => {
-      if(typeof c.annee === 'object') {
-        anneeCours.push({ name: `Année ${c.annee.debut}-${c.annee.fin}`, path: `/cours/${c.annee._id}`, icon: <ListIcon /> });
+    courses?.charges.forEach(c => {
+      //check if chearge is existing in uniqueAnnees
+      if(!uniqueAnnees.find(a => a._id === c.annee._id)) {
+        uniqueAnnees.push({ _id: c.annee._id, debut: c.annee.debut, fin: c.annee.fin });
       }
-      return null;
+    });
+
+    uniqueAnnees.forEach(a => {
+      anneeCours.push({ name: `Année ${a.debut}-${a.fin}`, path: `/charges/${a._id}`, icon: <ListIcon /> });
     });
 
     const anneeFilterByName = [...anneeCours].sort((a, b) => a.name.localeCompare(b.name));
