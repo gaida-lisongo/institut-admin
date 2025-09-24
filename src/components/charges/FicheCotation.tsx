@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ChargeWithDetails, Fiche } from '@/services/ChargeService';
+import { Etudiant } from '@/types/etudiant';
 import ChargeService from '@/services/ChargeService';
 
 interface FicheCotationProps {
@@ -11,58 +12,96 @@ interface FicheCotationProps {
 
 export default function FicheCotation({ charge, onBack }: FicheCotationProps) {
   const [fiches, setFiches] = useState<Fiche[]>(charge.fiches);
+  const [filteredFiches, setFilteredFiches] = useState<Fiche[]>(charge.fiches);
   const [loading, setLoading] = useState(false);
-  const [editingFiche, setEditingFiche] = useState<string | null>(null);
-  const [formData, setFormData] = useState<Partial<Fiche>>({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'OK' | 'PENDING' | 'NO'>('ALL');
 
-  // ChargeService est déjà une instance
+  // Filtrage des fiches
+  useEffect(() => {
+    let filtered = fiches;
+    
+    // Filtrage par terme de recherche
+    if (searchTerm) {
+      filtered = filtered.filter(fiche => {
+        const etudiant = fiche.etudiantId as Etudiant;
+        const fullName = `${etudiant.nom} ${etudiant.post_nom} ${etudiant.prenom}`.toLowerCase();
+        const matricule = etudiant.matricule?.toLowerCase() || '';
+        const reference = fiche.reference?.toLowerCase() || '';
+        const search = searchTerm.toLowerCase();
+        
+        return fullName.includes(search) || matricule.includes(search) || reference.includes(search);
+      });
+    }
+    
+    // Filtrage par statut
+    if (statusFilter !== 'ALL') {
+      filtered = filtered.filter(fiche => fiche.status === statusFilter);
+    }
+    
+    setFilteredFiches(filtered);
+  }, [fiches, searchTerm, statusFilter]);
 
-  const handleEditFiche = (fiche: Fiche) => {
-    setEditingFiche(fiche._id || '');
-    setFormData({
-      cmi: fiche.cmi || 0,
-      examen: fiche.examen || 0,
-      rattrapage: fiche.rattrapage || 0,
-      status: fiche.status || 'PENDING'
-    });
-  };
-
-  const handleSaveFiche = async (ficheId: string) => {
-    if (!ficheId) return;
+  // Sauvegarde automatique avec calcul du status
+  const autoSaveFiche = async (ficheId: string, field: 'cmi' | 'examen' | 'rattrapage', value: number) => {
+    const fiche = fiches.find(f => f._id === ficheId);
+    if (!fiche) return;
+    
+    const updatedData = { ...fiche, [field]: value };
+    const total = calculateTotal(updatedData.cmi || 0, updatedData.examen || 0, updatedData.rattrapage || 0);
+    
+    // Calcul automatique du status
+    const newStatus = total >= 10 ? 'OK' : 'PENDING';
     
     setLoading(true);
     try {
-      const updatedFiche = await ChargeService.updateFiche(ficheId, formData);
+      await ChargeService.updateFiche(ficheId, {
+        [field]: value,
+        status: newStatus
+      });
       
       // Mettre à jour la liste locale
       setFiches(prev => prev.map(f => 
-        f._id === ficheId ? { ...f, ...updatedFiche } : f
+        f._id === ficheId ? { ...f, [field]: value, status: newStatus } : f
       ));
-      
-      setEditingFiche(null);
-      setFormData({});
     } catch (error) {
-      console.error('Erreur lors de la mise à jour:', error);
-      alert('Erreur lors de la sauvegarde');
+      console.error('Erreur lors de la sauvegarde automatique:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCancelEdit = () => {
-    setEditingFiche(null);
-    setFormData({});
+  // Gestion des changements de notes avec sauvegarde automatique
+  const handleNoteChange = (ficheId: string, field: 'cmi' | 'examen' | 'rattrapage', value: string) => {
+    const numValue = parseFloat(value) || 0;
+    
+    // Mise à jour immédiate de l'affichage
+    setFiches(prev => prev.map(f => 
+      f._id === ficheId ? { ...f, [field]: numValue } : f
+    ));
+    
+    // Sauvegarde automatique après un délai
+    setTimeout(() => {
+      autoSaveFiche(ficheId, field, numValue);
+    }, 1000); // 1 seconde de délai
   };
 
-  const getEtudiantName = (etudiant: any) => {
-    if (typeof etudiant === 'string') return etudiant;
-    return `${etudiant.nom} ${etudiant.prenom}` || 'Étudiant inconnu';
+  const getEtudiantInfo = (etudiant: Etudiant | string) => {
+    if (typeof etudiant === 'string') {
+      return { fullName: etudiant, matricule: 'N/A' };
+    }
+    const fullName = `${etudiant.nom} ${etudiant.post_nom} ${etudiant.prenom}`;
+    return { fullName, matricule: etudiant.matricule || 'N/A' };
   };
 
   const calculateTotal = (cmi: number = 0, examen: number = 0, rattrapage: number = 0) => {
-    // Si rattrapage existe, on prend le meilleur entre examen et rattrapage
-    const finalExam = rattrapage > 0 ? Math.max(examen, rattrapage) : examen;
-    return Math.round(((cmi * 0.4) + (finalExam * 0.6)) * 100) / 100;
+    // Nouveau système: CMI=10pts, Examen=10pts, Rattrapage=20pts
+    // Si rattrapage existe, il remplace complètement les autres notes
+    if (rattrapage > 0) {
+      return Math.round(rattrapage * 100) / 100;
+    }
+    // Sinon: CMI + Examen
+    return Math.round((cmi + examen) * 100) / 100;
   };
 
   const getGradeColor = (total: number) => {
@@ -102,6 +141,42 @@ export default function FicheCotation({ charge, onBack }: FicheCotationProps) {
             <div className="text-lg font-semibold text-gray-900 dark:text-white">
               {fiches.length > 0 ? Math.round((fiches.filter(f => f.status === 'OK').length / fiches.length) * 100) : 0}% terminé
             </div>
+            <div className="text-xs text-gray-400 mt-1">
+              Affichage: {filteredFiches.length} / {fiches.length}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Barre de recherche et filtres */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Rechercher un étudiant
+            </label>
+            <input
+              type="text"
+              placeholder="Nom, prénom, matricule ou référence..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Filtrer par statut
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'OK' | 'PENDING' | 'NO')}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            >
+              <option value="ALL">Tous les statuts</option>
+              <option value="PENDING">En cours</option>
+              <option value="OK">Terminé</option>
+              <option value="NO">Non évalué</option>
+            </select>
           </div>
         </div>
       </div>
@@ -109,20 +184,20 @@ export default function FicheCotation({ charge, onBack }: FicheCotationProps) {
       {/* Légende des notes */}
       <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-6">
         <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
-          Système de notation
+          Système de notation - Sauvegarde automatique
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           <div>
-            <span className="font-medium text-blue-700 dark:text-blue-300">CMI (40%)</span>
+            <span className="font-medium text-blue-700 dark:text-blue-300">CMI (10 pts)</span>
             <p className="text-blue-600 dark:text-blue-400">Contrôle Moyen Intégré</p>
           </div>
           <div>
-            <span className="font-medium text-blue-700 dark:text-blue-300">Examen (60%)</span>
+            <span className="font-medium text-blue-700 dark:text-blue-300">Examen (10 pts)</span>
             <p className="text-blue-600 dark:text-blue-400">Note d'examen final</p>
           </div>
           <div>
-            <span className="font-medium text-blue-700 dark:text-blue-300">Rattrapage</span>
-            <p className="text-blue-600 dark:text-blue-400">Remplace l'examen si meilleur</p>
+            <span className="font-medium text-blue-700 dark:text-blue-300">Rattrapage (20 pts)</span>
+            <p className="text-blue-600 dark:text-blue-400">Remplace CMI + Examen - Status auto: OK si ≥10</p>
           </div>
         </div>
       </div>
@@ -130,9 +205,17 @@ export default function FicheCotation({ charge, onBack }: FicheCotationProps) {
       {/* Liste des étudiants */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-            Liste des étudiants ({fiches.length})
-          </h3>
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+              Liste des étudiants ({filteredFiches.length})
+            </h3>
+            {loading && (
+              <div className="flex items-center text-sm text-blue-600 dark:text-blue-400">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                Sauvegarde...
+              </div>
+            )}
+          </div>
         </div>
         
         <div className="overflow-x-auto">
@@ -143,10 +226,10 @@ export default function FicheCotation({ charge, onBack }: FicheCotationProps) {
                   Étudiant
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  CMI (/20)
+                  CMI (/10)
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Examen (/20)
+                  Examen (/10)
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Rattrapage (/20)
@@ -163,35 +246,38 @@ export default function FicheCotation({ charge, onBack }: FicheCotationProps) {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {fiches.map((fiche) => {
-                const isEditing = editingFiche === fiche._id;
+              {filteredFiches.map((fiche) => {
                 const total = calculateTotal(
-                  isEditing ? (formData.cmi || 0) : (fiche.cmi || 0),
-                  isEditing ? (formData.examen || 0) : (fiche.examen || 0),
-                  isEditing ? (formData.rattrapage || 0) : (fiche.rattrapage || 0)
+                  fiche.cmi || 0,
+                  fiche.examen || 0,
+                  fiche.rattrapage || 0
                 );
+                const etudiantInfo = getEtudiantInfo(fiche.etudiantId);
 
                 return (
                   <tr key={fiche._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {getEtudiantName(fiche.etudiantId)}
+                        {etudiantInfo.fullName}
                       </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400">
+                        Matricule: {etudiantInfo.matricule}
+                      </div>
+                      <div className="text-xs text-gray-400">
                         Réf: {fiche.reference || 'N/A'}
                       </div>
                     </td>
                     
                     {/* CMI */}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {isEditing ? (
+                      {fiche.status === 'PENDING' ? (
                         <input
                           type="number"
                           min="0"
-                          max="20"
+                          max="10"
                           step="0.25"
-                          value={formData.cmi || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, cmi: parseFloat(e.target.value) || 0 }))}
+                          value={fiche.cmi || ''}
+                          onChange={(e) => handleNoteChange(fiche._id!, 'cmi', e.target.value)}
                           className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                         />
                       ) : (
@@ -203,14 +289,14 @@ export default function FicheCotation({ charge, onBack }: FicheCotationProps) {
                     
                     {/* Examen */}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {isEditing ? (
+                      {fiche.status === 'PENDING' ? (
                         <input
                           type="number"
                           min="0"
-                          max="20"
+                          max="10"
                           step="0.25"
-                          value={formData.examen || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, examen: parseFloat(e.target.value) || 0 }))}
+                          value={fiche.examen || ''}
+                          onChange={(e) => handleNoteChange(fiche._id!, 'examen', e.target.value)}
                           className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                         />
                       ) : (
@@ -222,14 +308,14 @@ export default function FicheCotation({ charge, onBack }: FicheCotationProps) {
                     
                     {/* Rattrapage */}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {isEditing ? (
+                      {fiche.status === 'PENDING' ? (
                         <input
                           type="number"
                           min="0"
                           max="20"
                           step="0.25"
-                          value={formData.rattrapage || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, rattrapage: parseFloat(e.target.value) || 0 }))}
+                          value={fiche.rattrapage || ''}
+                          onChange={(e) => handleNoteChange(fiche._id!, 'rattrapage', e.target.value)}
                           className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                         />
                       ) : (
@@ -261,30 +347,15 @@ export default function FicheCotation({ charge, onBack }: FicheCotationProps) {
                     
                     {/* Actions */}
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {isEditing ? (
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleSaveFiche(fiche._id!)}
-                            disabled={loading}
-                            className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 disabled:opacity-50"
-                          >
-                            ✓ Sauver
-                          </button>
-                          <button
-                            onClick={handleCancelEdit}
-                            disabled={loading}
-                            className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 disabled:opacity-50"
-                          >
-                            ✕ Annuler
-                          </button>
-                        </div>
+                      {fiche.status === 'PENDING' ? (
+                        <span className="text-green-600 dark:text-green-400 text-xs flex items-center">
+                          ✏️ Éditable
+                          {loading && <div className="ml-1 animate-spin rounded-full h-3 w-3 border-b border-green-600"></div>}
+                        </span>
                       ) : (
-                        <button
-                          onClick={() => handleEditFiche(fiche)}
-                          className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                        >
-                          ✏️ Modifier
-                        </button>
+                        <span className="text-gray-400 dark:text-gray-500 text-xs">
+                          🔒 Lecture seule
+                        </span>
                       )}
                     </td>
                   </tr>

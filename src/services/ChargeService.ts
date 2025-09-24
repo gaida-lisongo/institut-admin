@@ -97,7 +97,7 @@ export interface AnneeDetails {
 
 
 class ChargeService {
-  private baseUrl = "https://192.168.1.69:4001/api/v1";
+  private baseUrl = "http://192.168.1.69:4001/api/v1";
 
   private getAuthHeaders() {
     const { token } = useAuthStore.getState();
@@ -237,7 +237,7 @@ class ChargeService {
 
   async updateFiche(id: string, data: Partial<Fiche>): Promise<Fiche> {
     try {
-      const response = await fetch(`${this.baseUrl}/agent/fiche/${id}`, {
+      const response = await fetch(`${this.baseUrl}/user/fiche/${id}`, {
         method: "PUT",
         headers: this.getAuthHeaders(),
         body: JSON.stringify(data),
