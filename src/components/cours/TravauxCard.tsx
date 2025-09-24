@@ -38,7 +38,7 @@ const TravauxCard: React.FC<TravauxCardProps> = ({
           </div>
           {travail.produit?.montant && (
             <div className="text-sm text-gray-500">
-              {travail.produit.montant}€
+              {travail.produit.montant} CDF
             </div>
           )}
         </div>

@@ -1,6 +1,11 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { Seance } from "@/services/CoursService";
+import { Produit, ProduitWithDetails } from "@/services/ProduitService";
+import { Section } from "@/types/section";
+import ProduitService from "@/services/ProduitService";
+import SectionService from "@/services/SectionService";
+import ProduitModal from "./ProduitModal";
 
 interface SeanceModalProps {
   isOpen: boolean;
@@ -8,6 +13,7 @@ interface SeanceModalProps {
   onSave: (seance: Omit<Seance, '_id'> | Partial<Seance>) => void;
   seance?: Seance;
   anneeId: string;
+  sectionId?: string; // Optionnel maintenant car on va le sélectionner
 }
 
 export default function SeanceModal({
@@ -16,6 +22,7 @@ export default function SeanceModal({
   onSave,
   seance,
   anneeId,
+  sectionId,
 }: SeanceModalProps) {
   const [formData, setFormData] = useState<{
     anneeId: string;
@@ -26,6 +33,14 @@ export default function SeanceModal({
     produitId: "",
     status: "PENDING",
   });
+  
+  const [isProduitModalOpen, setIsProduitModalOpen] = useState(false);
+  const [selectedProduit, setSelectedProduit] = useState<ProduitWithDetails | null>(null);
+  const [availableProduits, setAvailableProduits] = useState<ProduitWithDetails[]>([]);
+  const [isLoadingProduits, setIsLoadingProduits] = useState(false);
+  const [selectedSectionId, setSelectedSectionId] = useState<string>("");
+  const [availableSections, setAvailableSections] = useState<Section[]>([]);
+  const [isLoadingSections, setIsLoadingSections] = useState(false);
 
   useEffect(() => {
     if (seance) {
@@ -34,6 +49,9 @@ export default function SeanceModal({
         produitId: seance.produitId,
         status: seance.status,
       });
+      if (seance.produitId) {
+        loadProduitDetails(seance.produitId);
+      }
     } else {
       setFormData({
         anneeId: anneeId,
@@ -41,12 +59,96 @@ export default function SeanceModal({
         status: "PENDING",
       });
     }
-  }, [seance, anneeId]);
+    
+    // Charger les sections et produits disponibles
+    if (isOpen) {
+      loadAvailableSections();
+      if (selectedSectionId) {
+        loadAvailableProduits();
+      }
+    }
+  }, [seance, anneeId, isOpen, selectedSectionId]);
+
+  const loadAvailableSections = async () => {
+    setIsLoadingSections(true);
+    try {
+      const response = await SectionService.getAllSections();
+      if (response.data && response.data.success) {
+        setAvailableSections(response.data.data);
+        // Si on a un sectionId par défaut, le sélectionner
+        if (sectionId && !selectedSectionId) {
+          setSelectedSectionId(sectionId);
+        }
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement des sections:", error);
+    } finally {
+      setIsLoadingSections(false);
+    }
+  };
+
+  const loadProduitDetails = async (produitId: string) => {
+    try {
+      const produit = await ProduitService.getProduit(produitId);
+      setSelectedProduit(produit);
+    } catch (error) {
+      console.error("Erreur lors du chargement du produit:", error);
+    }
+  };
+
+  const loadAvailableProduits = async () => {
+    if (!selectedSectionId) return;
+    
+    setIsLoadingProduits(true);
+    try {
+      const response = await ProduitService.getProduitByAnneeAndSection(anneeId, selectedSectionId);
+      // S'assurer que la réponse est un tableau
+      const produits = Array.isArray(response) ? response : (response || []);
+      setAvailableProduits(produits);
+    } catch (error) {
+      console.error("Erreur lors du chargement des produits:", error);
+      setAvailableProduits([]); // Définir un tableau vide en cas d'erreur
+    } finally {
+      setIsLoadingProduits(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedSectionId) {
+      alert("Veuillez sélectionner une section");
+      return;
+    }
+    if (!formData.produitId) {
+      alert("Veuillez sélectionner ou créer un produit");
+      return;
+    }
     onSave(formData);
     onClose();
+  };
+
+  const handleSectionChange = (sectionId: string) => {
+    setSelectedSectionId(sectionId);
+    // Réinitialiser la sélection de produit si on change de section
+    setFormData(prev => ({ ...prev, produitId: "" }));
+    setSelectedProduit(null);
+    setAvailableProduits([]);
+  };
+
+  const handleProduitCreated = (produit: Produit) => {
+    setFormData(prev => ({ ...prev, produitId: produit._id || '' }));
+    setSelectedProduit(produit as ProduitWithDetails);
+    setIsProduitModalOpen(false);
+    // Recharger la liste des produits
+    loadAvailableProduits();
+  };
+
+  const handleProduitSelected = (produitId: string) => {
+    setFormData(prev => ({ ...prev, produitId }));
+    const produit = Array.isArray(availableProduits) 
+      ? availableProduits.find(p => p._id === produitId)
+      : null;
+    setSelectedProduit(produit || null);
   };
 
   const handleStatusChange = (status: 'NO' | 'PENDING' | 'OK') => {
@@ -62,19 +164,73 @@ export default function SeanceModal({
           {seance ? "Modifier la séance" : "Nouvelle séance"}
         </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Sélection de section */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              ID Produit
+              Section *
             </label>
-            <input
-              type="text"
-              value={formData.produitId}
-              onChange={(e) => setFormData(prev => ({ ...prev, produitId: e.target.value }))}
+            <select
+              value={selectedSectionId}
+              onChange={(e) => handleSectionChange(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               required
-            />
+              disabled={isLoadingSections}
+            >
+              <option value="">Sélectionner une section</option>
+              {availableSections.map((section) => (
+                <option key={section._id} value={section._id}>
+                  {section.description.sigle} - {section.description.designation}
+                </option>
+              ))}
+            </select>
+            {isLoadingSections && (
+              <p className="text-sm text-blue-600 mt-1">Chargement des sections...</p>
+            )}
           </div>
+
+          {/* Sélection/Création de produit */}
+          {selectedSectionId && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Produit *
+              </label>
+              
+              {/* Sélection de produit existant */}
+              <div className="space-y-3">
+
+                {/* Bouton pour créer un nouveau produit */}
+                <button
+                  type="button"
+                  onClick={() => setIsProduitModalOpen(true)}
+                  className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  Créer un nouveau produit
+                </button>
+
+                {isLoadingProduits && (
+                  <p className="text-sm text-blue-600 mt-1">Chargement des produits...</p>
+                )}
+                {!isLoadingProduits && (!Array.isArray(availableProduits) || availableProduits.length === 0) && selectedSectionId && (
+                  <p className="text-sm text-gray-500 mt-1">Aucun produit disponible pour cette section.</p>
+                )}
+              </div>
+
+              {/* Aperçu du produit sélectionné */}
+              {selectedProduit && (
+                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">Produit sélectionné :</h4>
+                  <div className="text-sm text-gray-600 dark:text-gray-300">
+                    <p><strong>Nom :</strong> {selectedProduit.designation}</p>
+                    <p><strong>Montant :</strong> {selectedProduit.montant}€</p>
+                    {selectedProduit.categorie && (
+                      <p><strong>Catégorie :</strong> {selectedProduit.categorie}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -119,6 +275,17 @@ export default function SeanceModal({
           </div>
         </form>
       </div>
+
+      {/* Modal de création de produit */}
+      <ProduitModal
+        isOpen={isProduitModalOpen}
+        onClose={() => setIsProduitModalOpen(false)}
+        onSave={handleProduitCreated}
+        sectionId={selectedSectionId}
+        anneeId={anneeId}
+        mode="create"
+        typeProduit="seance"
+      />
     </div>
   );
 }

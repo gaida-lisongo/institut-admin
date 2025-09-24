@@ -10,6 +10,7 @@ interface SeancesCardProps {
   titre: string;
   coursId: string;
   anneeId: string;
+  sectionId?: string; // Optionnel maintenant
   onSeancesUpdate?: (seances: Seance[]) => void;
 }
 
@@ -18,6 +19,7 @@ const SeancesCard: React.FC<SeancesCardProps> = ({
   titre,
   coursId,
   anneeId,
+  sectionId,
   onSeancesUpdate,
 }) => {
   const [localSeances, setLocalSeances] = useState<Seance[]>(seances);
@@ -27,8 +29,20 @@ const SeancesCard: React.FC<SeancesCardProps> = ({
 
   const columns: Column<Seance>[] = [
     {
-      key: "produitId",
-      header: "ID Produit",
+      key: "produit",
+      header: "Produit",
+      render: (seance) => (
+        <div className="space-y-1">
+          <div className="font-medium">
+            {seance.produit?.designation || `ID: ${seance.produitId}`}
+          </div>
+          {seance.produit?.montant && (
+            <div className="text-sm text-gray-500">
+              {seance.produit.montant} CDF
+            </div>
+          )}
+        </div>
+      ),
       sortable: true,
     },
     {
@@ -70,10 +84,19 @@ const SeancesCard: React.FC<SeancesCardProps> = ({
 
     setIsLoading(true);
     try {
-      await CoursService.deleteSeance(coursId, seance._id);
-      const updatedSeances = localSeances.filter((s) => s._id !== seance._id);
-      setLocalSeances(updatedSeances);
-      onSeancesUpdate?.(updatedSeances);
+      // Filtrer la séance à supprimer et nettoyer les _id
+      const updatedSeances = localSeances
+        .filter((s) => s._id !== seance._id)
+        .map(s => {
+          const { _id, ...cleanData } = s;
+          return cleanData;
+        });
+      
+      // Mettre à jour le cours entier avec les séances restantes
+      const updatedCours = await CoursService.updateCours(coursId, { seances: updatedSeances });
+      
+      setLocalSeances(updatedCours.seances || []);
+      onSeancesUpdate?.(updatedCours.seances || []);
     } catch (error) {
       console.error("Erreur lors de la suppression:", error);
       alert("Erreur lors de la suppression de la séance");
@@ -85,29 +108,43 @@ const SeancesCard: React.FC<SeancesCardProps> = ({
   const handleSave = async (seanceData: Omit<Seance, '_id'> | Partial<Seance>) => {
     setIsLoading(true);
     try {
-      let updatedSeances: Seance[];
+      let updatedSeances: any[];
       
       if (editingSeance?._id) {
-        // Modification
-        const updatedSeance = await CoursService.updateSeance(
-          coursId,
-          editingSeance._id,
-          seanceData as Partial<Seance>
-        );
-        updatedSeances = localSeances.map((s) =>
-          s._id === editingSeance._id ? updatedSeance : s
-        );
+        // Modification - mettre à jour la séance existante
+        updatedSeances = localSeances.map((s) => {
+          if (s._id === editingSeance._id) {
+            const updated = { ...s, ...seanceData };
+            // Nettoyer l'objet pour MongoDB
+            const { _id, ...cleanData } = updated;
+            return cleanData;
+          }
+          // Pour les autres séances, nettoyer aussi
+          const { _id, ...cleanData } = s;
+          return cleanData;
+        });
       } else {
-        // Création
-        const newSeance = await CoursService.createSeance(
-          coursId,
-          seanceData as Omit<Seance, '_id'>
-        );
-        updatedSeances = [...localSeances, newSeance];
+        // Création - ajouter une nouvelle séance sans _id (MongoDB le générera)
+        const newSeance = {
+          ...seanceData as Omit<Seance, '_id'>
+        };
+        
+        // Nettoyer toutes les séances existantes (enlever les _id)
+        const cleanedExistingSeances = localSeances.map(s => {
+          const { _id, ...cleanData } = s;
+          return cleanData;
+        });
+        
+        updatedSeances = [...cleanedExistingSeances, newSeance];
       }
 
-      setLocalSeances(updatedSeances);
-      onSeancesUpdate?.(updatedSeances);
+      // Mettre à jour le cours entier avec les nouvelles séances
+      const updatedCours = await CoursService.updateCours(coursId, { seances: updatedSeances });
+      
+      // Récupérer les séances avec les nouveaux IDs générés par MongoDB
+      setLocalSeances(updatedCours.seances || []);
+      onSeancesUpdate?.(updatedCours.seances || []);
+      setIsModalOpen(false);
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error);
       alert("Erreur lors de la sauvegarde de la séance");
@@ -140,6 +177,7 @@ const SeancesCard: React.FC<SeancesCardProps> = ({
         onSave={handleSave}
         seance={editingSeance}
         anneeId={anneeId}
+        sectionId={sectionId}
       />
 
       {isLoading && (
