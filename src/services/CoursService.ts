@@ -1,4 +1,5 @@
 import useAuthStore from "@/stores/authStore";
+import { Produit } from "./ProduitService";
 
 export interface PlanItem {
   anneeId: string;
@@ -6,15 +7,20 @@ export interface PlanItem {
 }
 
 export interface Seance {
+  _id?: string;
   anneeId: string;
   produitId: string;
   status: 'NO' | 'PENDING' | 'OK';
+  produit?: Produit;
 }
 
 export interface Travail {
+  _id?: string;
   anneeId: string;
+  questionnaire: string;
   produitId: string;
   status: 'NO' | 'PENDING' | 'OK';
+  produit?: Produit;
 }
 
 export interface Cours {
@@ -51,7 +57,7 @@ export interface CoursFormData {
 }
 
 class CoursService {
-  private baseUrl = "https://server.inbtp.net/api/v1/enseignement";
+  private baseUrl = "http://192.168.1.69:4001/api/v1/enseignement";
 
   private getAuthHeaders(): HeadersInit {
     const token = useAuthStore.getState().token;
@@ -147,6 +153,160 @@ class CoursService {
       return await response.json();
     } catch (error) {
       console.error("Erreur lors de la suppression du cours:", error);
+      throw error;
+    }
+  }
+
+  // CRUD pour les travaux
+  async createTravail(coursId: string, travail: Omit<Travail, '_id'>): Promise<Travail> {
+    try {
+      const response = await fetch(`${this.baseUrl}/cours/${coursId}/travaux`, {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(travail),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la création du travail:", error);
+      throw error;
+    }
+  }
+
+  async updateTravail(coursId: string, travailId: string, travail: Partial<Travail>): Promise<Travail> {
+    try {
+      const response = await fetch(`${this.baseUrl}/cours/${coursId}/travaux/${travailId}`, {
+        method: "PUT",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(travail),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du travail:", error);
+      throw error;
+    }
+  }
+
+  async deleteTravail(coursId: string, travailId: string): Promise<{ message: string }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/cours/${coursId}/travaux/${travailId}`, {
+        method: "DELETE",
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la suppression du travail:", error);
+      throw error;
+    }
+  }
+
+  // CRUD pour les séances
+  async createSeance(coursId: string, seance: Omit<Seance, '_id'>): Promise<Seance> {
+    try {
+      const response = await fetch(`${this.baseUrl}/cours/${coursId}/seances`, {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(seance),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la création de la séance:", error);
+      throw error;
+    }
+  }
+
+  async updateSeance(coursId: string, seanceId: string, seance: Partial<Seance>): Promise<Seance> {
+    try {
+      const response = await fetch(`${this.baseUrl}/cours/${coursId}/seances/${seanceId}`, {
+        method: "PUT",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(seance),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour de la séance:", error);
+      throw error;
+    }
+  }
+
+  async deleteSeance(coursId: string, seanceId: string): Promise<{ message: string }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/cours/${coursId}/seances/${seanceId}`, {
+        method: "DELETE",
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la suppression de la séance:", error);
+      throw error;
+    }
+  }
+
+  // CRUD pour les plans
+  async updatePlan(coursId: string, plan: PlanItem[]): Promise<Cours> {
+    try {
+      const response = await fetch(`${this.baseUrl}/cours/${coursId}/plan`, {
+        method: "PUT",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ plan }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du plan:", error);
+      throw error;
+    }
+  }
+
+  // CRUD pour les plans par charge
+  async updatePlanByCharge(chargeId: string, plan: PlanItem[]): Promise<any> {
+    try {
+      const response = await fetch(`${this.baseUrl}/charges/${chargeId}/plan`, {
+        method: "PUT",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ plan }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du plan par charge:", error);
       throw error;
     }
   }

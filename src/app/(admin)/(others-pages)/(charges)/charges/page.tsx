@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import useAuthStore from '@/stores/authStore';
 import { ChargeWithDetails } from '@/services/ChargeService';
 import FicheCotation from '@/components/charges/FicheCotation';
+import CoursCard from '@/components/cours';
 
 export default function ChargesPage() {
   const [ charges, setCharges ] = useState<ChargeWithDetails[]>([]);
@@ -85,63 +86,11 @@ export default function ChargesPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {charges.map((charge) => (
-            <div
+            <CoursCard 
               key={charge.chargeId}
-              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => handleCourseSelect(charge)}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                    {charge.cours.titre}
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    {charge.cours.description}
-                  </p>
-                </div>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  charge.status === 'OK' 
-                    ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                    : charge.status === 'PENDING'
-                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-                    : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-                }`}>
-                  {charge.status}
-                </span>
-              </div>
-
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">Année académique:</span>
-                  <span className="text-gray-900 dark:text-white font-medium">
-                    {charge.annee.debut} - {charge.annee.fin}
-                  </span>
-                </div>
-                
-                <div className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">Étudiants:</span>
-                  <span className="text-gray-900 dark:text-white font-medium">
-                    {charge.fiches.length} inscrit(s)
-                  </span>
-                </div>
-
-                <div className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">Cotations complètes:</span>
-                  <span className="text-gray-900 dark:text-white font-medium">
-                    {charge.fiches.filter(f => f.status === 'OK').length} / {charge.fiches.length}
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <div className="flex items-center text-sm text-blue-600 dark:text-blue-400">
-                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                  Cliquer pour coter les étudiants
-                </div>
-              </div>
-            </div>
+              charge={charge}
+              handleCourseSelect={handleCourseSelect}
+            />
           ))}
         </div>
       )}

@@ -1,6 +1,6 @@
 import useAuthStore from "@/stores/authStore";
 import { Etudiant } from "@/types/etudiant";
-import { Cours } from "./CoursService";
+import { Cours, Seance, Travail } from "./CoursService";
 import { Annee } from "./AnneeService";
 
 export interface Charge {
@@ -75,8 +75,8 @@ export interface CoursDetails {
   contenu: any[];
   repartition: any[];
   plan: any[];
-  seances: any[];
-  travaux: any[];
+  seances: Seance[];
+  travaux: Travail[];
   ressources: any[];
   penalites: any[];
   plagiat: any[];
