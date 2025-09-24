@@ -26,13 +26,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Validation du type de fichier (optionnel)
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json(
-        { error: 'File type not supported. Only images are allowed.' },
-        { status: 400 }
-      );
-    }
+    // const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    // if (!allowedTypes.includes(file.type)) {
+    //   return NextResponse.json(
+    //     { error: 'File type not supported. Only images are allowed.' },
+    //     { status: 400 }
+    //   );
+    // }
 
     console.log(`Uploading file: ${file.name}, size: ${file.size}, type: ${file.type}`);
 

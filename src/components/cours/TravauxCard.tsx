@@ -10,6 +10,7 @@ interface TravauxCardProps {
   titre: string;
   coursId: string;
   anneeId: string;
+  sectionId?: string; // Optionnel maintenant
   onTravauxUpdate?: (travaux: Travail[]) => void;
 }
 
@@ -18,6 +19,7 @@ const TravauxCard: React.FC<TravauxCardProps> = ({
   titre,
   coursId,
   anneeId,
+  sectionId,
   onTravauxUpdate,
 }) => {
   const [localTravaux, setLocalTravaux] = useState<Travail[]>(travaux);
@@ -28,7 +30,19 @@ const TravauxCard: React.FC<TravauxCardProps> = ({
   const columns: Column<Travail>[] = [
     {
       key: "produitId",
-      header: "ID Produit",
+      header: "Produit",
+      render: (travail) => (
+        <div className="space-y-1">
+          <div className="font-medium">
+            {travail.produit?.designation || `ID: ${travail.produitId}`}
+          </div>
+          {travail.produit?.montant && (
+            <div className="text-sm text-gray-500">
+              {travail.produit.montant}€
+            </div>
+          )}
+        </div>
+      ),
       sortable: true,
     },
     {
@@ -85,10 +99,19 @@ const TravauxCard: React.FC<TravauxCardProps> = ({
 
     setIsLoading(true);
     try {
-      await CoursService.deleteTravail(coursId, travail._id);
-      const updatedTravaux = localTravaux.filter((t) => t._id !== travail._id);
-      setLocalTravaux(updatedTravaux);
-      onTravauxUpdate?.(updatedTravaux);
+      // Filtrer le travail à supprimer et nettoyer les _id
+      const updatedTravaux = localTravaux
+        .filter((t) => t._id !== travail._id)
+        .map(t => {
+          const { _id, ...cleanData } = t;
+          return cleanData;
+        });
+      
+      // Mettre à jour le cours entier avec les travaux restants
+      const updatedCours = await CoursService.updateCours(coursId, { travaux: updatedTravaux });
+      
+      setLocalTravaux(updatedCours.travaux || []);
+      onTravauxUpdate?.(updatedCours.travaux || []);
     } catch (error) {
       console.error("Erreur lors de la suppression:", error);
       alert("Erreur lors de la suppression du travail");
@@ -100,29 +123,43 @@ const TravauxCard: React.FC<TravauxCardProps> = ({
   const handleSave = async (travailData: Omit<Travail, '_id'> | Partial<Travail>) => {
     setIsLoading(true);
     try {
-      let updatedTravaux: Travail[];
+      let updatedTravaux: any[];
       
       if (editingTravail?._id) {
-        // Modification
-        const updatedTravail = await CoursService.updateTravail(
-          coursId,
-          editingTravail._id,
-          travailData as Partial<Travail>
-        );
-        updatedTravaux = localTravaux.map((t) =>
-          t._id === editingTravail._id ? updatedTravail : t
-        );
+        // Modification - mettre à jour le travail existant
+        updatedTravaux = localTravaux.map((t) => {
+          if (t._id === editingTravail._id) {
+            const updated = { ...t, ...travailData };
+            // Nettoyer l'objet pour MongoDB
+            const { _id, ...cleanData } = updated;
+            return cleanData;
+          }
+          // Pour les autres travaux, nettoyer aussi
+          const { _id, ...cleanData } = t;
+          return cleanData;
+        });
       } else {
-        // Création
-        const newTravail = await CoursService.createTravail(
-          coursId,
-          travailData as Omit<Travail, '_id'>
-        );
-        updatedTravaux = [...localTravaux, newTravail];
+        // Création - ajouter un nouveau travail sans _id (MongoDB le générera)
+        const newTravail = {
+          ...travailData as Omit<Travail, '_id'>
+        };
+        
+        // Nettoyer tous les travaux existants (enlever les _id)
+        const cleanedExistingTravaux = localTravaux.map(t => {
+          const { _id, ...cleanData } = t;
+          return cleanData;
+        });
+        
+        updatedTravaux = [...cleanedExistingTravaux, newTravail];
       }
 
-      setLocalTravaux(updatedTravaux);
-      onTravauxUpdate?.(updatedTravaux);
+      // Mettre à jour le cours entier avec les nouveaux travaux
+      const updatedCours = await CoursService.updateCours(coursId, { travaux: updatedTravaux });
+      
+      // Récupérer les travaux avec les nouveaux IDs générés par MongoDB
+      setLocalTravaux(updatedCours.travaux || []);
+      onTravauxUpdate?.(updatedCours.travaux || []);
+      setIsModalOpen(false);
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error);
       alert("Erreur lors de la sauvegarde du travail");
@@ -155,6 +192,7 @@ const TravauxCard: React.FC<TravauxCardProps> = ({
         onSave={handleSave}
         travail={editingTravail}
         anneeId={anneeId}
+        sectionId={sectionId}
       />
 
       {isLoading && (

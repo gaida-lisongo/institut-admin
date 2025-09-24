@@ -71,7 +71,7 @@ const PlansCard: React.FC<PlansCardProps> = ({
   const handleAjouterAuPlan = () => {
     // Générer la chaîne formatée du chapitre
     const numeroRomain = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
-    const numeroChap = chapitresEnPreview.length;
+    const numeroChap = localPlan.length;
     
     let chapitreFormate = `Chapitre ${numeroRomain[numeroChap] || (numeroChap + 1)}. ${chapitreEnCours.titre} (${chapitreEnCours.duree})`;
     
