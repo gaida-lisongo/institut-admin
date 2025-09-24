@@ -14,7 +14,7 @@ interface ProduitState {
   fetchProduitsByCategorie: (categorie: string) => Promise<void>;
   fetchProduitByAnneeAndSection: (anneeId: string, sectionId: string) => Promise<void>;
   createProduit: (data: ProduitFormData) => Promise<Produit>;
-  updateProduit: (id: string, data: Partial<ProduitFormData>) => Promise<void>;
+  updateProduit: (id: string, data: Partial<ProduitFormData>) => Promise<ProduitWithDetails>;
   deleteProduit: (id: string) => Promise<void>;
   clearError: () => void;
   clearCurrentProduit: () => void;
@@ -115,6 +115,7 @@ export const useProduitStore = create<ProduitState>((set, get) => ({
         currentProduit: updatedProduit,
         loading: false 
       });
+      return updatedProduit;
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Erreur lors de la mise à jour du produit', 

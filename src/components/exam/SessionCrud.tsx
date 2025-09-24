@@ -180,6 +180,120 @@ const ModalConfirmDelete = ({ open, onClose, onConfirm, loading }: any) => {
   );
 };
 
+// Composant pour les champs multiples avec support des retours à la ligne
+const MultiFieldInput = ({ 
+  label, 
+  values, 
+  onChange, 
+  placeholder, 
+  icon,
+  colorClass = "blue",
+  minFields = 1 
+}: {
+  label: string;
+  values: string[];
+  onChange: (values: string[]) => void;
+  placeholder: string;
+  icon?: string;
+  colorClass?: string;
+  minFields?: number;
+}) => {
+  const addField = () => {
+    onChange([...values, ""]);
+  };
+
+  const updateField = (index: number, value: string) => {
+    const newValues = values.map((item, i) => i === index ? value : item);
+    onChange(newValues);
+  };
+
+  const removeField = (index: number) => {
+    if (values.length > minFields) {
+      onChange(values.filter((_, i) => i !== index));
+    }
+  };
+
+  const colorClasses = {
+    blue: "border-blue-200 focus:border-blue-500 focus:ring-blue-500",
+    green: "border-green-200 focus:border-green-500 focus:ring-green-500",
+    orange: "border-orange-200 focus:border-orange-500 focus:ring-orange-500",
+    purple: "border-purple-200 focus:border-purple-500 focus:ring-purple-500"
+  };
+
+  const buttonColorClasses = {
+    blue: "text-blue-600 hover:text-blue-800 hover:bg-blue-50",
+    green: "text-green-600 hover:text-green-800 hover:bg-green-50",
+    orange: "text-orange-600 hover:text-orange-800 hover:bg-orange-50",
+    purple: "text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        {icon && <span className="text-lg">{icon}</span>}
+        <label className={`block text-sm font-semibold text-${colorClass}-700 dark:text-${colorClass}-300`}>
+          {label} ({values.filter(v => v.trim()).length})
+        </label>
+      </div>
+      
+      <div className="space-y-2">
+        {values.map((value, index) => (
+          <div key={index} className="relative group">
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <textarea
+                  className={`w-full px-4 py-3 border-2 rounded-xl text-sm transition-all duration-200 
+                    ${colorClasses[colorClass as keyof typeof colorClasses]} 
+                    resize-none focus:outline-none focus:ring-2 focus:ring-opacity-50
+                    placeholder-gray-400 dark:bg-gray-800 dark:text-white
+                    shadow-sm hover:shadow-md focus:shadow-lg`}
+                  rows={3}
+                  value={value}
+                  onChange={(e) => updateField(index, e.target.value)}
+                  placeholder={`${placeholder} ${index + 1}`}
+                  style={{ minHeight: '80px' }}
+                />
+                <div className="absolute top-2 right-2 text-xs text-gray-400">
+                  {value.length} caractères
+                </div>
+              </div>
+              
+              {values.length > minFields && (
+                <button
+                  type="button"
+                  onClick={() => removeField(index)}
+                  className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 
+                    transition-colors duration-200 shadow-sm hover:shadow-md
+                    flex items-center justify-center h-fit mt-1"
+                  title="Supprimer ce champ"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={addField}
+        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+          ${buttonColorClasses[colorClass as keyof typeof buttonColorClasses]}
+          border-2 border-dashed border-current transition-all duration-200
+          hover:border-solid hover:shadow-md`}
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        </svg>
+        Ajouter {label.toLowerCase()}
+      </button>
+    </div>
+  );
+};
+
 // Modal pour associer un produit à une session
 const ModalAssociateProduit = ({ open, onClose, onSubmit, sessionId, sessionName, sectionId, anneeId, loading }: any) => {
   const [designation, setDesignation] = useState("");
@@ -240,17 +354,6 @@ const ModalAssociateProduit = ({ open, onClose, onSubmit, sessionId, sessionName
     }
   };
 
-  const addField = (setter: React.Dispatch<React.SetStateAction<string[]>>) => {
-    setter(prev => [...prev, ""]);
-  };
-
-  const updateField = (index: number, value: string, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
-    setter(prev => prev.map((item, i) => i === index ? value : item));
-  };
-
-  const removeField = (index: number, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
-    setter(prev => prev.filter((_, i) => i !== index));
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
@@ -262,9 +365,22 @@ const ModalAssociateProduit = ({ open, onClose, onSubmit, sessionId, sessionName
           &times;
         </button>
         
-        <h2 className="text-xl font-semibold mb-4">
-          Créer et associer un produit à "{sessionName}"
-        </h2>
+        {/* Header décoratif */}
+        <div className="text-center mb-8 pr-12">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-blue-600 
+            rounded-full mb-4 shadow-lg">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+            </svg>
+          </div>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent mb-2">
+            Créer et associer un produit
+          </h2>
+          <p className="text-gray-500 dark:text-gray-400">
+            Pour la session "{sessionName}"
+          </p>
+        </div>
         
         {error && (
           <div className="bg-red-50 border border-red-200 rounded p-3 mb-4">
@@ -329,118 +445,82 @@ const ModalAssociateProduit = ({ open, onClose, onSubmit, sessionId, sessionName
               </div>
             </div>
 
-            {/* Colonne 2: Caractéristiques et Avantages */}
-            <div>
-              <label className="block text-sm font-medium mb-2">Caractéristiques</label>
-              {caracteristiques.map((c, i) => (
-                <div key={i} className="flex gap-2 mb-2">
-                  <textarea
-                    className="flex-1 px-2 py-1 border rounded text-sm resize-none"
-                    rows={2}
-                    value={c}
-                    onChange={(e) => updateField(i, e.target.value, setCaracteristiques)}
-                    placeholder={`Caractéristique ${i + 1}`}
-                  />
-                  {caracteristiques.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeField(i, setCaracteristiques)}
-                      className="px-2 py-1 bg-red-500 text-white rounded text-xs"
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => addField(setCaracteristiques)}
-                className="text-blue-600 text-sm hover:text-blue-800"
-              >
-                + Ajouter une caractéristique
-              </button>
-
-              <label className="block text-sm font-medium mb-2 mt-4">Avantages</label>
-              {avantages.map((a, i) => (
-                <div key={i} className="flex gap-2 mb-2">
-                  <textarea
-                    className="flex-1 px-2 py-1 border rounded text-sm resize-none"
-                    rows={2}
-                    value={a}
-                    onChange={(e) => updateField(i, e.target.value, setAvantages)}
-                    placeholder={`Avantage ${i + 1}`}
-                  />
-                  {avantages.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeField(i, setAvantages)}
-                      className="px-2 py-1 bg-red-500 text-white rounded text-xs"
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => addField(setAvantages)}
-                className="text-blue-600 text-sm hover:text-blue-800"
-              >
-                + Ajouter un avantage
-              </button>
+            {/* Colonne 2: Caractéristiques */}
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 
+              rounded-xl p-6 border border-blue-200 dark:border-blue-700">
+              <MultiFieldInput
+                label="Caractéristiques"
+                values={caracteristiques}
+                onChange={setCaracteristiques}
+                placeholder="Décrivez une caractéristique"
+                icon="🔍"
+                colorClass="blue"
+              />
             </div>
 
-            {/* Colonne 3: Bénéfices */}
-            <div>
-              <label className="block text-sm font-medium mb-2">Bénéfices</label>
-              {benefice.map((b, i) => (
-                <div key={i} className="flex gap-2 mb-2">
-                  <textarea
-                    className="flex-1 px-2 py-1 border rounded text-sm resize-none"
-                    rows={2}
-                    value={b}
-                    onChange={(e) => updateField(i, e.target.value, setBenefice)}
-                    placeholder={`Bénéfice ${i + 1}`}
-                  />
-                  {benefice.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeField(i, setBenefice)}
-                      className="px-2 py-1 bg-red-500 text-white rounded text-xs"
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => addField(setBenefice)}
-                className="text-blue-600 text-sm hover:text-blue-800"
-              >
-                + Ajouter un bénéfice
-              </button>
+            {/* Colonne 3: Avantages */}
+            <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 
+              rounded-xl p-6 border border-green-200 dark:border-green-700">
+              <MultiFieldInput
+                label="Avantages"
+                values={avantages}
+                onChange={setAvantages}
+                placeholder="Décrivez un avantage"
+                icon="✅"
+                colorClass="green"
+              />
             </div>
           </div>
 
-          <div className="flex gap-3 justify-end pt-4 border-t">
+          <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 mt-8">
+            {/* Bénéfices */}
+            <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 
+              rounded-xl p-6 border border-orange-200 dark:border-orange-700">
+              <MultiFieldInput
+                label="Bénéfices"
+                values={benefice}
+                onChange={setBenefice}
+                placeholder="Décrivez un bénéfice"
+                icon="🎯"
+                colorClass="orange"
+              />
+            </div>
+          </div>
+
+          {/* Boutons d'action */}
+          <div className="flex gap-4 justify-end pt-6 border-t border-gray-200 dark:border-gray-700">
             <button 
               type="button" 
               onClick={onClose} 
-              className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+              className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl 
+                font-medium transition-all duration-200 shadow-sm hover:shadow-md
+                border border-gray-300 hover:border-gray-400"
             >
               Annuler
             </button>
             <button 
               type="submit" 
               disabled={loading || !designation.trim() || montant <= 0}
-              className={`px-4 py-2 rounded ${
+              className={`px-8 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl
+                flex items-center gap-2 ${
                 designation.trim() && montant > 0
-                  ? 'bg-green-600 text-white hover:bg-green-700' 
+                  ? 'bg-gradient-to-r from-green-600 to-blue-600 text-white hover:from-green-700 hover:to-blue-700 transform hover:scale-105' 
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
-              {loading ? "Association..." : "Créer et associer le produit"}
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Association...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Créer et associer le produit
+                </>
+              )}
             </button>
           </div>
         </form>
@@ -456,7 +536,7 @@ export default function SessionCrud() {
   const sectionId = (slug?.split("-")[1] || "") + "";
 
   const { sessions, fetchSessions, createSession, updateSession, deleteSession, loading, error } = useSessionStore();
-  const { produits, fetchProduits, createProduit, updateProduit } = useProduitStore();
+  const { produits, fetchProduits, createProduit, updateProduit, deleteProduit } = useProduitStore();
   const { cours, fetchCours, loading: coursLoading } = useCoursStore();
   const { sections, fetchSections, isLoading: sectionLoading } = useSectionStore();
 
@@ -474,7 +554,18 @@ export default function SessionCrud() {
     setSelectedSession(session);
     setSelectedProduit(session.produitId);
     setEditProduitMode(false);
-    setEditProduitData(session.produitId ? { ...session.produitId } : null);
+    if (session.produitId) {
+      setEditProduitData({
+        designation: session.produitId.designation || '',
+        montant: session.produitId.montant || 0,
+        caracteristiques: session.produitId.caracteristiques || [],
+        avantages: session.produitId.avantages || [],
+        benefice: session.produitId.benefice || [],
+        image: session.produitId.image || ''
+      });
+    } else {
+      setEditProduitData(null);
+    }
     setShowManageProduitModal(true);
   };
 
@@ -503,6 +594,25 @@ export default function SessionCrud() {
       await fetchProduits();
     } catch (error) {
       console.error("Erreur lors de la dissociation du produit :", error);
+    }
+  };
+
+  // Supprimer définitivement le produit et vider session.produitId
+  const handleDeleteProduit = async (produitId: string, sessionId: string) => {
+    try {
+      // 1. Supprimer le produit
+      await deleteProduit(produitId);
+      // 2. Mettre à jour la session en vidant produitId
+      await updateSession(sessionId, { produitId: undefined });
+      // 3. Recharger les données
+      await fetchSessions(anneeId);
+      await fetchProduits();
+      // 4. Fermer le modal
+      setShowManageProduitModal(false);
+      alert("Produit supprimé définitivement avec succès !");
+    } catch (error) {
+      console.error("Erreur lors de la suppression du produit :", error);
+      alert("Erreur lors de la suppression du produit : " + (error as any)?.message || "Erreur inconnue");
     }
   };
 
@@ -545,6 +655,7 @@ export default function SessionCrud() {
       setDeleteSessionId(null);
     } catch (error) {
       console.error("Erreur lors de la suppression:", error);
+      alert("Erreur lors de la suppression de la session: " + (error as any)?.message || "Erreur inconnue");
     }
   };
 
@@ -857,13 +968,6 @@ export default function SessionCrud() {
         loading={loading}
       />
 
-      <ModalConfirmDelete
-        open={!!deleteSessionId}
-        onClose={() => setDeleteSessionId(null)}
-        onConfirm={handleDeleteSession}
-        loading={loading}
-      />
-
       {/* Modal de gestion du produit associé à la session */}
       {showManageProduitModal && selectedProduit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
@@ -880,7 +984,7 @@ export default function SessionCrud() {
                 onSubmit={async e => {
                   e.preventDefault();
                   try {
-                    await updateProduit(selectedProduit._id, {
+                    const updatedProduit = await updateProduit(selectedProduit._id, {
                       designation: editProduitData.designation,
                       montant: editProduitData.montant,
                       caracteristiques: editProduitData.caracteristiques?.filter((c: string) => c.trim() !== ""),
@@ -891,10 +995,12 @@ export default function SessionCrud() {
                     await fetchProduits();
                     await fetchSessions(anneeId);
                     setEditProduitMode(false);
-                    setSelectedProduit(editProduitData);
+                    // Mettre à jour selectedProduit avec les nouvelles données
+                    setSelectedProduit(updatedProduit);
                     alert("Produit mis à jour avec succès !");
                   } catch (error) {
-                    alert("Erreur lors de la mise à jour du produit");
+                    console.error("Erreur lors de la mise à jour du produit:", error);
+                    alert("Erreur lors de la mise à jour du produit: " + (error as any)?.message || "Erreur inconnue");
                   }
                 }}
                 className="space-y-4"
@@ -910,7 +1016,7 @@ export default function SessionCrud() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-700">Montant (FCFA)</label>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">Montant (FC)</label>
                     <input
                       type="number"
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -921,35 +1027,66 @@ export default function SessionCrud() {
                     />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-700">Caractéristiques</label>
-                  <textarea
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    value={editProduitData?.caracteristiques?.join('\n') || ''}
-                    onChange={e => setEditProduitData((d: any) => ({...d, caracteristiques: e.target.value.split('\n').filter(c => c.trim() !== '')}))}
-                    rows={3}
-                    placeholder="Une caractéristique par ligne"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-700">Avantages</label>
-                  <textarea
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    value={editProduitData?.avantages?.join('\n') || ''}
-                    onChange={e => setEditProduitData((d: any) => ({...d, avantages: e.target.value.split('\n').filter(a => a.trim() !== '')}))}
-                    rows={3}
-                    placeholder="Un avantage par ligne"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-700">Bénéfices</label>
-                  <textarea
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    value={editProduitData?.benefice?.join('\n') || ''}
-                    onChange={e => setEditProduitData((d: any) => ({...d, benefice: e.target.value.split('\n').filter(b => b.trim() !== '')}))}
-                    rows={3}
-                    placeholder="Un bénéfice par ligne"
-                  />
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Caractéristiques */}
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 
+                    rounded-xl p-4 border border-blue-200 dark:border-blue-700">
+                    <label className="block text-sm font-semibold text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2">
+                      <span>🔍</span>
+                      Caractéristiques
+                    </label>
+                    <textarea
+                      className="w-full border-2 border-blue-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 
+                        focus:ring-blue-500 focus:border-blue-500 transition-all duration-200
+                        dark:bg-gray-800 dark:text-white shadow-sm hover:shadow-md focus:shadow-lg
+                        resize-none"
+                      value={editProduitData?.caracteristiques?.join('\n') || ''}
+                      onChange={e => setEditProduitData((d: any) => ({...d, caracteristiques: e.target.value.split('\n').filter(c => c.trim() !== '')}))}
+                      rows={4}
+                      placeholder="Une caractéristique par ligne&#10;Exemple:&#10;- Examen écrit de 2h&#10;- Questions à choix multiples"
+                      style={{ minHeight: '120px' }}
+                    />
+                  </div>
+                  
+                  {/* Avantages */}
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 
+                    rounded-xl p-4 border border-green-200 dark:border-green-700">
+                    <label className="block text-sm font-semibold text-green-700 dark:text-green-300 mb-3 flex items-center gap-2">
+                      <span>✅</span>
+                      Avantages
+                    </label>
+                    <textarea
+                      className="w-full border-2 border-green-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 
+                        focus:ring-green-500 focus:border-green-500 transition-all duration-200
+                        dark:bg-gray-800 dark:text-white shadow-sm hover:shadow-md focus:shadow-lg
+                        resize-none"
+                      value={editProduitData?.avantages?.join('\n') || ''}
+                      onChange={e => setEditProduitData((d: any) => ({...d, avantages: e.target.value.split('\n').filter(a => a.trim() !== '')}))}
+                      rows={4}
+                      placeholder="Un avantage par ligne&#10;Exemple:&#10;- Validation des acquis&#10;- Progression académique"
+                      style={{ minHeight: '120px' }}
+                    />
+                  </div>
+                  
+                  {/* Bénéfices */}
+                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 
+                    rounded-xl p-4 border border-orange-200 dark:border-orange-700">
+                    <label className="block text-sm font-semibold text-orange-700 dark:text-orange-300 mb-3 flex items-center gap-2">
+                      <span>🎯</span>
+                      Bénéfices
+                    </label>
+                    <textarea
+                      className="w-full border-2 border-orange-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 
+                        focus:ring-orange-500 focus:border-orange-500 transition-all duration-200
+                        dark:bg-gray-800 dark:text-white shadow-sm hover:shadow-md focus:shadow-lg
+                        resize-none"
+                      value={editProduitData?.benefice?.join('\n') || ''}
+                      onChange={e => setEditProduitData((d: any) => ({...d, benefice: e.target.value.split('\n').filter(b => b.trim() !== '')}))}
+                      rows={4}
+                      placeholder="Un bénéfice par ligne&#10;Exemple:&#10;- Obtention du diplôme&#10;- Compétences certifiées"
+                      style={{ minHeight: '120px' }}
+                    />
+                  </div>
                 </div>
                 <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
                   <button
@@ -974,7 +1111,7 @@ export default function SessionCrud() {
                     <h3 className="text-sm font-semibold text-gray-600 mb-2">Désignation</h3>
                     <div className="text-gray-900 dark:text-white text-base mb-2">{selectedProduit.designation}</div>
                     <h3 className="text-sm font-semibold text-gray-600 mb-2">Montant</h3>
-                    <div className="text-gray-900 dark:text-white text-base mb-2">{selectedProduit.montant} FCFA</div>
+                    <div className="text-gray-900 dark:text-white text-base mb-2">{selectedProduit.montant} FC</div>
                   </div>
                   <div>
                     <h3 className="text-sm font-semibold text-gray-600 mb-2">Caractéristiques</h3>
@@ -1058,12 +1195,33 @@ export default function SessionCrud() {
                     </svg>
                     Dissocier
                   </button>
+                  <button
+                    className="px-4 py-2 bg-red-800 text-white rounded-lg hover:bg-red-900 transition-colors flex items-center gap-2"
+                    onClick={async () => {
+                      if (window.confirm('⚠️ ATTENTION : Voulez-vous vraiment supprimer définitivement ce produit ? Cette action est irréversible et supprimera le produit de toutes les sessions où il est utilisé.')) {
+                        await handleDeleteProduit(selectedProduit._id, selectedSession._id);
+                      }
+                    }}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Supprimer définitivement
+                  </button>
                 </div>
               </div>
             )}
           </div>
         </div>
       )}
+
+      {/* Modal de confirmation de suppression */}
+      <ModalConfirmDelete
+        open={!!deleteSessionId}
+        onClose={() => setDeleteSessionId(null)}
+        onConfirm={handleDeleteSession}
+        loading={loading}
+      />
     </div>
   );
 }
