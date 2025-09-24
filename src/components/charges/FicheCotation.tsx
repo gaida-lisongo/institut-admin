@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChargeWithDetails, Fiche } from '@/services/ChargeService';
 import { Etudiant } from '@/types/etudiant';
 import ChargeService from '@/services/ChargeService';
+import * as ExcelJS from 'exceljs';
 
 interface FicheCotationProps {
   charge: ChargeWithDetails;
@@ -16,6 +17,8 @@ export default function FicheCotation({ charge, onBack }: FicheCotationProps) {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'OK' | 'PENDING' | 'NO'>('ALL');
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filtrage des fiches
   useEffect(() => {
@@ -96,12 +99,13 @@ export default function FicheCotation({ charge, onBack }: FicheCotationProps) {
 
   const calculateTotal = (cmi: number = 0, examen: number = 0, rattrapage: number = 0) => {
     // Nouveau système: CMI=10pts, Examen=10pts, Rattrapage=20pts
-    // Si rattrapage existe, il remplace complètement les autres notes
-    if (rattrapage > 0) {
+    // Rattrapage remplace CMI+Examen seulement si supérieur
+    const totalNormal = cmi + examen;
+    if (rattrapage > 0 && rattrapage > totalNormal) {
       return Math.round(rattrapage * 100) / 100;
     }
     // Sinon: CMI + Examen
-    return Math.round((cmi + examen) * 100) / 100;
+    return Math.round(totalNormal * 100) / 100;
   };
 
   const getGradeColor = (total: number) => {
@@ -110,6 +114,159 @@ export default function FicheCotation({ charge, onBack }: FicheCotationProps) {
     if (total >= 12) return 'text-yellow-600 dark:text-yellow-400';
     if (total >= 10) return 'text-orange-600 dark:text-orange-400';
     return 'text-red-600 dark:text-red-400';
+  };
+
+  // Export Excel
+  const exportToExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Résultats');
+
+    // En-têtes
+    worksheet.columns = [
+      { header: 'ID Fiche', key: 'ficheId', width: 15 },
+      { header: 'Nom', key: 'nom', width: 20 },
+      { header: 'Post-nom', key: 'postNom', width: 20 },
+      { header: 'Prénom', key: 'prenom', width: 20 },
+      { header: 'Matricule', key: 'matricule', width: 15 },
+      { header: 'Référence', key: 'reference', width: 15 },
+      { header: 'CMI (/10)', key: 'cmi', width: 10 },
+      { header: 'Examen (/10)', key: 'examen', width: 12 },
+      { header: 'Rattrapage (/20)', key: 'rattrapage', width: 15 },
+      { header: 'Total (/20)', key: 'total', width: 12 },
+      { header: 'Statut', key: 'status', width: 10 }
+    ];
+
+    // Données
+    fiches.forEach(fiche => {
+      const etudiant = fiche.etudiantId as Etudiant;
+      const total = calculateTotal(fiche.cmi || 0, fiche.examen || 0, fiche.rattrapage || 0);
+      
+      worksheet.addRow({
+        ficheId: fiche._id,
+        nom: etudiant.nom,
+        postNom: etudiant.post_nom,
+        prenom: etudiant.prenom,
+        matricule: etudiant.matricule,
+        reference: fiche.reference,
+        cmi: fiche.cmi || 0,
+        examen: fiche.examen || 0,
+        rattrapage: fiche.rattrapage || 0,
+        total: total,
+        status: fiche.status
+      });
+    });
+
+    // Style des en-têtes
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE3F2FD' }
+    };
+
+    // Générer et télécharger
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `resultats_${charge.cours.titre}_${charge.annee.debut}-${charge.annee.fin}.xlsx`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  // Export template CSV
+  const exportTemplateCSV = () => {
+    const headers = ['ficheId', 'nom', 'postNom', 'prenom', 'matricule', 'cmi', 'examen', 'rattrapage'];
+    const csvContent = [
+      headers.join(','),
+      ...fiches.map(fiche => {
+        const etudiant = fiche.etudiantId as Etudiant;
+        return [
+          fiche._id,
+          `"${etudiant.nom}"`,
+          `"${etudiant.post_nom}"`,
+          `"${etudiant.prenom}"`,
+          etudiant.matricule,
+          fiche.cmi || '',
+          fiche.examen || '',
+          fiche.rattrapage || ''
+        ].join(',');
+      })
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `template_${charge.cours.titre}_${charge.annee.debut}-${charge.annee.fin}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  // Import CSV
+  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    const reader = new FileReader();
+    
+    reader.onload = async (e) => {
+      try {
+        const csv = e.target?.result as string;
+        const lines = csv.split('\n');
+        const headers = lines[0].split(',');
+        
+        const updates: Array<{ficheId: string, data: Partial<Fiche>}> = [];
+        
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i].trim()) continue;
+          
+          const values = lines[i].split(',');
+          const ficheId = values[0];
+          const cmi = parseFloat(values[5]) || 0;
+          const examen = parseFloat(values[6]) || 0;
+          const rattrapage = parseFloat(values[7]) || 0;
+          
+          if (ficheId) {
+            const total = calculateTotal(cmi, examen, rattrapage);
+            const status = total >= 10 ? 'OK' : 'PENDING';
+            
+            updates.push({
+              ficheId,
+              data: { cmi, examen, rattrapage, status }
+            });
+          }
+        }
+
+        // Traitement par lots
+        for (const update of updates) {
+          try {
+            await ChargeService.updateFiche(update.ficheId, update.data);
+            
+            // Mise à jour locale
+            setFiches(prev => prev.map(f => 
+              f._id === update.ficheId ? { ...f, ...update.data } : f
+            ));
+          } catch (error) {
+            console.error(`Erreur pour la fiche ${update.ficheId}:`, error);
+          }
+        }
+        
+        alert(`Import terminé! ${updates.length} fiches traitées.`);
+      } catch (error) {
+        console.error('Erreur lors de l\'import:', error);
+        alert('Erreur lors de l\'import du fichier CSV');
+      } finally {
+        setImporting(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }
+    };
+    
+    reader.readAsText(file);
   };
 
   return (
@@ -150,7 +307,7 @@ export default function FicheCotation({ charge, onBack }: FicheCotationProps) {
 
       {/* Barre de recherche et filtres */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Rechercher un étudiant
@@ -179,6 +336,64 @@ export default function FicheCotation({ charge, onBack }: FicheCotationProps) {
             </select>
           </div>
         </div>
+        
+        {/* Boutons Export/Import */}
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={exportToExcel}
+              className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              📊 Exporter Excel
+            </button>
+            
+            <button
+              onClick={exportTemplateCSV}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              📋 Template CSV
+            </button>
+            
+            <div className="relative">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleImportCSV}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importing}
+                className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-md transition-colors"
+              >
+                {importing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Import en cours...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                    </svg>
+                    📤 Importer CSV
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+          
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            💡 <strong>Astuce :</strong> Téléchargez le template CSV, remplissez les notes dans Excel/Calc, puis importez pour une saisie rapide !
+          </p>
+        </div>
       </div>
 
       {/* Légende des notes */}
@@ -189,7 +404,7 @@ export default function FicheCotation({ charge, onBack }: FicheCotationProps) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           <div>
             <span className="font-medium text-blue-700 dark:text-blue-300">CMI (10 pts)</span>
-            <p className="text-blue-600 dark:text-blue-400">Contrôle Moyen Intégré</p>
+            <p className="text-blue-600 dark:text-blue-400">Cours Magistral Interactif</p>
           </div>
           <div>
             <span className="font-medium text-blue-700 dark:text-blue-300">Examen (10 pts)</span>
@@ -197,7 +412,7 @@ export default function FicheCotation({ charge, onBack }: FicheCotationProps) {
           </div>
           <div>
             <span className="font-medium text-blue-700 dark:text-blue-300">Rattrapage (20 pts)</span>
-            <p className="text-blue-600 dark:text-blue-400">Remplace CMI + Examen - Status auto: OK si ≥10</p>
+            <p className="text-blue-600 dark:text-blue-400">Remplace CMI+Examen si supérieur - Status auto: OK si ≥10</p>
           </div>
         </div>
       </div>
