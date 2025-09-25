@@ -1,6 +1,8 @@
 "use client";
 import JuryService from "@/services/JuryService";
 import React, { useState } from "react";
+import GrilleDocument from "@/utils/GrilleDocument";
+import { toGrilleDocumentData } from "@/utils/mappers/grilleMapper";
 
 interface JuryClassesModalProps {
   isOpen: boolean;
@@ -12,6 +14,7 @@ interface JuryClassesModalProps {
 export default function JuryClassesModal({ isOpen, onClose, jury, onDeliberationClick }: JuryClassesModalProps) {
   const [selectedClasse, setSelectedClasse] = useState<string>("");
   const [printOption, setPrintOption] = useState<'single' | 'double'>('single');
+  const [isPrinting, setIsPrinting] = useState<boolean>(false);
 
   if (!isOpen || !jury) return null;
 
@@ -24,11 +27,24 @@ export default function JuryClassesModal({ isOpen, onClose, jury, onDeliberation
     });
 
     try {
-      const request = await JuryService.getClasseDetail(`${classe.classeId}/${jury.annee._id}`);
-      console.log("Classe details:", request);
-      alert(`Impression de la grille de délibération pour la classe ${classe.designation} (${printOption === 'single' ? 'un semestre' : 'deux semestres'})`);
+      setIsPrinting(true);
+      const response = await JuryService.getClasseDetail(`${classe.classeId}/${jury.annee._id}`);
+      console.log("Classe details:", response);
+
+      // Construire les données pour le document Excel
+      const anneeAcademique = `${jury.annee.debut}-${jury.annee.fin}`;
+      const data = toGrilleDocumentData(response, anneeAcademique, printOption);
+
+      // Télécharger la grille
+      await GrilleDocument.downloadGrille(
+        data,
+        `grille_${classe.designation.replace(/\s+/g, '_')}_${anneeAcademique}_${printOption}.xlsx`
+      );
     } catch (error) {
       console.error("Erreur lors de la récupération de la classe:", error);
+      alert("Une erreur est survenue lors de la génération de la grille. Veuillez réessayer.");
+    } finally {
+      setIsPrinting(false);
     }
     
   };
@@ -152,12 +168,13 @@ export default function JuryClassesModal({ isOpen, onClose, jury, onDeliberation
                     {/* Bouton Imprimer Grille pour la classe */}
                     <button
                       onClick={() => handlePrintGrille(classe)}
-                      className="ml-4 px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center"
+                      disabled={isPrinting}
+                      className={`ml-4 px-3 py-1 text-white text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center ${isPrinting ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
                     >
                       <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                       </svg>
-                      Grille
+                      {isPrinting ? 'Génération...' : 'Grille'}
                     </button>
                   </div>
                   

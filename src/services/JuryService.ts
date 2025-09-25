@@ -2,6 +2,7 @@ import useAuthStore from "@/stores/authStore";
 import { Classe, ClasseWithSemestres } from "./CycleService";
 import { Section } from "@/types/section";
 import config from "./config.json";
+import { ClasseDetailResponse } from "@/types/juryClasseDetail";
 
 export interface Bureau {
   agentId: string | AgentDetails;
@@ -259,7 +260,7 @@ class JuryService {
     }
   }
 
-  async getClasseDetail(classeId:string):Promise<ClasseWithSemestres>{
+  async getClasseDetail(classeId:string):Promise<ClasseDetailResponse>{
     try {
       const response = await fetch(`${this.baseUrl}/titulaire/grille/${classeId}`, {
         method: "GET",
