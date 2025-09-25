@@ -1,6 +1,7 @@
 import useAuthStore from "@/stores/authStore";
 import { Classe, ClasseWithSemestres } from "./CycleService";
 import { Section } from "@/types/section";
+import config from "./config.json";
 
 export interface Bureau {
   agentId: string | AgentDetails;
@@ -35,6 +36,36 @@ export interface JuryCreateResponse extends Jury {
 }
 
 export interface JuryClasse {
+  classeId: string;
+  designation: string;
+  description: string;
+  semestres: JurySemestre[];
+}
+
+export interface JurySemestre {
+  semestreId: string;
+  designation: string;
+  description: string;
+  unites: JuryUnite[];
+}
+
+export interface JuryUnite {
+  uniteId: string;
+  designation: string;
+  code: string;
+  credit: number;
+  cours: JuryCours[];
+}
+
+export interface JuryCours {
+  coursId: string;
+  titre: string;
+  description: string;
+  credit: number;
+  fiches: any[]; // Peut être détaillé plus tard si nécessaire
+}
+
+export interface JuryClasseOriginal {
   _id?: string;
   juryId: string | Jury;
   classeId: string;
@@ -92,29 +123,25 @@ export interface JuryWithDetails extends Jury {
   }>;
 }
 
-export interface JuryClasseWithDetails extends JuryClasse {
+export interface JuryClasseWithDetails extends JuryClasseOriginal {
   juryId: JuryWithDetails;
 }
 
 export interface JuryTitulaire {
-  jurys: [
-    {
-      juryId: string;
-      annee: AnneeDetails;
-      role: string;
-      designation: string;
-      code: string;
-      classes: JuryClasse[];
-      section: Section;
-    }
-  ];
   agentId: string;
-
+  jurys: {
+    juryId: string;
+    designation: string;
+    code: string;
+    annee: AnneeDetails;
+    section: Section;
+    role: string;
+    classes: JuryClasse[];
+  }[];
 }
 
 class JuryService {
-  private baseUrl = "https://server.inbtp.net/api/v1";
-
+  private baseUrl = `${config.API_BASE_URL}`;
   private getAuthHeaders() {
     const { token } = useAuthStore.getState();
     return {
@@ -232,6 +259,24 @@ class JuryService {
     }
   }
 
+  async getClasseDetail(classeId:string):Promise<ClasseWithSemestres>{
+    try {
+      const response = await fetch(`${this.baseUrl}/titulaire/grille/${classeId}`, {
+        method: "GET",
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la récupération de la classe:", error);
+      throw error;
+    }
+  }
+
   // JuryClasse CRUD
   async getJuryClasses(): Promise<JuryClasseWithDetails[]> {
     try {
@@ -269,7 +314,7 @@ class JuryService {
     }
   }
 
-  async createJuryClasse(data: JuryClasseFormData): Promise<JuryClasse> {
+  async createJuryClasse(data: JuryClasseFormData): Promise<JuryClasseOriginal> {
     try {
       const response = await fetch(`${this.baseUrl}/jury/classe`, {
         method: "POST",

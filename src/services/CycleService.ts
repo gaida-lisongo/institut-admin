@@ -1,5 +1,6 @@
 import useAuthStore from "@/stores/authStore";
 import { Semestre } from "./SemestreService";
+import config from "./config.json";
 
 export interface Classe {
   _id?: string;
@@ -36,7 +37,7 @@ export interface CycleFormData {
 }
 
 class CycleService {
-  private baseUrl = "https://server.inbtp.net/api/v1/enseignement";
+  private baseUrl = `${config.API_BASE_URL}/enseignement`;
 
   private getAuthHeaders(): HeadersInit {
     const token = useAuthStore.getState().token;

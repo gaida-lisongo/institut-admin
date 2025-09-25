@@ -1,5 +1,6 @@
 
 import useAuthStore from "@/stores/authStore";
+import config from "./config.json";
 
 export interface CoursPopulated {
     _id: string;
@@ -41,7 +42,7 @@ export interface SessionResponse {
 }
 
 class SessionService {
-  private baseUrl = "https://server.inbtp.net/api/v1/annee";
+  private baseUrl = `${config.API_BASE_URL}/annee`;
 
   private getAuthHeaders(): HeadersInit {
     const token = useAuthStore.getState().token;

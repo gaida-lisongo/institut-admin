@@ -1,5 +1,5 @@
-import { ApiResponse } from "./CommandeService";
 import useAuthStore from "@/stores/authStore";
+import config from "./config.json";
 
 export interface Article {
   title: string;
@@ -27,7 +27,7 @@ export interface Annee {
 }
 
 class AnneeService {
-  private baseUrl = "https://server.inbtp.net/api/v1/annee";
+  private baseUrl = `${config.API_BASE_URL}/annee`;
 
   private getAuthHeaders(): HeadersInit {
     const token = useAuthStore.getState().token;

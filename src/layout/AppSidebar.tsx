@@ -177,11 +177,17 @@ const AppSidebar: React.FC = () => {
     const { juries } = menuData;
     
     let anneeJuries: NavItem[] = [];
-    
+    let uniqueAnnees: any[] = [];
+
     juries?.jurys.forEach(j => {
-      if(typeof j.annee === 'object') {
-        anneeJuries.push({ name: `Année ${j.annee.debut}-${j.annee.fin}`, path: `/jurys/${j.annee._id}`, icon: <ListIcon /> });
+      //check if chearge is existing in uniqueAnnees
+      if(!uniqueAnnees.find(a => a._id === j.annee._id)) {
+        uniqueAnnees.push({ _id: j.annee._id, debut: j.annee.debut, fin: j.annee.fin });
       }
+    });
+
+    uniqueAnnees.forEach(a => {
+      anneeJuries.push({ name: `Année ${a.debut}-${a.fin}`, path: `/jurys/${a._id}`, icon: <ListIcon /> });
     });
 
     const anneeFilterByName = [...anneeJuries].sort((a, b) => a.name.localeCompare(b.name));

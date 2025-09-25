@@ -1,11 +1,12 @@
 import useAuthStore from "@/stores/authStore";
+import config from "./config.json";
 
 class SectionService {
     private baseUrl: string;
 
     constructor() {
         // Utilise les API routes locales au lieu du serveur externe
-        this.baseUrl = 'https://server.inbtp.net/api/v1';
+        this.baseUrl = `${config.API_BASE_URL}`;
     }
 
     private getAuthHeaders(): HeadersInit {

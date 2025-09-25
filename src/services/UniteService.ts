@@ -1,6 +1,7 @@
 import useAuthStore from "@/stores/authStore";
 import { Cours } from "./CoursService";
 import { Annee } from "./AnneeService";
+import config from "./config.json";
 
 export interface Responsable {
   titulaireId: string;
@@ -44,7 +45,7 @@ export interface UniteFormData {
 }
 
 class UniteService {
-  private baseUrl = "https://server.inbtp.net/api/v1/enseignement";
+  private baseUrl = `${config.API_BASE_URL}/enseignement`;
 
   private getAuthHeaders(): HeadersInit {
     const token = useAuthStore.getState().token;

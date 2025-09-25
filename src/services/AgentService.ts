@@ -6,8 +6,9 @@ import { Unite } from "./UniteService";
 import { Jury, JuryClasseWithDetails, JuryTitulaire } from "./JuryService";
 import { ChargeWithDetails } from "./ChargeService";
 import { ProduitWithDetails } from "./ProduitService";
+import config from "./config.json";
 
-const API_BASE_URL = "http://192.168.1.69:4001/api/v1";
+const API_BASE_URL = config.API_BASE_URL;
 
 export class AgentService {
 

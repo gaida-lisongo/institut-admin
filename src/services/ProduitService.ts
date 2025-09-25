@@ -1,5 +1,6 @@
 import useAuthStore from "@/stores/authStore";
 import { Commande, CommandeWithDetails } from "./CommandeService";
+import config from "./config.json";
 
 export interface Produit {
   _id?: string;
@@ -48,7 +49,7 @@ export interface ProduitWithDetails extends Produit {
 }
 
 class ProduitService {
-  private baseUrl = "https://server.inbtp.net/api/v1";
+  private baseUrl = `${config.API_BASE_URL}`;
 
   private getAuthHeaders() {
     const { token } = useAuthStore.getState();

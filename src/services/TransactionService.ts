@@ -1,4 +1,5 @@
 import useAuthStore from "@/stores/authStore";
+import config from "./config.json";
 
 // Types pour les transactions
 export interface Deposit {
@@ -72,7 +73,7 @@ class TransactionService {
 
   constructor() {
     // Utilise l'URL du serveur distant
-    this.baseUrl = 'https://server.inbtp.net/api/v1/transaction';
+    this.baseUrl = `${config.API_BASE_URL}/transaction`;
   }
 
   private getAuthHeaders(): HeadersInit {

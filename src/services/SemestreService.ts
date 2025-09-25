@@ -1,4 +1,5 @@
 import useAuthStore from "@/stores/authStore";
+import config from "./config.json";
 
 export interface Inscription {
   anneeId: string;
@@ -36,7 +37,7 @@ export interface UniteDetails {
 export interface SemestreWithUnites extends Semestre<UniteDetails> {}
 
 class SemestreService {
-  private baseUrl = "https://server.inbtp.net/api/v1/enseignement";
+  private baseUrl = `${config.API_BASE_URL}/enseignement`;
 
   private getAuthHeaders(): HeadersInit {
     const token = useAuthStore.getState().token;

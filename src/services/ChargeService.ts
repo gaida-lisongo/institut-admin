@@ -2,6 +2,7 @@ import useAuthStore from "@/stores/authStore";
 import { Etudiant } from "@/types/etudiant";
 import { Cours, Seance, Travail } from "./CoursService";
 import { Annee } from "./AnneeService";
+import config from "./config.json";
 
 export interface Charge {
   _id?: string;
@@ -97,7 +98,7 @@ export interface AnneeDetails {
 
 
 class ChargeService {
-  private baseUrl = "http://192.168.1.69:4001/api/v1";
+  private baseUrl = config.API_BASE_URL;
 
   private getAuthHeaders() {
     const { token } = useAuthStore.getState();

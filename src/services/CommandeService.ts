@@ -1,4 +1,5 @@
 import useAuthStore from "@/stores/authStore";
+import config from "./config.json";
 
 export interface Commande {
   _id?: string;
@@ -70,7 +71,7 @@ class CommandeService {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = 'https://server.inbtp.net/api/v1/vente';
+    this.baseUrl = config.API_BASE_URL;
   }
 
   private getAuthHeaders(): HeadersInit {
@@ -109,7 +110,7 @@ class CommandeService {
    * Créer une nouvelle commande
    */
   async createCommande(commandeData: Omit<Commande, '_id' | 'createdAt' | 'updatedAt'>): Promise<{status: number, data: ApiResponse<Commande>}> {
-    const url = `${this.baseUrl}/commande`;
+    const url = `${this.baseUrl}/vente/commande`;
     return this.makeRequest(url, {
       method: 'POST',
       body: JSON.stringify(commandeData),
@@ -120,7 +121,7 @@ class CommandeService {
    * Récupérer toutes les commandes
    */
   async getAllCommandes(): Promise<{status: number, data: ApiResponse<Commande[]>}> {
-    const url = `${this.baseUrl}/commande`;
+    const url = `${this.baseUrl}/vente/commande`;
     return this.makeRequest(url);
   }
 
@@ -128,7 +129,7 @@ class CommandeService {
    * Récupérer une commande par ID
    */
   async getCommandeById(id: string): Promise<{status: number, data: ApiResponse<Commande>}> {
-    const url = `${this.baseUrl}/commande/${encodeURIComponent(id)}`;
+    const url = `${this.baseUrl}/vente/commande/${encodeURIComponent(id)}`;
     return this.makeRequest(url);
   }
 
@@ -136,7 +137,7 @@ class CommandeService {
    * Modifier une commande
    */
   async updateCommande(id: string, commandeData: Partial<Commande>): Promise<{status: number, data: ApiResponse<Commande>}> {
-    const url = `${this.baseUrl}/commande/${encodeURIComponent(id)}`;
+    const url = `${this.baseUrl}/vente/commande/${encodeURIComponent(id)}`;
     return this.makeRequest(url, {
       method: 'PUT',
       body: JSON.stringify(commandeData),
@@ -147,7 +148,7 @@ class CommandeService {
    * Supprimer une commande
    */
   async deleteCommande(id: string): Promise<{status: number, data: ApiResponse}> {
-    const url = `${this.baseUrl}/commande/${encodeURIComponent(id)}`;
+    const url = `${this.baseUrl}/vente/commande/${encodeURIComponent(id)}`;
     return this.makeRequest(url, {
       method: 'DELETE',
     });
@@ -159,7 +160,7 @@ class CommandeService {
    * Récupérer les commandes par année
    */
   async getCommandesByAnnee(anneeId: string): Promise<{status: number, data: ApiResponse<Commande[]>}> {
-    const url = `${this.baseUrl}/commande?anneeId=${encodeURIComponent(anneeId)}`;
+    const url = `${this.baseUrl}/vente/commande?anneeId=${encodeURIComponent(anneeId)}`;
     return this.makeRequest(url);
   }
 
@@ -168,8 +169,8 @@ class CommandeService {
    */
   async getCommandeStats(anneeId?: string): Promise<{status: number, data: ApiResponse<CommandeStats>}> {
     const url = anneeId 
-      ? `${this.baseUrl}/commande/stats?anneeId=${encodeURIComponent(anneeId)}`
-      : `${this.baseUrl}/commande/stats`;
+      ? `${this.baseUrl}/vente/commande/stats?anneeId=${encodeURIComponent(anneeId)}`
+      : `${this.baseUrl}/vente/commande/stats`;
     return this.makeRequest(url);
   }
 

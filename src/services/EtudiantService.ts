@@ -1,8 +1,9 @@
 import { Etudiant, EtudiantFormData } from "@/types/etudiant";
 import { PasswordUtils } from "@/utils/passwordUtils";
 import useAuthStore from "@/stores/authStore";
+import config from "./config.json";
 
-const API_BASE_URL = "https://server.inbtp.net/api/v1/etudiant";
+const API_BASE_URL = `${config.API_BASE_URL}/etudiant`;
 
 export class EtudiantService {
 

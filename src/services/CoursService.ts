@@ -1,5 +1,6 @@
 import useAuthStore from "@/stores/authStore";
 import { Produit } from "./ProduitService";
+import config from "./config.json";
 
 export interface PlanItem {
   anneeId: string;
@@ -57,7 +58,7 @@ export interface CoursFormData {
 }
 
 class CoursService {
-  private baseUrl = "http://192.168.1.69:4001/api/v1/enseignement";
+  private baseUrl = `${config.API_BASE_URL}/enseignement`;
 
   private getAuthHeaders(): HeadersInit {
     const token = useAuthStore.getState().token;

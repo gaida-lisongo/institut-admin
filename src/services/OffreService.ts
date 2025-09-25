@@ -1,7 +1,8 @@
 import { Offre, OffreFormData, CreateOffreData, UpdateOffreData } from "@/types/offre";
 import useAuthStore from "@/stores/authStore";
+import config from "./config.json";
 
-const API_BASE_URL = "https://server.inbtp.net/api";
+const API_BASE_URL = `${config.API_BASE_URL}/offres`;
 
 export class OffreService {
 
