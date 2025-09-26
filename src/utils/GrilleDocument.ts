@@ -1,4 +1,6 @@
 import ExcelJS from 'exceljs';
+import { calculerResultatsEtudiant } from './calculateurs/notesCalculateur';
+import { SessionType } from '@/types/juryClasseDetail';
 
 // Type fix for ExcelJS alignment and border properties
 type CellAlignment = {
@@ -36,9 +38,7 @@ interface Etudiant {
   prenom: string;
   matricule: string;
   notes?: {
-    [uniteId: string]: {
-      [evaluationCode: string]: number | string;
-    };
+    [uniteId: string]: Array<{ ecue: string; note: number }>;
   };
 }
 
@@ -60,6 +60,7 @@ interface GrilleDocumentData {
   classe: ClasseData;
   semestre?: SemestreData;
   anneeAcademique: string;
+  sessionType?: SessionType;
 }
 
 class GrilleDocument {
@@ -86,11 +87,11 @@ class GrilleDocument {
 
     // Créer les feuilles selon les semestres disponibles
     if (data.classe.semestre1) {
-      await this.createSemestreSheet(data.classe.semestre1, data.classe, data.anneeAcademique, 1);
+      await this.createSemestreSheet(data.classe.semestre1, data.classe, data.anneeAcademique, 1, data.sessionType);
     }
 
     if (data.classe.semestre2) {
-      await this.createSemestreSheet(data.classe.semestre2, data.classe, data.anneeAcademique, 2);
+      await this.createSemestreSheet(data.classe.semestre2, data.classe, data.anneeAcademique, 2, data.sessionType);
     }
 
     // Créer la feuille combinée si les deux semestres existent
@@ -110,7 +111,8 @@ class GrilleDocument {
     semestre: SemestreData, 
     classe: ClasseData, 
     anneeAcademique: string, 
-    semestreNum: number
+    semestreNum: number,
+    sessionType: SessionType = 'principale'
   ): Promise<void> {
     const worksheet = this.workbook.addWorksheet(`Semestre ${semestreNum}`);
 
@@ -131,11 +133,18 @@ class GrilleDocument {
     // Espacement
     currentRow += 2;
 
+    // Debug: vérifier les données du semestre
+    console.log("=== DEBUG GRILLE DOCUMENT ===");
+    console.log("Semestre:", semestre);
+    console.log("Semestre.unites:", semestre.unites);
+    console.log("Nombre d'unités:", semestre.unites?.length || 0);
+    console.log("Semestre.etudiants:", semestre.etudiants?.length || 0);
+
     // Créer l'en-tête du tableau avec les unités d'enseignement
-    currentRow = this.createTableHeader(worksheet, semestre.unites, currentRow);
+    currentRow = this.createTableHeader(worksheet, semestre.unites || [], currentRow, sessionType);
 
     // Ajouter les lignes d'étudiants
-    currentRow = this.addStudentRows(worksheet, semestre.etudiants, semestre.unites, currentRow);
+    currentRow = this.addStudentRows(worksheet, semestre.etudiants || [], semestre.unites || [], currentRow, sessionType);
 
     // Appliquer le formatage final
     this.applyFinalFormatting(worksheet, semestre.unites.length, currentRow);
@@ -225,7 +234,8 @@ class GrilleDocument {
   private createTableHeader(
     worksheet: ExcelJS.Worksheet, 
     unites: UniteEnseignement[], 
-    startRow: number
+    startRow: number,
+    sessionType: SessionType = 'principale'
   ): number {
     let currentRow = startRow;
     let currentCol = 3; // Commencer à la colonne B (après "Étudiant")
@@ -233,13 +243,30 @@ class GrilleDocument {
     // Première ligne : Codes des UE
     worksheet.getCell(currentRow, 1).value = '';
     
+    console.log("Unites dans createTableHeader:", unites);
+    
     unites.forEach((unite) => {
-      const evaluations = unite.cours || [
-        { coursId: 'EC1', titre: 'Évaluation Continue 1', credit: 30 },
-        { coursId: 'EC2', titre: 'Évaluation Continue 2', credit: 30 },
-        { coursId: 'Moy', titre: 'Moyenne', credit: 40 }
-      ];
-
+      let evaluations: any[] = unite.cours?.map(cours => ({
+        coursId: cours.coursId,
+        titre: cours.titre,
+        credit: cours.credit
+      })) || [];
+      
+      // if (sessionType === 'principale') {
+      //   evaluations = [
+      //     { coursId: 'CMI', titre: 'CMI', credit: 50 },
+      //     { coursId: 'EXAMEN', titre: 'Examen', credit: 50 },
+      //     { coursId: 'MOY', titre: 'Moyenne', credit: 100 }
+      //   ];
+      // } else if (sessionType === 'rattrapage') {
+      //   evaluations = [
+      //     { coursId: 'RATT', titre: 'Rattrapage', credit: 100 }
+      //   ];
+      // } else if (sessionType === 'annuelle') {
+      //   evaluations = [
+      //     { coursId: 'BEST', titre: 'Meilleure Note', credit: 100 }
+      //   ];
+      // }
       // Fusionner les cellules pour le code de l'UE
       const startCol = currentCol;
       const endCol = currentCol + evaluations.length + 1;
@@ -254,6 +281,21 @@ class GrilleDocument {
         bottom: { style: 'thin' },
         right: { style: 'thin' }
       };
+
+      // Colonne Décision UE
+      // worksheet.getCell(currentRow, endCol + 1).value = 'Décision UE';
+      // worksheet.getCell(currentRow, endCol + 1).font = { bold: true };
+      // worksheet.getCell(currentRow, endCol + 1).alignment = { 
+      //   horizontal: 'center', 
+      //   vertical: 'middle',
+      //   textRotation: 90
+      // } as CellAlignment;
+      // worksheet.getCell(currentRow, endCol + 1).border = {
+      //   top: { style: 'thin' },
+      //   left: { style: 'thin' },
+      //   bottom: { style: 'thin' },
+      //   right: { style: 'thin' }
+      // };
 
       currentCol = endCol + 1;
     });
@@ -314,19 +356,35 @@ class GrilleDocument {
 
     currentRow++;
 
-    // Deuxième ligne : Sous-colonnes (EC1, EC2, Moy, Dec)
+    // Deuxième ligne : Sous-colonnes selon le type de session
     currentCol = 3;
     worksheet.getCell(currentRow, 1).value = '';
 
     unites.forEach((unite) => {
       console.log("Current Unite Document", unite);
-      const evaluations = unite.cours || [
-        { coursId: 'EC1', titre: 'Évaluation Continue 1', credit: 30 },
-        { coursId: 'EC2', titre: 'Évaluation Continue 2', credit: 30 },
-        { coursId: 'Moy', titre: 'Moyenne', credit: 40 }
-      ];
+      let evaluations: any[] = unite.cours?.map(cours => ({
+        coursId: cours.coursId,
+        titre: cours.titre,
+        credit: cours.credit
+      })) || [];
+      
+      // if (sessionType === 'principale') {
+      //   evaluations = [
+      //     { coursId: 'CMI', titre: 'CMI', credit: 50 },
+      //     { coursId: 'EXAMEN', titre: 'Examen', credit: 50 },
+      //     { coursId: 'MOY', titre: 'Moyenne', credit: 100 }
+      //   ];
+      // } else if (sessionType === 'rattrapage') {
+      //   evaluations = [
+      //     { coursId: 'RATT', titre: 'Rattrapage', credit: 100 }
+      //   ];
+      // } else if (sessionType === 'annuelle') {
+      //   evaluations = [
+      //     { coursId: 'BEST', titre: 'Meilleure Note', credit: 100 }
+      //   ];
+      // }
 
-      evaluations.forEach((evaluation) => {
+      evaluations && evaluations.forEach((evaluation) => {
         worksheet.getCell(currentRow, currentCol).value = evaluation.titre;
         worksheet.getCell(currentRow, currentCol).font = { bold: true, size: 10 };
         worksheet.getCell(currentRow, currentCol).alignment = { 
@@ -355,42 +413,30 @@ class GrilleDocument {
         currentCol++;
       });
 
-      worksheet.getCell(currentRow, currentCol).value = 'Moyenne UE';
-      worksheet.getCell(currentRow+1, currentCol).value = unite.credit;
-      worksheet.getCell(currentRow+1, currentCol).font = { bold: true };
-      worksheet.getCell(currentRow+1, currentCol).alignment = { 
-        horizontal: 'center', 
-        vertical: 'middle'
-      } as CellAlignment;
-      worksheet.getCell(currentRow+1, currentCol).border = {
-        top: { style: 'thin' },
-        left: { style: 'thin' },
-        bottom: { style: 'thin' },
-        right: { style: 'thin' }
-      };
+      // Colonne Décision UE (déjà créée dans la première ligne)
+      worksheet.getCell(currentRow, currentCol).value = 'Tota UE';
+      worksheet.getCell(currentRow + 1, currentCol).value = unite.credit;
       worksheet.getCell(currentRow, currentCol).font = { bold: true };
       worksheet.getCell(currentRow, currentCol).alignment = { 
         horizontal: 'center', 
         vertical: 'middle',
-        textRotation: 90
-      };
+        textRotation: 90 
+      } as CellAlignment;
       worksheet.getCell(currentRow, currentCol).border = {
         top: { style: 'thin' },
         left: { style: 'thin' },
         bottom: { style: 'thin' },
         right: { style: 'thin' }
       };
-      currentCol++;
 
-      // Colonne Décision
-      worksheet.mergeCells(currentRow, currentCol, currentRow+1, currentCol);
+      currentCol++;
       worksheet.getCell(currentRow, currentCol).value = 'Decision UE';
       worksheet.getCell(currentRow, currentCol).font = { bold: true };
       worksheet.getCell(currentRow, currentCol).alignment = { 
         horizontal: 'center', 
         vertical: 'middle',
-        textRotation: 90
-      };
+        textRotation: 90 
+      } as CellAlignment;
       worksheet.getCell(currentRow, currentCol).border = {
         top: { style: 'thin' },
         left: { style: 'thin' },
@@ -443,19 +489,24 @@ class GrilleDocument {
   }
 
   /**
-   * Ajoute les lignes des étudiants avec leurs notes
+   * Ajoute les lignes des étudiants avec leurs notes et calculs
    */
   private addStudentRows(
     worksheet: ExcelJS.Worksheet, 
     etudiants: Etudiant[], 
     unites: UniteEnseignement[], 
-    startRow: number
+    startRow: number,
+    sessionType: SessionType = 'principale'
   ): number {
     let currentRow = startRow;
 
     etudiants.forEach((etudiant, n) => {
       let currentCol = 1;
-
+      let ncv = 0;
+      let ncnv = 0;
+      let totalObtenue = 0;
+      let maxSemestre = 0;
+      let showPourcentage = true;
       // Nom de l'étudiant
       worksheet.getCell(currentRow, currentCol).value = n + 1;
       worksheet.getCell(currentRow, currentCol+1).value = `${etudiant.nom} ${etudiant.postnom} ${etudiant.prenom}`;
@@ -472,46 +523,157 @@ class GrilleDocument {
 
       // Notes pour chaque unité
       unites.forEach((unite) => {
-        const evaluations = unite.cours || [
-          { coursId: 'EC1', titre: 'Évaluation Continue 1', credit: 30 },
-          { coursId: 'EC2', titre: 'Évaluation Continue 2', credit: 30 },
-        ];
-
-        evaluations.forEach((evaluation) => {
-          const note = etudiant.notes?.[unite._id]?.[evaluation.coursId] || '';
-          worksheet.getCell(currentRow, currentCol).value = note;
-          worksheet.getCell(currentRow, currentCol).alignment = { horizontal: 'center', vertical: 'middle' };
-          worksheet.getCell(currentRow, currentCol).border = {
-            top: { style: 'thin' },
-            left: { style: 'thin' },
-            bottom: { style: 'thin' },
-            right: { style: 'thin' }
-          };
-          currentCol++;
-        });
-
-        // Colonne Décision
-        worksheet.getCell(currentRow, currentCol).value = '';
+        let moy = 0;
+        maxSemestre += 20 * unite.credit;
+        unite.cours?.forEach((cours) => {
+          console.log('----------------DEBUG NOTES----------------')
+          console.log('unite', unite)
+          console.log("cours", cours);
+          console.log("etudiant", etudiant);
+          console.log("notes", etudiant.notes);
+          console.log("notes", etudiant.notes?.[unite._id]);
+          const uniteNotes : Array<{ ecue: string; note: number }> = etudiant.notes?.[unite._id] || [];
+          console.log('uniteNotes', uniteNotes)
+          
+          if (uniteNotes?.length > 0) {
+            const noteValue = uniteNotes.find((note: { ecue: string; note: number }) => note.ecue === cours.coursId);
+            console.log('note found for cours', cours.coursId, ':', noteValue)
+            
+            if (noteValue && !isNaN(noteValue.note)) {
+              moy += unite.credit ? (noteValue.note * cours.credit) / unite.credit : 0;
+              worksheet.getCell(currentRow, currentCol).value = noteValue.note;
+              worksheet.getCell(currentRow, currentCol).alignment = { horizontal: 'center', vertical: 'middle' };
+              worksheet.getCell(currentRow, currentCol).border = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' }
+              };
+            }
+            currentCol++;
+          } else {
+            showPourcentage = false;
+            worksheet.getCell(currentRow, currentCol).value = 'X';
+            worksheet.getCell(currentRow, currentCol).alignment = { horizontal: 'center', vertical: 'middle' };
+            worksheet.getCell(currentRow, currentCol).border = {
+              top: { style: 'thin' },
+              left: { style: 'thin' },
+              bottom: { style: 'thin' },
+              right: { style: 'thin' }
+            };
+            currentCol++;
+          }       
+        })
+        worksheet.getCell(currentRow, currentCol).value = moy.toFixed(2);
+        worksheet.getCell(currentRow, currentCol).alignment = { horizontal: 'center', vertical: 'middle' };
         worksheet.getCell(currentRow, currentCol).border = {
           top: { style: 'thin' },
           left: { style: 'thin' },
           bottom: { style: 'thin' },
           right: { style: 'thin' }
         };
+        currentCol++;
+        worksheet.getCell(currentRow, currentCol).value = moy > 10 ? 'V' : 'NV';
+        worksheet.getCell(currentRow, currentCol).alignment = { horizontal: 'center', vertical: 'middle' };
+        worksheet.getCell(currentRow, currentCol).border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+
+        ncv += moy > 10 ? unite.credit : 0;
+        ncnv += moy > 10 ? 0 : unite.credit;
+        totalObtenue += moy;
         currentCol++;
       });
 
-      // Colonnes finales (Total, NCV, NCNV, Capitalisation)
-      for (let i = 0; i < 4; i++) {
-        worksheet.getCell(currentRow, currentCol).value = '';
-        worksheet.getCell(currentRow, currentCol).border = {
-          top: { style: 'thin' },
-          left: { style: 'thin' },
-          bottom: { style: 'thin' },
-          right: { style: 'thin' }
-        };
-        currentCol++;
+      worksheet.getCell(currentRow, currentCol).value = showPourcentage ? totalObtenue.toFixed(2) : 'X';
+      worksheet.getCell(currentRow, currentCol).alignment = { horizontal: 'center', vertical: 'middle' };
+      worksheet.getCell(currentRow, currentCol).border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+      currentCol++;
+      const pourcentage: number = maxSemestre ? (totalObtenue / maxSemestre) * 100 : 0.0;
+      worksheet.getCell(currentRow, currentCol).value = showPourcentage ? `${pourcentage.toFixed(2)} %` : 'X';
+      worksheet.getCell(currentRow, currentCol).alignment = { horizontal: 'center', vertical: 'middle' };
+      worksheet.getCell(currentRow, currentCol).border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+      currentCol++;
+
+      worksheet.getCell(currentRow, currentCol).value = ncv;
+      worksheet.getCell(currentRow, currentCol).alignment = { horizontal: 'center', vertical: 'middle' };
+      worksheet.getCell(currentRow, currentCol).border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+      currentCol++;
+
+      worksheet.getCell(currentRow, currentCol).value = ncnv;
+      worksheet.getCell(currentRow, currentCol).alignment = { horizontal: 'center', vertical: 'middle' };
+      worksheet.getCell(currentRow, currentCol).border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+      currentCol++;
+
+      let appreciation = '';
+      let decision = '';
+
+      if (pourcentage >= 90) {
+        appreciation = 'A';
+      } else if (pourcentage >= 80) {
+        appreciation = 'B';
+      } else if (pourcentage >= 70) {
+        appreciation = 'C';
+      } else if (pourcentage >= 60) {
+        appreciation = 'D';
+      } else if (pourcentage >= 50) {
+        appreciation = 'E';
+      } else {
+        appreciation = 'N';
       }
+
+      worksheet.getCell(currentRow, currentCol).value = appreciation;
+      worksheet.getCell(currentRow, currentCol).alignment = { horizontal: 'center', vertical: 'middle' };
+      worksheet.getCell(currentRow, currentCol).border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+      currentCol++;
+
+      try {
+        if (ncv * 100/(ncv + ncnv) >= 60) {
+          decision = 'Passe';
+        } else {
+          decision = 'Double';
+        }
+      } catch (error) {
+        console.error("Error calculating decision:", error);
+        decision = 'Double';
+      }
+
+      worksheet.getCell(currentRow, currentCol).value = decision;
+      worksheet.getCell(currentRow, currentCol).alignment = { horizontal: 'center', vertical: 'middle' };
+      worksheet.getCell(currentRow, currentCol).border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
 
       currentRow++;
     });
@@ -559,13 +721,15 @@ class GrilleDocument {
           
           // Chercher d'abord dans semestre 1
           const etudiantS1 = classe.semestre1?.etudiants.find(e => e._id === etudiant._id);
-          if (etudiantS1?.notes?.[unite._id]?.[evaluation.code]) {
-            note = etudiantS1.notes[unite._id][evaluation.code];
+          const noteS1 = etudiantS1?.notes?.[unite._id]?.find(n => n.ecue === evaluation.code);
+          if (noteS1) {
+            note = noteS1.note;
           } else {
             // Chercher dans semestre 2
             const etudiantS2 = classe.semestre2?.etudiants.find(e => e._id === etudiant._id);
-            if (etudiantS2?.notes?.[unite._id]?.[evaluation.code]) {
-              note = etudiantS2.notes[unite._id][evaluation.code];
+            const noteS2 = etudiantS2?.notes?.[unite._id]?.find(n => n.ecue === evaluation.code);
+            if (noteS2) {
+              note = noteS2.note;
             }
           }
 

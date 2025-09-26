@@ -3,6 +3,7 @@ import JuryService from "@/services/JuryService";
 import React, { useState } from "react";
 import GrilleDocument from "@/utils/GrilleDocument";
 import { toGrilleDocumentData } from "@/utils/mappers/grilleMapper";
+import { SessionType } from "@/types/juryClasseDetail";
 
 interface JuryClassesModalProps {
   isOpen: boolean;
@@ -13,17 +14,16 @@ interface JuryClassesModalProps {
 
 export default function JuryClassesModal({ isOpen, onClose, jury, onDeliberationClick }: JuryClassesModalProps) {
   const [selectedClasse, setSelectedClasse] = useState<string>("");
-  const [printOption, setPrintOption] = useState<'single' | 'double'>('single');
+  const [sessionType, setSessionType] = useState<SessionType>('principale');
   const [isPrinting, setIsPrinting] = useState<boolean>(false);
 
   if (!isOpen || !jury) return null;
 
   const handlePrintGrille =async (classe: any) => {
-    // TODO: Implémenter l'impression de la grille de délibération
     console.log("Impression grille:", {
       jury: jury.juryId,
       classe: classe.classeId,
-      option: printOption
+      session: sessionType
     });
 
     try {
@@ -33,12 +33,12 @@ export default function JuryClassesModal({ isOpen, onClose, jury, onDeliberation
 
       // Construire les données pour le document Excel
       const anneeAcademique = `${jury.annee.debut}-${jury.annee.fin}`;
-      const data = toGrilleDocumentData(response, anneeAcademique, printOption);
-
+      const data = toGrilleDocumentData(response, anneeAcademique, sessionType);
+      console.log("Data pour le document Excel:", data);
       // Télécharger la grille
       await GrilleDocument.downloadGrille(
         data,
-        `grille_${classe.designation.replace(/\s+/g, '_')}_${anneeAcademique}_${printOption}.xlsx`
+        `grille_${classe.designation.replace(/\s+/g, '_')}_${anneeAcademique}_${sessionType}.xlsx`
       );
     } catch (error) {
       console.error("Erreur lors de la récupération de la classe:", error);
@@ -119,30 +119,22 @@ export default function JuryClassesModal({ isOpen, onClose, jury, onDeliberation
             
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Nombre de semestres à inclure dans la grille
+                Type de grille de délibération
               </label>
-              <div className="flex space-x-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="single"
-                    checked={printOption === 'single'}
-                    onChange={(e) => setPrintOption(e.target.value as 'single' | 'double')}
-                    className="mr-2"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Un semestre</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="double"
-                    checked={printOption === 'double'}
-                    onChange={(e) => setPrintOption(e.target.value as 'single' | 'double')}
-                    className="mr-2"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Deux semestres</span>
-                </label>
-              </div>
+              <select
+                value={sessionType}
+                onChange={(e) => setSessionType(e.target.value as SessionType)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="principale">Session Principale (CMI + Examen)</option>
+                <option value="rattrapage">Session de Rattrapage</option>
+                <option value="annuelle">Grille Annuelle (Consolidée)</option>
+              </select>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {sessionType === 'principale' && 'Notes basées sur (CMI + Examen) / 2'}
+                {sessionType === 'rattrapage' && 'Notes de la session de rattrapage uniquement'}
+                {sessionType === 'annuelle' && 'Meilleure note entre session principale et rattrapage'}
+              </p>
             </div>
           </div>
 

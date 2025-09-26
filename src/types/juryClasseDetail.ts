@@ -48,17 +48,52 @@ export interface UniteDetail {
   cours: CoursDetail[];
 }
 
+// Types pour les sessions d'évaluation
+export type SessionType = 'principale' | 'rattrapage' | 'annuelle';
+
+export interface NoteDetail {
+  cmi?: number; // Note de contrôle continu
+  examen?: number; // Note d'examen
+  rattrapage?: number; // Note de rattrapage
+  moyenne?: number; // Moyenne calculée
+}
+
+export interface FicheEvaluation extends NoteDetail {
+  _id: string;
+  chargeId: string;
+  logs: any[];
+  reference: string;
+  status: "OK" | "PENDING" | "NO";
+  etudiantId: string; // ID de l'étudiant (pas l'objet complet)
+}
+
 export interface CoursDetail {
   coursId: string;
   titre: string;
   description: string;
   credit: number;
-  fiches: {
-    _id: string;
-    chargeId: string;
-    logs: any[];
-    reference: string;
-    status: "OK"| "PENDING" | "NO";
-    etudiantId: EtudiantSummary;
-  }[]; // Not detailed in payload; define a precise type later if needed
+  fiches: FicheEvaluation[];
+}
+
+// Types pour les appréciations LMD
+export type AppreciationLMD = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G';
+
+// Types pour les décisions du jury
+export type DecisionJury = 'ADMIS' | 'DOUBLE' | 'REPECHAGE';
+
+export interface ResultatEtudiant {
+  etudiantId: string;
+  moyenneGenerale: number;
+  totalCredits: number;
+  creditsValides: number;
+  pourcentageCredits: number;
+  appreciation: AppreciationLMD;
+  decision: DecisionJury;
+  notesParUE: {
+    [uniteId: string]: {
+      moyenne: number;
+      creditValide: boolean;
+      notesParcours: NoteDetail;
+    };
+  };
 }
