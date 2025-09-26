@@ -4,40 +4,54 @@ import React, { useState } from "react";
 import GrilleDocument from "@/utils/GrilleDocument";
 import { toGrilleDocumentData } from "@/utils/mappers/grilleMapper";
 import { SessionType } from "@/types/juryClasseDetail";
+import { useCycleStore } from "@/stores/cycleStore";
 
 interface JuryClassesModalProps {
   isOpen: boolean;
   onClose: () => void;
   jury: any;
   onDeliberationClick: (jury: any, semestre: any) => void;
+  onJuryUpdated?: () => void; // Callback pour recharger les données
 }
 
-export default function JuryClassesModal({ isOpen, onClose, jury, onDeliberationClick }: JuryClassesModalProps) {
+export default function JuryClassesModal({ isOpen, onClose, jury, onDeliberationClick, onJuryUpdated }: JuryClassesModalProps) {
   const [selectedClasse, setSelectedClasse] = useState<string>("");
   const [sessionType, setSessionType] = useState<SessionType>('principale');
   const [isPrinting, setIsPrinting] = useState<boolean>(false);
+  const [updatingVision, setUpdatingVision] = useState<Record<string, boolean>>({});
+  const [localJuryData, setLocalJuryData] = useState<any>(null);
+  
+  // Utiliser le store pour la gestion de la vision des classes
+  const { updateClasseVision } = useCycleStore();
+  
+  // Initialiser les données locales du jury
+  React.useEffect(() => {
+    if (jury) {
+      setLocalJuryData({ ...jury });
+    }
+  }, [jury]);
 
-  if (!isOpen || !jury) return null;
-  console.log("Jury:", jury);
+  if (!isOpen || !localJuryData) return null;
+  console.log("Jury:", localJuryData);
   const handlePrintGrille =async (classe: any) => {
     console.log("Impression grille:", {
-      jury: jury.juryId,
+      jury: localJuryData.juryId,
       classe: classe.classeId,
       session: sessionType
     });
 
     try {
       setIsPrinting(true);
-      const response = await JuryService.getClasseDetail(`${classe.classeId}/${jury.annee._id}`);
+      const response = await JuryService.getClasseDetail(`${classe.classeId}/${localJuryData.annee._id}`);
       console.log("Classe details:", response);
 
       // Construire les données pour le document Excel
-      const anneeAcademique = `${jury.annee.debut}-${jury.annee.fin}`;
+      const anneeAcademique = `${localJuryData.annee.debut}-${localJuryData.annee.fin}`;
       const data = toGrilleDocumentData(response, anneeAcademique, sessionType);
       console.log("Data pour le document Excel:", data);
       // Télécharger la grille
       await GrilleDocument.downloadGrille(
-        jury,
+        localJuryData,
         data,
         `grille_${classe.designation.replace(/\s+/g, '_')}_${anneeAcademique}_${sessionType}.xlsx`
       );
@@ -52,24 +66,24 @@ export default function JuryClassesModal({ isOpen, onClose, jury, onDeliberation
 
   const handlePrintPalmaresse = async (classe: any) => {
     console.log("Impression palmarès:", {
-      jury: jury.juryId,
+      jury: localJuryData.juryId,
       classe: classe.classeId,
       session: sessionType
     });
 
     try {
       setIsPrinting(true);
-      const response = await JuryService.getClasseDetail(`${classe.classeId}/${jury.annee._id}`);
+      const response = await JuryService.getClasseDetail(`${classe.classeId}/${localJuryData.annee._id}`);
       console.log("Classe details:", response);
 
       // Construire les données pour le document Excel
-      const anneeAcademique = `${jury.annee.debut}-${jury.annee.fin}`;
+      const anneeAcademique = `${localJuryData.annee.debut}-${localJuryData.annee.fin}`;
       const data = toGrilleDocumentData(response, anneeAcademique, sessionType);
       console.log("Data pour le palmarès:", data);
       
       // Télécharger le palmarès
       await GrilleDocument.downloadPalmaresse(
-        jury,
+        localJuryData,
         data,
         `palmaresse_${classe.designation.replace(/\s+/g, '_')}_${anneeAcademique}_${sessionType}.xlsx`
       );
@@ -82,8 +96,40 @@ export default function JuryClassesModal({ isOpen, onClose, jury, onDeliberation
   };
 
   const handleDeliberationForSemestre = (semestre: any, classe: any) => {
-    onDeliberationClick(jury, { ...semestre, classe });
+    onDeliberationClick(localJuryData, { ...semestre, classe });
     onClose();
+  };
+
+  // Fonction pour toggle la vision d'une classe en utilisant le store
+  const handleToggleVision = async (classeId: string, currentVision: string) => {
+    const newVision = currentVision === 'active' ? 'inactive' : 'active';
+    
+    setUpdatingVision(prev => ({ ...prev, [classeId]: true }));
+    
+    try {
+      // Utiliser le store qui gère la persistance backend et locale
+      await updateClasseVision(classeId, newVision);
+      
+      // Mettre à jour les données locales du jury pour un re-render immédiat
+      setLocalJuryData((prevJury: any) => {
+        if (prevJury && prevJury.classes) {
+          return {
+            ...prevJury,
+            classes: prevJury.classes.map((classe: any) => 
+              classe.classeId === classeId ? { ...classe, vision: newVision } : classe
+            )
+          };
+        }
+        return prevJury;
+      });
+      
+      console.log(`Vision de la classe ${classeId} mise à jour: ${newVision}`);
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de la vision:', error);
+      alert('Une erreur est survenue lors de la mise à jour de la vision');
+    } finally {
+      setUpdatingVision(prev => ({ ...prev, [classeId]: false }));
+    }
   };
 
   return (
@@ -173,17 +219,47 @@ export default function JuryClassesModal({ isOpen, onClose, jury, onDeliberation
           {/* Liste des classes avec actions */}
           <div>
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-              Classes Associées ({jury.classes.length})
+              Classes Associées ({localJuryData.classes.length})
             </h3>
             
             <div className="space-y-4">
-              {jury.classes.map((classe: any, index: number) => (
+              {localJuryData.classes.map((classe: any, index: number) => (
                 <div key={classe.classeId} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2">
-                        {classe.designation}
-                      </h4>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-gray-900 dark:text-white">
+                          {classe.designation}
+                        </h4>
+                        
+                        {/* Toggle Vision de la classe */}
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Vision:</span>
+                          <button
+                            onClick={() => handleToggleVision(classe.classeId, classe.vision || 'inactive')}
+                            disabled={updatingVision[classe.classeId]}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                              (classe.vision || 'inactive') === 'active' 
+                                ? 'bg-green-600' 
+                                : 'bg-gray-200 dark:bg-gray-700'
+                            } ${updatingVision[classe.classeId] ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                (classe.vision || 'inactive') === 'active' ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                          <span className={`text-xs font-medium ${
+                            (classe.vision || 'inactive') === 'active' 
+                              ? 'text-green-600 dark:text-green-400' 
+                              : 'text-gray-500 dark:text-gray-400'
+                          }`}>
+                            {updatingVision[classe.classeId] ? 'Mise à jour...' : 
+                             (classe.vision || 'inactive') === 'active' ? 'Activée' : 'Désactivée'}
+                          </span>
+                        </div>
+                      </div>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                         {classe.description}
                       </p>

@@ -17,8 +17,10 @@ interface CycleState {
   deleteCycle: (id: string) => Promise<void>;
   addSemestreToClasse: (cycleId: string, classeIndex: number, semestreId: string) => Promise<void>;
   removeSemestreFromClasse: (cycleId: string, classeIndex: number, semestreId: string) => Promise<void>;
+  updateClasseVision: (classeId: string, vision: string) => Promise<void>;
   // Mise à jour optimiste
   updateCycleOptimistic: (cycleId: string, classeIndex: number, semestreId: string, action: 'add' | 'remove') => void;
+  updateClasseVisionOptimistic: (classeId: string, vision: string) => void;
   clearError: () => void;
   clearCurrentCycle: () => void;
 }
@@ -188,6 +190,54 @@ export const useCycleStore = create<CycleState>((set, get) => ({
         error: error instanceof Error ? error.message : 'Erreur lors de la suppression du semestre'
       });
       
+      throw error;
+    }
+  },
+
+  // Mise à jour optimiste de la vision d'une classe
+  updateClasseVisionOptimistic: (classeId: string, vision: string) => {
+    set(state => ({
+      cycles: state.cycles.map(cycle => ({
+        ...cycle,
+        classes: cycle.classes.map(classe => 
+          classe._id === classeId ? { ...classe, vision } : classe
+        )
+      }))
+    }));
+  },
+
+  // Mettre à jour la vision d'une classe avec persistance backend et store local
+  updateClasseVision: async (classeId: string, vision: string) => {
+    // Mise à jour optimiste immédiate pour un feedback instantané
+    const previousVision = get().cycles
+      .flatMap(cycle => cycle.classes)
+      .find(classe => classe._id === classeId)?.vision || 'inactive';
+    
+    get().updateClasseVisionOptimistic(classeId, vision);
+    
+    try {
+      const response = await CycleService.updateVisionClasse({
+        id: classeId,
+        vision: vision
+      });
+      
+      if (!response.success) {
+        // En cas d'échec, revenir à l'état précédent
+        if (previousVision) {
+          get().updateClasseVisionOptimistic(classeId, previousVision);
+        }
+        throw new Error(response.message || 'Erreur lors de la mise à jour de la vision');
+      }
+      
+      console.log(`Vision de la classe ${classeId} mise à jour: ${vision}`);
+    } catch (error) {
+      // En cas d'erreur, revenir à l'état précédent
+      if (previousVision) {
+        get().updateClasseVisionOptimistic(classeId, previousVision);
+      }
+      set({ 
+        error: error instanceof Error ? error.message : 'Erreur lors de la mise à jour de la vision'
+      });
       throw error;
     }
   },

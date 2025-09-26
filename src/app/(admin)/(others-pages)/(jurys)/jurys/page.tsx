@@ -120,6 +120,7 @@ export default function JurysPage() {
         onClose={() => setIsClassesModalOpen(false)}
         jury={selectedJury}
         onDeliberationClick={handleDeliberationClick}
+        onJuryUpdated={loadJurys}
       />
     </div>
   );
