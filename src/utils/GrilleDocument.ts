@@ -1266,6 +1266,9 @@ class GrilleDocument {
     worksheet.getColumn(6).width = 12;  // Appréciation
     worksheet.getColumn(7).width = 15;  // Décision
 
+    // Ajouter le footer avec signatures
+    this.addPalmaresseFooter(worksheet, currentRow - 1, totalCols);
+
     // Retourner le buffer du fichier Excel
     const buffer = await this.workbook.xlsx.writeBuffer();
     return buffer as unknown as Buffer;
@@ -1290,6 +1293,188 @@ class GrilleDocument {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Ajoute le footer du palmarès avec date et signatures
+   */
+  private addPalmaresseFooter(worksheet: ExcelJS.Worksheet, lastRow: number, lastCol: number): void {
+    let row = lastRow + 3;
+    const col = 1;
+
+    // Date de génération
+    const dateRow = row;
+    worksheet.mergeCells(dateRow, col, dateRow, lastCol);
+    worksheet.getCell(dateRow, col).value = `Fait à Kinshasa, le ${new Date().toLocaleDateString('fr-FR')}`;
+    worksheet.getCell(dateRow, col).font = { bold: true, size: 12 };
+    worksheet.getCell(dateRow, col).alignment = { horizontal: 'center', vertical: 'middle' } as CellAlignment;
+    
+    row += 3;
+
+    // Si nous avons des informations sur le jury, ajouter les signatures
+    if (this.jury?.bureau && this.jury.bureau.length > 0) {
+      // En-têtes des signatures
+      const headerSignatures = ['Fonction', 'Nom', 'Signature'];
+      
+      // Calculer les largeurs des colonnes pour les signatures
+      const colWidth = Math.floor(lastCol / 3);
+      let currentCol = col;
+      
+      headerSignatures.forEach((header, index) => {
+        const startCol = currentCol;
+        const endCol = index === headerSignatures.length - 1 ? lastCol : currentCol + colWidth - 1;
+        
+        worksheet.mergeCells(row, startCol, row, endCol);
+        worksheet.getCell(row, startCol).value = header;
+        worksheet.getCell(row, startCol).font = { bold: true };
+        worksheet.getCell(row, startCol).alignment = { horizontal: 'center', vertical: 'middle' } as CellAlignment;
+        worksheet.getCell(row, startCol).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFE6E6FA' } // Lavande clair
+        };
+        worksheet.getCell(row, startCol).border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+        
+        currentCol = endCol + 1;
+      });
+      
+      row++;
+
+      // Membres du bureau du jury
+      const members = this.jury.bureau.map((member: {fonction: string, agent: {nom: string, post_nom: string, prenom?: string, titre?: string}}) => {
+        return {
+          fonction: member.fonction,
+          nom: `${member.agent.titre || ''} ${member.agent.nom} ${member.agent.post_nom} ${member.agent.prenom || ''}`.trim(),
+        };
+      });
+
+      members.forEach((member: {fonction: string, nom: string}, index: number) => {
+        const currentRow = row + index;
+        currentCol = col;
+        
+        // Fonction
+        const fonctionEndCol = currentCol + colWidth - 1;
+        worksheet.mergeCells(currentRow, currentCol, currentRow, fonctionEndCol);
+        worksheet.getCell(currentRow, currentCol).value = member.fonction;
+        worksheet.getCell(currentRow, currentCol).alignment = { horizontal: 'center', vertical: 'middle' } as CellAlignment;
+        worksheet.getCell(currentRow, currentCol).border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+        
+        // Nom
+        currentCol = fonctionEndCol + 1;
+        const nomEndCol = currentCol + colWidth - 1;
+        worksheet.mergeCells(currentRow, currentCol, currentRow, nomEndCol);
+        worksheet.getCell(currentRow, currentCol).value = member.nom;
+        worksheet.getCell(currentRow, currentCol).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true } as CellAlignment;
+        worksheet.getRow(currentRow).height = 30;
+        worksheet.getCell(currentRow, currentCol).border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+        
+        // Signature
+        currentCol = nomEndCol + 1;
+        worksheet.mergeCells(currentRow, currentCol, currentRow, lastCol);
+        worksheet.getCell(currentRow, currentCol).value = "__________________________";
+        worksheet.getCell(currentRow, currentCol).alignment = { horizontal: 'center', vertical: 'middle' } as CellAlignment;
+        worksheet.getCell(currentRow, currentCol).border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
+    } else {
+      // Si pas d'informations sur le jury, ajouter des signatures génériques
+      const genericSignatures = [
+        { fonction: 'Président du Jury', nom: '' },
+        { fonction: 'Secrétaire du Jury', nom: '' }
+      ];
+
+      // En-têtes
+      const headerSignatures = ['Fonction', 'Nom', 'Signature'];
+      const colWidth = Math.floor(lastCol / 3);
+      let currentCol = col;
+      
+      headerSignatures.forEach((header, index) => {
+        const startCol = currentCol;
+        const endCol = index === headerSignatures.length - 1 ? lastCol : currentCol + colWidth - 1;
+        
+        worksheet.mergeCells(row, startCol, row, endCol);
+        worksheet.getCell(row, startCol).value = header;
+        worksheet.getCell(row, startCol).font = { bold: true };
+        worksheet.getCell(row, startCol).alignment = { horizontal: 'center', vertical: 'middle' } as CellAlignment;
+        worksheet.getCell(row, startCol).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFE6E6FA' }
+        };
+        worksheet.getCell(row, startCol).border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+        
+        currentCol = endCol + 1;
+      });
+      
+      row++;
+
+      genericSignatures.forEach((signature, index) => {
+        const currentRow = row + index;
+        currentCol = col;
+        
+        // Fonction
+        const fonctionEndCol = currentCol + colWidth - 1;
+        worksheet.mergeCells(currentRow, currentCol, currentRow, fonctionEndCol);
+        worksheet.getCell(currentRow, currentCol).value = signature.fonction;
+        worksheet.getCell(currentRow, currentCol).alignment = { horizontal: 'center', vertical: 'middle' } as CellAlignment;
+        worksheet.getCell(currentRow, currentCol).border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+        
+        // Nom (vide pour permettre l'écriture manuelle)
+        currentCol = fonctionEndCol + 1;
+        const nomEndCol = currentCol + colWidth - 1;
+        worksheet.mergeCells(currentRow, currentCol, currentRow, nomEndCol);
+        worksheet.getCell(currentRow, currentCol).value = '';
+        worksheet.getCell(currentRow, currentCol).alignment = { horizontal: 'center', vertical: 'middle' } as CellAlignment;
+        worksheet.getRow(currentRow).height = 30;
+        worksheet.getCell(currentRow, currentCol).border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+        
+        // Signature
+        currentCol = nomEndCol + 1;
+        worksheet.mergeCells(currentRow, currentCol, currentRow, lastCol);
+        worksheet.getCell(currentRow, currentCol).value = "__________________________";
+        worksheet.getCell(currentRow, currentCol).alignment = { horizontal: 'center', vertical: 'middle' } as CellAlignment;
+        worksheet.getCell(currentRow, currentCol).border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
+    }
   }
 
 }
