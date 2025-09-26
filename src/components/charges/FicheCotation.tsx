@@ -40,6 +40,7 @@ export default function FicheCotation({ charge, onBack }: FicheCotationProps) {
     // Filtrage par terme de recherche
     if (searchTerm) {
       filtered = filtered.filter(fiche => {
+        if (!fiche.etudiantId) return false;
         const etudiant = fiche.etudiantId as Etudiant;
         const fullName = `${etudiant.nom} ${etudiant.post_nom} ${etudiant.prenom}`.toLowerCase();
         const matricule = etudiant.matricule?.toLowerCase() || '';
@@ -718,6 +719,9 @@ export default function FicheCotation({ charge, onBack }: FicheCotationProps) {
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {filteredFiches.map((fiche) => {
+                if (!fiche.etudiantId) {
+                  return null;
+                }
                 const total = calculateTotal(
                   fiche.cmi || 0,
                   fiche.examen || 0,

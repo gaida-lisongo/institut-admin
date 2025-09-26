@@ -18,7 +18,7 @@ export default function JuryClassesModal({ isOpen, onClose, jury, onDeliberation
   const [isPrinting, setIsPrinting] = useState<boolean>(false);
 
   if (!isOpen || !jury) return null;
-
+  console.log("Jury:", jury);
   const handlePrintGrille =async (classe: any) => {
     console.log("Impression grille:", {
       jury: jury.juryId,
@@ -37,6 +37,7 @@ export default function JuryClassesModal({ isOpen, onClose, jury, onDeliberation
       console.log("Data pour le document Excel:", data);
       // Télécharger la grille
       await GrilleDocument.downloadGrille(
+        jury,
         data,
         `grille_${classe.designation.replace(/\s+/g, '_')}_${anneeAcademique}_${sessionType}.xlsx`
       );
