@@ -50,6 +50,37 @@ export default function JuryClassesModal({ isOpen, onClose, jury, onDeliberation
     
   };
 
+  const handlePrintPalmaresse = async (classe: any) => {
+    console.log("Impression palmarès:", {
+      jury: jury.juryId,
+      classe: classe.classeId,
+      session: sessionType
+    });
+
+    try {
+      setIsPrinting(true);
+      const response = await JuryService.getClasseDetail(`${classe.classeId}/${jury.annee._id}`);
+      console.log("Classe details:", response);
+
+      // Construire les données pour le document Excel
+      const anneeAcademique = `${jury.annee.debut}-${jury.annee.fin}`;
+      const data = toGrilleDocumentData(response, anneeAcademique, sessionType);
+      console.log("Data pour le palmarès:", data);
+      
+      // Télécharger le palmarès
+      await GrilleDocument.downloadPalmaresse(
+        jury,
+        data,
+        `palmaresse_${classe.designation.replace(/\s+/g, '_')}_${anneeAcademique}_${sessionType}.xlsx`
+      );
+    } catch (error) {
+      console.error("Erreur lors de la récupération de la classe:", error);
+      alert("Une erreur est survenue lors de la génération du palmarès. Veuillez réessayer.");
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
   const handleDeliberationForSemestre = (semestre: any, classe: any) => {
     onDeliberationClick(jury, { ...semestre, classe });
     onClose();
@@ -158,17 +189,30 @@ export default function JuryClassesModal({ isOpen, onClose, jury, onDeliberation
                       </p>
                     </div>
                     
-                    {/* Bouton Imprimer Grille pour la classe */}
-                    <button
-                      onClick={() => handlePrintGrille(classe)}
-                      disabled={isPrinting}
-                      className={`ml-4 px-3 py-1 text-white text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center ${isPrinting ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
-                    >
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                      </svg>
-                      {isPrinting ? 'Génération...' : 'Grille'}
-                    </button>
+                    {/* Boutons Grille et Palmarès pour la classe */}
+                    <div className="flex space-x-2 ml-4">
+                      <button
+                        onClick={() => handlePrintGrille(classe)}
+                        disabled={isPrinting}
+                        className={`px-3 py-1 text-white text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center ${isPrinting ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        {isPrinting ? 'Génération...' : 'Grille'}
+                      </button>
+                      
+                      <button
+                        onClick={() => handlePrintPalmaresse(classe)}
+                        disabled={isPrinting}
+                        className={`px-3 py-1 text-white text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center ${isPrinting ? 'bg-purple-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'}`}
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        {isPrinting ? 'Génération...' : 'Palmarès'}
+                      </button>
+                    </div>
                   </div>
                   
                   <div className="space-y-3">

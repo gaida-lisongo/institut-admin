@@ -63,6 +63,17 @@ interface GrilleDocumentData {
   sessionType?: SessionType;
 }
 
+interface EtudiantPalmaresse {
+  nom: string;
+  postnom: string;
+  prenom: string;
+  pourcentage: number;
+  ncv: number;
+  ncnv: number;
+  appreciation: string;
+  decision: string;
+}
+
 class GrilleDocument {
   private workbook: ExcelJS.Workbook;
   public semestre: SemestreData | {} = {};
@@ -978,6 +989,309 @@ class GrilleDocument {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   }
+
+  /**
+   * Récupère et calcule les données des étudiants pour le palmarès
+   */
+  private getEtudiantsForPalmaresse(data: GrilleDocumentData): EtudiantPalmaresse[] {
+    let etudiants: Etudiant[] = [];
+    let unites: UniteEnseignement[] = [];
+
+    // Récupérer les étudiants et unités selon le type de session
+    if (this.sessionType === 'annuelle' && data.classe.semestre1 && data.classe.semestre2) {
+      // Pour la session annuelle, combiner les deux semestres
+      etudiants = data.classe.semestre1.etudiants || data.classe.semestre2.etudiants || [];
+      unites = [
+        ...(data.classe.semestre1.unites || []),
+        ...(data.classe.semestre2.unites || [])
+      ];
+    } else if (data.semestre) {
+      // Pour les sessions semestrielles
+      etudiants = data.semestre.etudiants || [];
+      unites = data.semestre.unites || [];
+    } else {
+      // Fallback sur le premier semestre disponible
+      const semestre = data.classe.semestre1 || data.classe.semestre2;
+      if (semestre) {
+        etudiants = semestre.etudiants || [];
+        unites = semestre.unites || [];
+      }
+    }
+
+    return etudiants.map((etudiant) => {
+      let ncv = 0;
+      let ncnv = 0;
+      let totalObtenue = 0;
+      let maxSemestre = 0;
+
+      // Calculer les notes pour chaque unité
+      unites.forEach((unite) => {
+        let moy = 0;
+        maxSemestre += 20 * unite.credit;
+        
+        unite.cours?.forEach((cours) => {
+          const uniteNotes: Array<{ ecue: string; note: number }> = etudiant.notes?.[unite._id] || [];
+          
+          if (uniteNotes?.length > 0) {
+            const noteValue = uniteNotes.find((note: { ecue: string; note: number }) => note.ecue === cours.coursId);
+            
+            if (noteValue && !isNaN(noteValue.note)) {
+              moy += unite.credit ? (noteValue.note * cours.credit) / unite.credit : 0;
+            }
+          }
+        });
+
+        ncv += moy > 10 ? unite.credit : 0;
+        ncnv += moy > 10 ? 0 : unite.credit;
+        totalObtenue += moy;
+      });
+
+      const pourcentage: number = maxSemestre ? (totalObtenue / maxSemestre) * 100 : 0.0;
+
+      // Déterminer l'appréciation
+      let appreciation = '';
+      if (pourcentage >= 90) {
+        appreciation = 'A';
+      } else if (pourcentage >= 80) {
+        appreciation = 'B';
+      } else if (pourcentage >= 70) {
+        appreciation = 'C';
+      } else if (pourcentage >= 60) {
+        appreciation = 'D';
+      } else if (pourcentage >= 50) {
+        appreciation = 'E';
+      } else {
+        appreciation = 'G';
+      }
+
+      // Déterminer la décision
+      let decision = '';
+      try {
+        if (ncv * 100/(ncv + ncnv) >= 60) {
+          decision = 'Passe';
+        } else {
+          decision = 'Double';
+        }
+      } catch (error) {
+        decision = 'Double';
+      }
+
+      return {
+        nom: etudiant.nom,
+        postnom: etudiant.postnom,
+        prenom: etudiant.prenom,
+        pourcentage,
+        ncv,
+        ncnv,
+        appreciation,
+        decision
+      };
+    });
+  }
+
+  /**
+   * Applique les couleurs pour les appréciations
+   */
+  private applyAppreciationColors(cell: ExcelJS.Cell, appreciation: string): void {
+    let appreciationColor = 'FF000000';
+    let appreciationBgColor = 'FFFFFFFF';
+    
+    switch (appreciation) {
+      case 'A':
+        appreciationColor = 'FF006400';
+        appreciationBgColor = 'FFE6FFE6';
+        break;
+      case 'B':
+        appreciationColor = 'FF228B22';
+        appreciationBgColor = 'FFF0FFF0';
+        break;
+      case 'C':
+        appreciationColor = 'FF32CD32';
+        appreciationBgColor = 'FFF5FFFA';
+        break;
+      case 'D':
+        appreciationColor = 'FFFFA500';
+        appreciationBgColor = 'FFFFF8DC';
+        break;
+      case 'E':
+        appreciationColor = 'FFFF8C00';
+        appreciationBgColor = 'FFFFEFD5';
+        break;
+      case 'G':
+        appreciationColor = 'FFDC143C';
+        appreciationBgColor = 'FFFFEAEA';
+        break;
+    }
+    
+    cell.font = { bold: true, color: { argb: appreciationColor } };
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: appreciationBgColor }
+    };
+  }
+
+  /**
+   * Applique les couleurs pour les décisions
+   */
+  private applyDecisionColors(cell: ExcelJS.Cell, decision: string): void {
+    const isPassed = decision === 'Passe';
+    cell.font = { 
+      bold: true, 
+      color: { argb: isPassed ? 'FF008000' : 'FFFF0000' }
+    };
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: isPassed ? 'FFE8F5E8' : 'FFFFEAEA' }
+    };
+  }
+
+  /**
+   * Génère un palmarès (classement des étudiants)
+   */
+  async generatePalmaresse(data: GrilleDocumentData): Promise<Buffer> {
+    // Réinitialiser le workbook
+    this.workbook = new ExcelJS.Workbook();
+    this.workbook.creator = 'Institut Admin System';
+    this.workbook.created = new Date();
+
+    // Créer la feuille de palmarès
+    const worksheet = this.workbook.addWorksheet('Palmarès');
+
+    // Configuration de base
+    worksheet.pageSetup = {
+      orientation: 'landscape',
+      paperSize: 9, // A4
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0
+    };
+
+    let currentRow = 1;
+
+    // En-tête du palmarès
+    const totalCols = 7; // N°, Étudiant, Pourcentage, NCV, NCNV, Appréciation, Décision
+    const lastColLetter = this.numberToColumnLetter(totalCols);
+
+    worksheet.mergeCells(`A${currentRow}:${lastColLetter}${currentRow}`);
+    worksheet.getCell(`A${currentRow}`).value = `PALMARÈS - ${data.classe.designation}`;
+    worksheet.getCell(`A${currentRow}`).font = { bold: true, size: 16 };
+    worksheet.getCell(`A${currentRow}`).alignment = { horizontal: 'center', vertical: 'middle' } as CellAlignment;
+    currentRow++;
+
+    worksheet.mergeCells(`A${currentRow}:${lastColLetter}${currentRow}`);
+    worksheet.getCell(`A${currentRow}`).value = `Année Académique: ${data.anneeAcademique} | Session: ${this.sessionType}`;
+    worksheet.getCell(`A${currentRow}`).font = { bold: true, size: 12 };
+    worksheet.getCell(`A${currentRow}`).alignment = { horizontal: 'center', vertical: 'middle' } as CellAlignment;
+    currentRow += 3;
+
+    // En-têtes des colonnes
+    const headers = ['N°', 'Étudiant', 'Pourcentage', 'NCV', 'NCNV', 'Appréciation', 'Décision du Jury'];
+    headers.forEach((header, index) => {
+      worksheet.getCell(currentRow, index + 1).value = header;
+      worksheet.getCell(currentRow, index + 1).font = { bold: true };
+      worksheet.getCell(currentRow, index + 1).alignment = { horizontal: 'center', vertical: 'middle' } as CellAlignment;
+      worksheet.getCell(currentRow, index + 1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE6E6FA' } // Lavande clair
+      };
+      worksheet.getCell(currentRow, index + 1).border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+    });
+    currentRow++;
+
+    // Récupérer et calculer les données des étudiants
+    const etudiants = this.getEtudiantsForPalmaresse(data);
+    
+    // Trier les étudiants par pourcentage décroissant
+    etudiants.sort((a: EtudiantPalmaresse, b: EtudiantPalmaresse) => b.pourcentage - a.pourcentage);
+
+    // Ajouter les lignes d'étudiants
+    etudiants.forEach((etudiant: EtudiantPalmaresse, index: number) => {
+      // N° (rang)
+      worksheet.getCell(currentRow, 1).value = index + 1;
+      worksheet.getCell(currentRow, 1).alignment = { horizontal: 'center', vertical: 'middle' } as CellAlignment;
+      
+      // Étudiant
+      worksheet.getCell(currentRow, 2).value = `${etudiant.nom} ${etudiant.postnom} ${etudiant.prenom}`;
+      worksheet.getCell(currentRow, 2).alignment = { horizontal: 'left', vertical: 'middle' } as CellAlignment;
+      
+      // Pourcentage
+      worksheet.getCell(currentRow, 3).value = `${etudiant.pourcentage.toFixed(2)}%`;
+      worksheet.getCell(currentRow, 3).alignment = { horizontal: 'center', vertical: 'middle' } as CellAlignment;
+      
+      // NCV
+      worksheet.getCell(currentRow, 4).value = etudiant.ncv;
+      worksheet.getCell(currentRow, 4).alignment = { horizontal: 'center', vertical: 'middle' } as CellAlignment;
+      
+      // NCNV
+      worksheet.getCell(currentRow, 5).value = etudiant.ncnv;
+      worksheet.getCell(currentRow, 5).alignment = { horizontal: 'center', vertical: 'middle' } as CellAlignment;
+      
+      // Appréciation avec couleurs
+      worksheet.getCell(currentRow, 6).value = etudiant.appreciation;
+      worksheet.getCell(currentRow, 6).alignment = { horizontal: 'center', vertical: 'middle' } as CellAlignment;
+      this.applyAppreciationColors(worksheet.getCell(currentRow, 6), etudiant.appreciation);
+      
+      // Décision avec couleurs
+      worksheet.getCell(currentRow, 7).value = etudiant.decision;
+      worksheet.getCell(currentRow, 7).alignment = { horizontal: 'center', vertical: 'middle' } as CellAlignment;
+      this.applyDecisionColors(worksheet.getCell(currentRow, 7), etudiant.decision);
+
+      // Bordures pour toutes les cellules
+      for (let col = 1; col <= 7; col++) {
+        worksheet.getCell(currentRow, col).border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      }
+
+      currentRow++;
+    });
+
+    // Ajuster la largeur des colonnes
+    worksheet.getColumn(1).width = 5;   // N°
+    worksheet.getColumn(2).width = 30;  // Étudiant
+    worksheet.getColumn(3).width = 12;  // Pourcentage
+    worksheet.getColumn(4).width = 8;   // NCV
+    worksheet.getColumn(5).width = 8;   // NCNV
+    worksheet.getColumn(6).width = 12;  // Appréciation
+    worksheet.getColumn(7).width = 15;  // Décision
+
+    // Retourner le buffer du fichier Excel
+    const buffer = await this.workbook.xlsx.writeBuffer();
+    return buffer as unknown as Buffer;
+  }
+
+  /**
+   * Télécharge le palmarès
+   */
+  async downloadPalmaresse(jury: any, data: GrilleDocumentData, filename?: string): Promise<void> {
+    this.jury = jury;
+    this.sessionType = data.sessionType || 'principale';
+    const buffer = await this.generatePalmaresse(data);
+    const blob = new Blob([buffer], { 
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    });
+    
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename || `palmaresse-${data.classe.designation}-${new Date().getTime()}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }
+
 }
 
 export default new GrilleDocument();
