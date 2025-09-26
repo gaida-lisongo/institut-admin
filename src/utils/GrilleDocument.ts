@@ -193,7 +193,9 @@ class GrilleDocument {
     const etudiants = classe.semestre1?.etudiants || classe.semestre2?.etudiants || [];
     
     // Ajouter les lignes d'étudiants avec les notes des deux semestres
-    currentRow = this.addCombinedStudentRows(worksheet, etudiants, allUnites, classe, currentRow);
+    // Pour l'instant, utiliser les étudiants du premier semestre disponible
+    // TODO: Implémenter la logique de fusion des notes des deux semestres
+    currentRow = this.addStudentRows(worksheet, etudiants, allUnites, currentRow, 'principale');
 
     // Appliquer le formatage final
     this.applyFinalFormatting(worksheet, allUnites.length, currentRow);
@@ -526,18 +528,10 @@ class GrilleDocument {
         let moy = 0;
         maxSemestre += 20 * unite.credit;
         unite.cours?.forEach((cours) => {
-          console.log('----------------DEBUG NOTES----------------')
-          console.log('unite', unite)
-          console.log("cours", cours);
-          console.log("etudiant", etudiant);
-          console.log("notes", etudiant.notes);
-          console.log("notes", etudiant.notes?.[unite._id]);
-          const uniteNotes : Array<{ ecue: string; note: number }> = etudiant.notes?.[unite._id] || [];
-          console.log('uniteNotes', uniteNotes)
+          const uniteNotes: Array<{ ecue: string; note: number }> = etudiant.notes?.[unite._id] || [];
           
           if (uniteNotes?.length > 0) {
             const noteValue = uniteNotes.find((note: { ecue: string; note: number }) => note.ecue === cours.coursId);
-            console.log('note found for cours', cours.coursId, ':', noteValue)
             
             if (noteValue && !isNaN(noteValue.note)) {
               moy += unite.credit ? (noteValue.note * cours.credit) / unite.credit : 0;
@@ -562,8 +556,8 @@ class GrilleDocument {
               right: { style: 'thin' }
             };
             currentCol++;
-          }       
-        })
+          }
+        });
         worksheet.getCell(currentRow, currentCol).value = moy.toFixed(2);
         worksheet.getCell(currentRow, currentCol).alignment = { horizontal: 'center', vertical: 'middle' };
         worksheet.getCell(currentRow, currentCol).border = {
@@ -681,97 +675,6 @@ class GrilleDocument {
     return currentRow;
   }
 
-  /**
-   * Ajoute les lignes des étudiants pour la feuille combinée
-   */
-  private addCombinedStudentRows(
-    worksheet: ExcelJS.Worksheet, 
-    etudiants: Etudiant[], 
-    allUnites: UniteEnseignement[], 
-    classe: ClasseData,
-    startRow: number
-  ): number {
-    let currentRow = startRow;
-
-    etudiants.forEach((etudiant) => {
-      let currentCol = 1;
-
-      // Nom de l'étudiant
-      worksheet.getCell(currentRow, currentCol).value = `${etudiant.nom} ${etudiant.postnom} ${etudiant.prenom}`;
-      worksheet.getCell(currentRow, currentCol).alignment = { horizontal: 'left', vertical: 'middle' };
-      worksheet.getCell(currentRow, currentCol).border = {
-        top: { style: 'thin' },
-        left: { style: 'thin' },
-        bottom: { style: 'thin' },
-        right: { style: 'thin' }
-      };
-      currentCol++;
-
-      // Notes pour toutes les unités (semestre 1 + semestre 2)
-      allUnites.forEach((unite) => {
-        const evaluations = unite.evaluations || [
-          { code: 'EC1', designation: 'Évaluation Continue 1', ponderation: 30 },
-          { code: 'EC2', designation: 'Évaluation Continue 2', ponderation: 30 },
-          { code: 'Moy', designation: 'Moyenne', ponderation: 40 }
-        ];
-
-        evaluations.forEach((evaluation) => {
-          // Chercher la note dans les deux semestres
-          let note: string | number = '';
-          
-          // Chercher d'abord dans semestre 1
-          const etudiantS1 = classe.semestre1?.etudiants.find(e => e._id === etudiant._id);
-          const noteS1 = etudiantS1?.notes?.[unite._id]?.find(n => n.ecue === evaluation.code);
-          if (noteS1) {
-            note = noteS1.note;
-          } else {
-            // Chercher dans semestre 2
-            const etudiantS2 = classe.semestre2?.etudiants.find(e => e._id === etudiant._id);
-            const noteS2 = etudiantS2?.notes?.[unite._id]?.find(n => n.ecue === evaluation.code);
-            if (noteS2) {
-              note = noteS2.note;
-            }
-          }
-
-          worksheet.getCell(currentRow, currentCol).value = note;
-          worksheet.getCell(currentRow, currentCol).alignment = { horizontal: 'center', vertical: 'middle' };
-          worksheet.getCell(currentRow, currentCol).border = {
-            top: { style: 'thin' },
-            left: { style: 'thin' },
-            bottom: { style: 'thin' },
-            right: { style: 'thin' }
-          };
-          currentCol++;
-        });
-
-        // Colonne Décision
-        worksheet.getCell(currentRow, currentCol).value = '';
-        worksheet.getCell(currentRow, currentCol).border = {
-          top: { style: 'thin' },
-          left: { style: 'thin' },
-          bottom: { style: 'thin' },
-          right: { style: 'thin' }
-        };
-        currentCol++;
-      });
-
-      // Colonnes finales
-      for (let i = 0; i < 4; i++) {
-        worksheet.getCell(currentRow, currentCol).value = '';
-        worksheet.getCell(currentRow, currentCol).border = {
-          top: { style: 'thin' },
-          left: { style: 'thin' },
-          bottom: { style: 'thin' },
-          right: { style: 'thin' }
-        };
-        currentCol++;
-      }
-
-      currentRow++;
-    });
-
-    return currentRow;
-  }
 
   /**
    * Applique le formatage final à la feuille
