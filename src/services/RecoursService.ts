@@ -14,25 +14,6 @@ export class RecoursService {
     };
   }
 
-
-  // static async getRecoursByCharge(id: string): Promise<{
-  //   success: boolean;
-  //   message: string;
-  //   data: RecoursResponse;
-  // }> {
-  //   try {
-  //     const response = await fetch(`${API_BASE_URL}/recours/charge/${id}`, {
-  //       headers: this.getAuthHeaders(),
-  //     });
-  //     if (!response.ok) {
-  //       throw new Error(`HTTP error! status: ${response.status}`);
-  //     }
-  //     return await response.json();
-  //   } catch (error) {
-  //     console.error("Erreur lors de la récupération des recours par charge:", error);
-  //     throw error;
-  //   }
-  // }
   // Récupérer tous les recours liés à une charge
   static async getRecoursByCharge(chargeId: string): Promise<RecoursResponse> {
     try {
@@ -42,13 +23,23 @@ export class RecoursService {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        return {
+          success: false,
+          message: `HTTP error! status: ${response.status}`,
+          data: [],
+          count: 0
+        };
       }
 
       return await response.json();
     } catch (error) {
       console.error("Erreur lors de la récupération des recours par charge:", error);
-      throw error;
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Une erreur inconnue s'est produite",
+        data: [],
+        count: 0
+      };
     }
   }
 
@@ -61,13 +52,23 @@ export class RecoursService {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        return {
+          success: false,
+          message: `HTTP error! status: ${response.status}`,
+          data: [],
+          count: 0
+        };
       }
 
       return await response.json();
     } catch (error) {
       console.error("Erreur lors de la récupération des recours par agent:", error);
-      throw error;
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Une erreur inconnue s'est produite",
+        data: [],
+        count: 0
+      };
     }
   }
 

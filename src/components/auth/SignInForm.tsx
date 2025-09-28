@@ -97,12 +97,12 @@ export default function SignInForm() {
     error?: string;
     timestamp?: string;
   }>>([
-    { id: 'validation', label: 'Validation des champs', description: 'Vérification matricule et mot de passe', status: 'pending' },
-    { id: 'api-call', label: 'Appel API Login', description: 'AgentService.login()', status: 'pending' },
-    { id: 'token-check', label: 'Vérification réponse', description: 'Contrôle result.data.token et result.data.agent', status: 'pending' },
-    { id: 'menu-data', label: 'fetchMenuData()', description: 'useAuthStore.getState().fetchMenuData()', status: 'pending' },
-    { id: 'storage', label: 'localStorage', description: 'Sauvegarde privileges et auth-token', status: 'pending' },
-    { id: 'auth-store', label: 'login()', description: 'Appel login() du store', status: 'pending' },
+    { id: 'validation', label: 'Vérification des identifiants', description: 'Contrôle de votre matricule et mot de passe', status: 'pending' },
+    { id: 'api-call', label: 'Connexion au serveur', description: 'Authentification auprès du système', status: 'pending' },
+    { id: 'token-check', label: 'Validation de l\'identité', description: 'Vérification de vos informations', status: 'pending' },
+    { id: 'menu-data', label: 'Chargement des autorisations', description: 'Récupération de vos droits d\'accès', status: 'pending' },
+    { id: 'storage', label: 'Sauvegarde de la session', description: 'Enregistrement de votre connexion', status: 'pending' },
+    { id: 'auth-store', label: 'Finalisation', description: 'Préparation de votre espace de travail', status: 'pending' },
   ]);
   
   // Refs pour récupérer les valeurs des champs
@@ -140,9 +140,9 @@ export default function SignInForm() {
     setShowProgress(true);
 
     try {
-      // ÉTAPE 1: Validation des champs
+      // ÉTAPE 1: Vérification des identifiants
       updateStep('validation', 'loading');
-      await new Promise(resolve => setTimeout(resolve, 300)); // Petit délai pour voir l'étape
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       if (!matricule.trim()) {
         updateStep('validation', 'error', null, 'Matricule manquant');
@@ -160,7 +160,7 @@ export default function SignInForm() {
       
       updateStep('validation', 'success', { matricule: matricule.substring(0, 3) + '***', password: '***' });
 
-      // ÉTAPE 2: Appel à l'API d'authentification
+      // ÉTAPE 2: Connexion au serveur
       updateStep('api-call', 'loading');
       const result = await AgentService.login(matricule, password);
       console.log("Réponse de l'API:", result);
@@ -170,12 +170,12 @@ export default function SignInForm() {
         hasAgent: !!result.data?.agent 
       });
       
-      // ÉTAPE 3: Vérifier la structure de la réponse
+      // ÉTAPE 3: Validation de l'identité
       updateStep('token-check', 'loading');
       await new Promise(resolve => setTimeout(resolve, 200));
       
       if (!result.data.token || !result.data.agent) {
-        updateStep('token-check', 'error', result.data, 'Token ou agent manquant dans la réponse');
+        updateStep('token-check', 'error', result.data, 'Identité non validée');
         setShowProgress(false);
         showModal("error", "Les identifiants fournis sont incorrects. Veuillez vérifier votre matricule et mot de passe.");
         return;
@@ -187,12 +187,12 @@ export default function SignInForm() {
         agentName: result.data.agent.nom + ' ' + result.data.agent.prenom
       });
 
-      // ÉTAPE 4: fetchMenuData
+      // ÉTAPE 4: Chargement des autorisations
       updateStep('menu-data', 'loading');
       const menuData = await useAuthStore.getState().fetchMenuData(result.data.agent._id!);
       
       if(!menuData || menuData.length === 0) {
-        updateStep('menu-data', 'error', { menuData }, 'menuData vide ou null');
+        updateStep('menu-data', 'error', { menuData }, 'Aucune autorisation trouvée');
         setShowProgress(false);
         showModal("error", "Votre compte n'a pas encore de privilèges assignés. Veuillez contacter l'administrateur système pour activer votre accès.");
         return;
@@ -205,7 +205,7 @@ export default function SignInForm() {
         firstItem: menuData[0]
       });
 
-      // ÉTAPE 5: Sauvegarde des données
+      // ÉTAPE 5: Sauvegarde de la session
       updateStep('storage', 'loading');
       await new Promise(resolve => setTimeout(resolve, 200));
       
@@ -218,7 +218,7 @@ export default function SignInForm() {
         tokenPreview: result.data.token.substring(0, 20) + '...'
       });
       
-      // ÉTAPE 6: Conversion de l'agent et connexion
+      // ÉTAPE 6: Finalisation
       updateStep('auth-store', 'loading');
       await new Promise(resolve => setTimeout(resolve, 300));
       
