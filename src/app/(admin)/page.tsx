@@ -26,9 +26,9 @@ export default function Ecommerce() {
         <MonthlyTarget />
       </div>
 
-      <div className="col-span-12">
+      {/* <div className="col-span-12">
         <RecentOrders />
-      </div>
+      </div> */}
     </div>
   );
 }
