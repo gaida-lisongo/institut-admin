@@ -5,11 +5,12 @@ import { useParams, useRouter } from 'next/navigation';
 import useRecoursStore from '@/stores/recoursStore';
 import useAuthStore from '@/stores/authStore';
 import { RecoursWithDetails } from '@/types/recours';
+import ChargeService from '@/services/ChargeService';
 
 const RecoursDetailPage = () => {
   const params = useParams();
   const router = useRouter();
-  const { recours, isLoading, processRecours, fetchRecoursByAgent } = useRecoursStore();
+  const { recours, isLoading, deleteRecours, setRecours } = useRecoursStore();
   const { menuData } = useAuthStore();
   
   const [selectedRecours, setSelectedRecours] = useState<RecoursWithDetails | null>(null);
@@ -20,14 +21,6 @@ const RecoursDetailPage = () => {
     examen: 0,
     rattrapage: 0
   });
-
-  // Charger les recours si pas encore chargés
-  useEffect(() => {
-    if (menuData.courses?.charges && menuData.courses.charges.length > 0 && recours.length === 0) {
-      const chargesIds = menuData.courses.charges.map(charge => charge.chargeId || '');
-      fetchRecoursByAgent(chargesIds.filter(id => id !== ''));
-    }
-  }, [menuData.courses, fetchRecoursByAgent, recours.length]);
 
   useEffect(() => {
     // Trouver le recours dans le store basé sur l'ID de l'URL
@@ -45,15 +38,41 @@ const RecoursDetailPage = () => {
     }
   }, [params.slug, recours]);
 
-  const handleGradeChange = (field: keyof typeof newGrades, value: string) => {
+  const changeNote = async (
+    id : string,
+    data : { [key: string]: number }
+  ) => {
+    try {
+        const response = await ChargeService.updateFiche(id, data);
+        console.log("Updated note : ", response);
+
+        return response;
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de la note:', error);
+    }
+  };
+
+  const handleGradeChange = async (field: keyof typeof newGrades, value: string) => {
     console.log("field : ", field);
     console.log("value : ", value);
     console.log("Fiche : ", selectedRecours?.fiche);
-    const numValue = parseFloat(value) || 0;
-    setNewGrades(prev => ({
-      ...prev,
-      [field]: numValue
-    }));
+
+    const updatedNote = await changeNote(selectedRecours?.fiche._id || '', { [field]: parseFloat(value) });
+    console.log("Updated note : ", updatedNote);
+
+    if (updatedNote?._id) {
+      setNewGrades(prev => ({
+        ...prev,
+        [field]: parseFloat(value)
+      }));
+      //Mettre à jour le recours, avec les nouvelles notes
+      const copyRecours = [...recours];
+      const index = copyRecours.findIndex(r => r._id === updatedNote?._id);
+      if (index !== -1) {
+        copyRecours[index].fiche[field] = parseFloat(value);
+        setRecours(copyRecours);
+      }
+    }
   };
 
   const handleProcessRecours = async () => {
@@ -61,7 +80,7 @@ const RecoursDetailPage = () => {
     
     setIsProcessing(true);
     try {
-      await processRecours(selectedRecours._id, newGrades);
+      await deleteRecours(selectedRecours._id);
       // Rediriger vers la liste des recours après traitement
       router.push('/recours');
     } catch (error) {
@@ -258,10 +277,7 @@ const RecoursDetailPage = () => {
             </label>
             {isEditing ? (
               <input
-                type="number"
-                min="0"
-                max="20"
-                step="0.1"
+                type="text"
                 value={newGrades.cmi}
                 onChange={(e) => handleGradeChange('cmi', e.target.value)}
                 className="w-full px-3 py-2 border border-blue-300 dark:border-blue-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
@@ -280,10 +296,7 @@ const RecoursDetailPage = () => {
             </label>
             {isEditing ? (
               <input
-                type="number"
-                min="0"
-                max="20"
-                step="0.1"
+                type="text"
                 value={newGrades.examen}
                 onChange={(e) => handleGradeChange('examen', e.target.value)}
                 className="w-full px-3 py-2 border border-green-300 dark:border-green-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
@@ -302,10 +315,7 @@ const RecoursDetailPage = () => {
             </label>
             {isEditing ? (
               <input
-                type="number"
-                min="0"
-                max="20"
-                step="0.1"
+                type="text"
                 value={newGrades.rattrapage}
                 onChange={(e) => handleGradeChange('rattrapage', e.target.value)}
                 className="w-full px-3 py-2 border border-orange-300 dark:border-orange-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500"
@@ -343,9 +353,12 @@ const RecoursDetailPage = () => {
 
         {selectedRecours.status !== 'PENDING' && (
           <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <p className="text-gray-600 dark:text-gray-400">
-              Ce recours a déjà été traité et ne peut plus être modifié.
-            </p>
+            <button
+              onClick={handleProcessRecours}
+              className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+            >
+              Supprimer le recours
+            </button>
           </div>
         )}
       </div>

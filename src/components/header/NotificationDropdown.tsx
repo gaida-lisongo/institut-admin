@@ -20,7 +20,6 @@ export default function NotificationDropdown() {
 
   // Charger les recours au montage du composant
   useEffect(() => {
-    console.log("Menu data => ", menuData);
     if (menuData?.courses?.charges) {
       const chargesIds = menuData.courses?.charges.map((charge: any) => {
         return charge.chargeId as string
@@ -49,7 +48,6 @@ export default function NotificationDropdown() {
   };
 
   const handleRecoursClick = (recours: any) => {
-    console.log("Recours => ", recours);
     setSelectedRecours(recours);
     setIsModalOpen(true);
     closeDropdown();
@@ -113,7 +111,8 @@ export default function NotificationDropdown() {
             </svg>
           </button>
         </div>
-        <ul className="flex flex-col h-auto overflow-y-auto custom-scrollbar">
+        <div className="flex flex-col flex-1 min-h-0">
+          <ul className="flex flex-col flex-1 overflow-y-auto custom-scrollbar">
           {isLoading ? (
             <li className="flex items-center justify-center p-4">
               <div className="text-gray-500 dark:text-gray-400">Chargement...</div>
@@ -425,14 +424,17 @@ export default function NotificationDropdown() {
             </DropdownItem>
           </li> */}
           {/* Add more items as needed */}
-        </ul>
-        <Link
-          href="/recours"
-          onClick={closeDropdown}
-          className="block px-4 py-2 mb-3 text-sm font-medium text-center text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-        >
-          Voir Tous les Recours
-        </Link>
+          </ul>
+          <div className="mt-auto pt-3 border-t border-gray-100 dark:border-gray-700">
+            <Link
+              href="/recours"
+              onClick={closeDropdown}
+              className="block px-4 py-2 text-sm font-medium text-center text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+            >
+              Voir Tous les Recours
+            </Link>
+          </div>
+        </div>
       </Dropdown>
     </div>
   );
