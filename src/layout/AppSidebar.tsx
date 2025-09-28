@@ -138,11 +138,14 @@ const AppSidebar: React.FC = () => {
     unites.forEach(u => {
       u.responsable.forEach(r => {
         if(typeof r.anneeId === 'object') {
-          anneeResponsable.push({
-            name: `Année ${r.anneeId.debut}-${r.anneeId.fin}`,
-            path: `/unites/${r.anneeId._id}`,
-            icon: <ListIcon />,
-          });
+          const anneeRef = `Année ${r.anneeId.debut}-${r.anneeId.fin}`;
+          if(!anneeResponsable.find(a => a.name === anneeRef)) {
+            anneeResponsable.push({
+              name: anneeRef,
+              path: `/unites/${r.anneeId._id}`,
+              icon: <ListIcon />,
+            });
+          }
         }
       });
     });

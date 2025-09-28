@@ -6,6 +6,7 @@ import { Unite } from "./UniteService";
 import { Jury, JuryClasseWithDetails, JuryTitulaire } from "./JuryService";
 import { ChargeWithDetails } from "./ChargeService";
 import { ProduitWithDetails } from "./ProduitService";
+import { RecoursResponse, Recours } from "@/types/recours";
 import config from "./config.json";
 
 const API_BASE_URL = config.API_BASE_URL;
@@ -28,6 +29,7 @@ export class AgentService {
     data: {
       token: string;
       agent: Agent;
+      recours?: RecoursResponse;
     }
   }> {
     try {
@@ -54,11 +56,28 @@ export class AgentService {
       if (!response.ok) {
         throw new Error(result.message || `HTTP error! status: ${response.status}`);
       }
+
+      // Après une authentification réussie, récupérer les recours de l'agent
+      let recoursData: RecoursResponse | undefined;
+      try {
+        if (result.data?.agent?._id) {
+          recoursData = await this.getRecoursByAgent(result.data.agent._id);
+        }
+      } catch (recoursError) {
+        console.warn("Erreur lors de la récupération des recours:", recoursError);
+        // Ne pas faire échouer la connexion si les recours ne peuvent pas être récupérés
+      }
       
-      return result as {
+      return {
+        ...result,
+        data: {
+          ...result.data,
+          recours: recoursData
+        }
+      } as {
         success: boolean;
         message: string;
-        data: { token: string; agent: Agent; };
+        data: { token: string; agent: Agent; recours?: RecoursResponse; };
       };
     } catch (error) {
       console.error("Erreur lors de l'authentification:", error);
@@ -126,22 +145,6 @@ export class AgentService {
       return await response.json();
     } catch (error) {
       console.error("Erreur lors de la récupération des jurys:", error);
-      throw error;
-    }
-  }
-  
-  // Récupérer tous les agents
-  static async getAgents(): Promise<Agent[]> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/user/agent`, {
-        headers: this.getAuthHeaders(),
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("Erreur lors de la récupération des agents:", error);
       throw error;
     }
   }
@@ -398,5 +401,74 @@ export class AgentService {
     }
 
     return agents;
+  }
+
+  // Récupérer tous les recours d'un agent (enseignant)
+  static async getRecoursByAgent(agentId: string): Promise<RecoursResponse> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/recours/agent/${agentId}`, {
+        method: "GET",
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la récupération des recours par agent:", error);
+      throw error;
+    }
+  }
+
+  // Supprimer un recours
+  static async deleteRecours(recoursId: string): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/recours/${recoursId}`, {
+        method: "DELETE",
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la suppression du recours:", error);
+      throw error;
+    }
+  }
+
+  // Traiter un recours (approuver et ajuster la note)
+  static async processRecours(recoursId: string, newGrades: {
+    cmi?: number;
+    examen?: number;
+    rattrapage?: number;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    data?: any;
+  }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/recours/${recoursId}/process`, {
+        method: "PUT",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(newGrades),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors du traitement du recours:", error);
+      throw error;
+    }
   }
 }
