@@ -8,6 +8,7 @@ import useAuthStore from "@/stores/authStore";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { Modal } from "../ui/modal";
+import LoginProgress from "./LoginProgress";
 
 const ModalResult = ({ status, type, message, onClick }: { 
   status: boolean; 
@@ -80,10 +81,29 @@ export default function SignInForm() {
   const { login } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showProgress, setShowProgress] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [message, setMessage] = useState("");
   const [type, setType] = useState<"error" | "info" | "success">("info");
   const [callback, setCallback] = useState<() => void>(() => {});
+  
+  // États pour le debug des étapes
+  const [loginSteps, setLoginSteps] = useState<Array<{
+    id: string;
+    label: string;
+    description: string;
+    status: 'pending' | 'loading' | 'success' | 'error';
+    data?: any;
+    error?: string;
+    timestamp?: string;
+  }>>([
+    { id: 'validation', label: 'Validation des champs', description: 'Vérification matricule et mot de passe', status: 'pending' },
+    { id: 'api-call', label: 'Appel API Login', description: 'AgentService.login()', status: 'pending' },
+    { id: 'token-check', label: 'Vérification réponse', description: 'Contrôle result.data.token et result.data.agent', status: 'pending' },
+    { id: 'menu-data', label: 'fetchMenuData()', description: 'useAuthStore.getState().fetchMenuData()', status: 'pending' },
+    { id: 'storage', label: 'localStorage', description: 'Sauvegarde privileges et auth-token', status: 'pending' },
+    { id: 'auth-store', label: 'login()', description: 'Appel login() du store', status: 'pending' },
+  ]);
   
   // Refs pour récupérer les valeurs des champs
   const matriculeRef = React.useRef<HTMLInputElement>(null);
@@ -96,49 +116,112 @@ export default function SignInForm() {
     setOpenModal(true);
   };
 
+  const updateStep = (stepId: string, status: 'pending' | 'loading' | 'success' | 'error', data?: any, error?: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setLoginSteps(prev => prev.map(step => 
+      step.id === stepId 
+        ? { ...step, status, data, error, timestamp }
+        : step
+    ));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Réinitialiser les étapes
+    setLoginSteps(prev => prev.map(step => ({ ...step, status: 'pending' as const, data: undefined, error: undefined, timestamp: undefined })));
+    
+    // Récupération des valeurs depuis les refs
+    const matricule = matriculeRef.current?.value || "";
+    const password = passwordRef.current?.value || "";
+
+    // Démarrer la progression
     setIsLoading(true);
+    setShowProgress(true);
 
     try {
-      // Récupération des valeurs depuis les refs
-      const matricule = matriculeRef.current?.value || "";
-      const password = passwordRef.current?.value || "";
-
-      // Validation des champs
+      // ÉTAPE 1: Validation des champs
+      updateStep('validation', 'loading');
+      await new Promise(resolve => setTimeout(resolve, 300)); // Petit délai pour voir l'étape
+      
       if (!matricule.trim()) {
+        updateStep('validation', 'error', null, 'Matricule manquant');
+        setShowProgress(false);
         showModal("error", "Veuillez saisir votre matricule pour continuer.");
         return;
       }
       
       if (!password.trim()) {
+        updateStep('validation', 'error', null, 'Mot de passe manquant');
+        setShowProgress(false);
         showModal("error", "Veuillez saisir votre mot de passe pour continuer.");
         return;
       }
+      
+      updateStep('validation', 'success', { matricule: matricule.substring(0, 3) + '***', password: '***' });
 
-      // Appel à l'API d'authentification
+      // ÉTAPE 2: Appel à l'API d'authentification
+      updateStep('api-call', 'loading');
       const result = await AgentService.login(matricule, password);
       console.log("Réponse de l'API:", result);
+      updateStep('api-call', 'success', { 
+        success: result.success, 
+        hasToken: !!result.data?.token,
+        hasAgent: !!result.data?.agent 
+      });
       
-      // Vérifier la structure de la réponse
+      // ÉTAPE 3: Vérifier la structure de la réponse
+      updateStep('token-check', 'loading');
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
       if (!result.data.token || !result.data.agent) {
+        updateStep('token-check', 'error', result.data, 'Token ou agent manquant dans la réponse');
+        setShowProgress(false);
         showModal("error", "Les identifiants fournis sont incorrects. Veuillez vérifier votre matricule et mot de passe.");
         return;
       }
+      
+      updateStep('token-check', 'success', { 
+        tokenLength: result.data.token.length,
+        agentId: result.data.agent._id,
+        agentName: result.data.agent.nom + ' ' + result.data.agent.prenom
+      });
 
-      // Vérification des privilèges
+      // ÉTAPE 4: fetchMenuData
+      updateStep('menu-data', 'loading');
       const menuData = await useAuthStore.getState().fetchMenuData(result.data.agent._id!);
       
       if(!menuData || menuData.length === 0) {
+        updateStep('menu-data', 'error', { menuData }, 'menuData vide ou null');
+        setShowProgress(false);
         showModal("error", "Votre compte n'a pas encore de privilèges assignés. Veuillez contacter l'administrateur système pour activer votre accès.");
         return;
       }
+      
+      console.log("Données de privilèges:", menuData);
+      updateStep('menu-data', 'success', { 
+        dataLength: menuData.length,
+        dataType: typeof menuData,
+        firstItem: menuData[0]
+      });
 
-      // Sauvegarde des données
+      // ÉTAPE 5: Sauvegarde des données
+      updateStep('storage', 'loading');
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
       localStorage.setItem("privileges", JSON.stringify(menuData));
       localStorage.setItem("auth-token", result.data.token);
       
-      // Conversion de l'agent pour assurer la compatibilité des types
+      updateStep('storage', 'success', {
+        menuDataSaved: true,
+        tokenSaved: true,
+        tokenPreview: result.data.token.substring(0, 20) + '...'
+      });
+      
+      // ÉTAPE 6: Conversion de l'agent et connexion
+      updateStep('auth-store', 'loading');
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       const agentForAuth = {
         ...result.data.agent,
         date_naissance: typeof result.data.agent.date_naissance === 'string' 
@@ -150,21 +233,32 @@ export default function SignInForm() {
       
       login(result.data.token, agentForAuth);
       
+      updateStep('auth-store', 'success', {
+        userConnected: true,
+        userName: agentForAuth.nom + ' ' + agentForAuth.prenom,
+        userId: agentForAuth._id
+      });
+      
       console.log("Utilisateur connecté:", result.data.agent);
 
-      // Succès - redirection
-      showModal("success", "Bienvenue ! Vous êtes maintenant connecté. Redirection vers votre tableau de bord...", () => {
-        setOpenModal(false);
-        router.push("/");
-      });
+      // Attendre un peu puis terminer la progression
+      setTimeout(() => {
+        setShowProgress(false);
+        showModal("success", "Bienvenue ! Vous êtes maintenant connecté. Redirection vers votre tableau de bord...", () => {
+          setOpenModal(false);
+          router.push("/");
+        });
+      }, 1500); // Attendre 1.5 secondes pour que l'auth soit bien enregistrée
       
     } catch (error) {
       console.error("Erreur de connexion:", error);
+      setShowProgress(false);
       showModal("error", "Une erreur s'est produite lors de la connexion. Veuillez réessayer dans quelques instants.");
     } finally {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full">
@@ -225,8 +319,12 @@ export default function SignInForm() {
                     disabled={isLoading}
                   >
                     {isLoading ? (
-                      <div className="flex items-center justify-center space-x-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <div className="flex items-center justify-center space-x-3">
+                        <div className="flex space-x-1">
+                          <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                          <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                          <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                        </div>
                         <span>Connexion en cours...</span>
                       </div>
                     ) : (
@@ -245,6 +343,11 @@ export default function SignInForm() {
         type={type}
         message={message} 
         onClick={callback} 
+      />
+
+      <LoginProgress 
+        isVisible={showProgress}
+        steps={loginSteps}
       />
     </div>
   );

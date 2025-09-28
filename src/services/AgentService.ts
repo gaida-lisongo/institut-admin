@@ -58,21 +58,21 @@ export class AgentService {
       }
 
       // Après une authentification réussie, récupérer les recours de l'agent
-      let recoursData: RecoursResponse | undefined;
-      try {
-        if (result.data?.agent?._id) {
-          recoursData = await this.getRecoursByAgent(result.data.agent._id);
-        }
-      } catch (recoursError) {
-        console.warn("Erreur lors de la récupération des recours:", recoursError);
-        // Ne pas faire échouer la connexion si les recours ne peuvent pas être récupérés
-      }
+      // let recoursData: RecoursResponse | undefined;
+      // try {
+      //   if (result.data?.agent?._id) {
+      //     recoursData = await this.getRecoursByAgent(result.data.agent._id);
+      //   }
+      // } catch (recoursError) {
+      //   console.warn("Erreur lors de la récupération des recours:", recoursError);
+      //   // Ne pas faire échouer la connexion si les recours ne peuvent pas être récupérés
+      // }
       
       return {
         ...result,
         data: {
           ...result.data,
-          recours: recoursData
+          recours: []
         }
       } as {
         success: boolean;
