@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState,useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -128,6 +128,7 @@ const AppSidebar: React.FC = () => {
   const [privileges, setPrivileges] = useState<Privilge[]>([]);
   const [menuAdmin, setMenuAdmin] = useState<MenuItem[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isMenuLoading, setIsMenuLoading] = useState(false);
   const pathname = usePathname();
 
   // Fonctions de génération de menu MEMORISÉES pour éviter toute boucle
@@ -336,6 +337,7 @@ const AppSidebar: React.FC = () => {
 
   // Mise à jour du menu quand les données changent
   useEffect(() => {
+    if (!menuData) return;
 
     const typesPrivileges: {
       role: string;
@@ -358,7 +360,6 @@ const AppSidebar: React.FC = () => {
         menu: []
       }
     ];
-
 
     let allMenus: MenuItem[] = [];
     
@@ -394,7 +395,6 @@ const AppSidebar: React.FC = () => {
       }
     ]
 
-
     setMenuAdmin(allMenus.sort((a, b) => {
       if (a.role === "all") return -1;
       if (b.role === "all") return 1;
@@ -402,8 +402,7 @@ const AppSidebar: React.FC = () => {
     }));
 
     console.log("Menu Admin created:", allMenus);
-    // setMenuAdmin(allMenus);
-  }, [makeMenuUnites, makeMenuCours, makeMenuJuries]);
+  }, [makeMenuUnites, makeMenuCours, makeMenuJuries, menuData]);
 
   // Charger les données du menu au montage du composant
   useEffect(() => {
@@ -468,16 +467,6 @@ const AppSidebar: React.FC = () => {
     });
   };
 
-  // Afficher un spinner pendant le chargement initial
-  // if (!isInitialized) {
-  //   return (
-  //     <aside className="fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen w-[290px] border-r border-gray-200">
-  //       <div className="flex items-center justify-center h-full">
-  //         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-  //       </div>
-  //     </aside>
-  //   );
-  // }
 
   return (
     <aside
