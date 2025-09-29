@@ -182,7 +182,7 @@ export default function MonthlySalesChart() {
 
   const fetchChargeStatus = (coursId: string, anneeId: string) => {
     const chargeItem = charges.find((c) => 
-      c.coursId._id === coursId && c.anneeId._id === anneeId
+      c.cours._id === coursId && c.annee._id === anneeId
     );
     return chargeItem ? chargeItem.status : 'pending'; // Default à pending si pas trouvé
   };
