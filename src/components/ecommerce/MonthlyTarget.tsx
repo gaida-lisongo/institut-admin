@@ -53,7 +53,8 @@ export default function MonthlyTarget() {
       avantages: string;
     }[] = [];
     
-    commandes && commandes.forEach((commande) => {
+    if (commandes) {
+      commandes.forEach((commande) => {
       const {
         _id,
         image,
@@ -81,8 +82,9 @@ export default function MonthlyTarget() {
         commandes: commandes || [],
         categorie: categorie?.[0] || "",
         avantages : avantages?.map((avantage) => avantage).join("\n") || "",
+        });
       });
-    });
+    }
     setData(items);
     setSelectedProduct(items[0]);
   }, [menuData, annees, sections]);

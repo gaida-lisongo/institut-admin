@@ -35,7 +35,8 @@ export const EcommerceMetrics = () => {
       items: 0
     };
 
-    charges && charges.forEach(charge => {
+    if (charges) {
+      charges.forEach(charge => {
       const { fiches } = charge;
       if(charge.annee.debut <= currentAnnee.annee && charge.annee.fin >= currentAnnee.annee) {
         currentAnnee.items += fiches.length;
@@ -44,7 +45,8 @@ export const EcommerceMetrics = () => {
       if(charge.annee.debut <= cours.annee && charge.annee.fin >= cours.annee) {
         currentCharges.items += 1;
       }
-    });
+      });
+    }
     
     setInscriptions(currentAnnee);
     setCours(currentCharges);

@@ -217,8 +217,16 @@ export default function UniteDetails({ unite, sectionId }: UniteDetailsProps) {
         const updatedEnseignement = [...(coursToAssign.enseignement || []), unite._id!];
         await updateCours(coursId, { ...coursToAssign, enseignement: updatedEnseignement });
         
-        const updatedCours = [...(unite.cours || []), coursId];
-        await updateUnite(unite._id!, { ...unite, cours: updatedCours });
+        // S'assurer que le tableau cours contient uniquement des IDs de type string
+        const currentCours = unite.cours || [];
+        const currentCoursIds = currentCours.map((c: string | Cours) => 
+          typeof c === 'string' ? c : c._id
+        );
+        
+        if (!currentCoursIds.includes(coursId)) {
+          const updatedCours = [...currentCoursIds, coursId];
+          await updateUnite(unite._id!, { ...unite, cours: updatedCours as string[] });
+        }
         
         await fetchCours();
         alert("Cours assigné avec succès !");
@@ -240,7 +248,12 @@ export default function UniteDetails({ unite, sectionId }: UniteDetailsProps) {
         const updatedEnseignement = (coursToUnassign.enseignement || []).filter(id => id !== unite._id);
         await updateCours(coursId, { ...coursToUnassign, enseignement: updatedEnseignement });
         
-        const updatedCours = (unite.cours || []).filter((id: string) => id !== coursId);
+        const updatedCours = (unite.cours || [])
+          .filter((item: string | Cours) => {
+            const id = typeof item === 'string' ? item : item._id;
+            return id !== coursId;
+          })
+          .map((item: string | Cours) => typeof item === 'string' ? item : item._id!);
         await updateUnite(unite._id!, { ...unite, cours: updatedCours });
         
         await fetchCours();
@@ -260,9 +273,21 @@ export default function UniteDetails({ unite, sectionId }: UniteDetailsProps) {
     try {
       setActionLoading(true);
       
-      if (unite.cours && unite.cours.includes(coursId)) {
-        const updatedCours = unite.cours.filter((id: string) => id !== coursId);
-        await updateUnite(unite._id!, { ...unite, cours: updatedCours });
+      if (unite.cours && unite.cours.some((item: string | Cours) => {
+        const id = typeof item === 'string' ? item : item._id;
+        return id === coursId;
+      })) {
+        const updatedCours = unite.cours.filter((item: string | Cours) => {
+          const id = typeof item === 'string' ? item : item._id;
+          return id !== coursId;
+        });
+        
+        // Convert to string IDs for updateUnite (which expects UniteFormData format)
+        const coursIds = updatedCours.map((item: string | Cours) => 
+          typeof item === 'string' ? item : item._id!
+        );
+        
+        await updateUnite(unite._id!, { ...unite, cours: coursIds });
       }
       
       await deleteCours(coursId);

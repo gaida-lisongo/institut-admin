@@ -85,12 +85,8 @@ export const useChargeStore = create<ChargeState>((set, get) => ({
     try {
       const newCharge = await ChargeService.createCharge(data);
       
-      // Le serveur retourne juste l'objet basique, on l'ajoute tel quel
-      const { currentAnneeCharges } = get();
-      set({ 
-        currentAnneeCharges: [...currentAnneeCharges, newCharge as ChargeWithDetails], 
-        loading: false 
-      });
+      // Le serveur retourne juste l'objet basique, on recharge pour avoir les détails complets
+      set({ loading: false });
       
       // Recharger pour avoir les détails complets
       if (data.anneeId) {
@@ -112,7 +108,7 @@ export const useChargeStore = create<ChargeState>((set, get) => ({
       const { currentAnneeCharges } = get();
       set({ 
         currentAnneeCharges: currentAnneeCharges.map(charge => 
-          charge._id === id ? updatedCharge : charge
+          charge.chargeId === id ? updatedCharge : charge
         ),
         loading: false 
       });
@@ -131,7 +127,7 @@ export const useChargeStore = create<ChargeState>((set, get) => ({
       await ChargeService.deleteCharge(id);
       const { currentAnneeCharges } = get();
       set({ 
-        currentAnneeCharges: currentAnneeCharges.filter(charge => charge._id !== id),
+        currentAnneeCharges: currentAnneeCharges.filter(charge => charge.chargeId !== id),
         loading: false 
       });
     } catch (error) {

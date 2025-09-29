@@ -13,6 +13,20 @@ interface UniteEditModalProps {
   onUniteUpdated?: (updatedUnite: Unite) => void;
 }
 
+type UniteDataFields = 'mention' | 'code' | 'designation' | 'objectif' | 'competences' | 'approches' | 'evaluation' | 'ressources' | 'bibliographie' | 'videographie';
+type CoursDataFields = 'titre' | 'description' | 'contenu' | 'repartition' | 'ressources' | 'penalites' | 'plagiat';
+
+interface CoursEditData {
+  titre: string;
+  description: string;
+  credit: number;
+  contenu: string[];
+  repartition: string[];
+  ressources: string[];
+  penalites: string[];
+  plagiat: string[];
+}
+
 const UniteEditModal: React.FC<UniteEditModalProps> = ({ isOpen, onClose, unite, onUniteUpdated }) => {
   const [activeTab, setActiveTab] = useState<'unite' | 'cours'>('unite');
   const [loading, setLoading] = useState(false);
@@ -37,7 +51,7 @@ const UniteEditModal: React.FC<UniteEditModalProps> = ({ isOpen, onClose, unite,
   });
 
   // États pour le cours
-  const [coursData, setCoursData] = useState({
+  const [coursData, setCoursData] = useState<CoursEditData>({
     titre: '',
     description: '',
     credit: 0,
@@ -306,9 +320,9 @@ const UniteEditModal: React.FC<UniteEditModalProps> = ({ isOpen, onClose, unite,
               selectedCours={selectedCours}
               coursData={coursData}
               onSelectCours={selectCours}
-              onArrayChange={(field, index, value) => handleArrayChange(field, index, value, false)}
-              onAddItem={(field) => addArrayItem(field, false)}
-              onRemoveItem={(field, index) => removeArrayItem(field, index, false)}
+              onArrayChange={(field: CoursDataFields, index: number, value: string) => handleArrayChange(field, index, value, false)}
+              onAddItem={(field: CoursDataFields) => addArrayItem(field, false)}
+              onRemoveItem={(field: CoursDataFields, index: number) => removeArrayItem(field, index, false)}
               onSave={handleSaveCours}
               onCancel={() => setSelectedCours(null)}
               loading={loading}
@@ -340,13 +354,29 @@ const UniteEditModal: React.FC<UniteEditModalProps> = ({ isOpen, onClose, unite,
   );
 };
 
+// Type pour les données de l'unité
+type UniteEditData = {
+  mention: string;
+  code: string;
+  designation: string;
+  credit: number;
+  type: 'Obigatoire' | 'Optionnelle';
+  objectif: string[];
+  competences: string[];
+  approches: string[];
+  evaluation: string[];
+  ressources: string[];
+  bibliographie: string[];
+  videographie: string[];
+};
+
 // Composant pour l'édition de l'unité
 const UniteEditForm: React.FC<{
-  data: any;
-  setData: any;
-  onArrayChange: any;
-  onAddItem: any;
-  onRemoveItem: any;
+  data: UniteEditData;
+  setData: React.Dispatch<React.SetStateAction<UniteEditData>>;
+  onArrayChange: (field: UniteDataFields, index: number, value: string) => void;
+  onAddItem: (field: UniteDataFields) => void;
+  onRemoveItem: (field: UniteDataFields, index: number) => void;
 }> = ({ data, setData, onArrayChange, onAddItem, onRemoveItem }) => {
   return (
     <div className="space-y-6">
@@ -407,7 +437,7 @@ const UniteEditForm: React.FC<{
           </label>
           <select
             value={data.type}
-            onChange={(e) => setData(prev => ({ ...prev, type: e.target.value }))}
+            onChange={(e) => setData(prev => ({ ...prev, type: e.target.value as 'Obigatoire' | 'Optionnelle' }))}
             className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
           >
             <option value="Obigatoire">Obligatoire</option>
@@ -417,19 +447,19 @@ const UniteEditForm: React.FC<{
       </div>
 
       {/* Sections avec listes */}
-      {[
-        { key: 'objectif', label: 'Objectifs' },
-        { key: 'competences', label: 'Compétences' },
-        { key: 'approches', label: 'Approches pédagogiques' },
-        { key: 'evaluation', label: 'Modalités d\'évaluation' },
-        { key: 'ressources', label: 'Ressources' },
-        { key: 'bibliographie', label: 'Bibliographie' },
-        { key: 'videographie', label: 'Vidéographie' }
-      ].map(({ key, label }) => (
+      {([
+        { key: 'objectif' as UniteDataFields, label: 'Objectifs' },
+        { key: 'competences' as UniteDataFields, label: 'Compétences' },
+        { key: 'approches' as UniteDataFields, label: 'Approches pédagogiques' },
+        { key: 'evaluation' as UniteDataFields, label: 'Modalités d\'évaluation' },
+        { key: 'ressources' as UniteDataFields, label: 'Ressources' },
+        { key: 'bibliographie' as UniteDataFields, label: 'Bibliographie' },
+        { key: 'videographie' as UniteDataFields, label: 'Vidéographie' }
+      ] as const).map(({ key, label }) => (
         <ArrayField
           key={key}
           label={label}
-          items={data[key]}
+          items={data[key] as string[]}
           onChange={(index, value) => onArrayChange(key, index, value)}
           onAdd={() => onAddItem(key)}
           onRemove={(index) => onRemoveItem(key, index)}
@@ -443,15 +473,15 @@ const UniteEditForm: React.FC<{
 const CoursEditSection: React.FC<{
   cours: Cours[];
   selectedCours: Cours | null;
-  coursData: any;
+  coursData: CoursEditData;
   onSelectCours: (cours: Cours) => void;
-  onArrayChange: any;
-  onAddItem: any;
-  onRemoveItem: any;
+  onArrayChange: (field: CoursDataFields, index: number, value: string) => void;
+  onAddItem: (field: CoursDataFields) => void;
+  onRemoveItem: (field: CoursDataFields, index: number) => void;
   onSave: () => void;
   onCancel: () => void;
   loading: boolean;
-  setCoursData: any;
+  setCoursData: React.Dispatch<React.SetStateAction<CoursEditData>>;
 }> = ({ cours, selectedCours, coursData, onSelectCours, onArrayChange, onAddItem, onRemoveItem, onSave, onCancel, loading, setCoursData }) => {
   if (!selectedCours) {
     return (
@@ -538,21 +568,21 @@ const CoursEditSection: React.FC<{
         </div>
       </div>
 
-      {/* Sections avec listes pour le cours */}
-      {[
-        { key: 'contenu', label: 'Contenu du cours' },
-        { key: 'repartition', label: 'Répartition horaire' },
-        { key: 'ressources', label: 'Ressources' },
-        { key: 'penalites', label: 'Pénalités' },
-        { key: 'plagiat', label: 'Politique anti-plagiat' }
-      ].map(({ key, label }) => (
+      {/* Champs de type array */}
+      {([
+        { key: 'contenu' as keyof Pick<CoursEditData, 'contenu' | 'repartition' | 'ressources' | 'penalites' | 'plagiat'>, label: 'Contenu du cours' },
+        { key: 'repartition' as keyof Pick<CoursEditData, 'contenu' | 'repartition' | 'ressources' | 'penalites' | 'plagiat'>, label: 'Répartition' },
+        { key: 'ressources' as keyof Pick<CoursEditData, 'contenu' | 'repartition' | 'ressources' | 'penalites' | 'plagiat'>, label: 'Ressources' },
+        { key: 'penalites' as keyof Pick<CoursEditData, 'contenu' | 'repartition' | 'ressources' | 'penalites' | 'plagiat'>, label: 'Pénalités' },
+        { key: 'plagiat' as keyof Pick<CoursEditData, 'contenu' | 'repartition' | 'ressources' | 'penalites' | 'plagiat'>, label: 'Politique anti-plagiat' }
+      ] as const).map(({ key, label }) => (
         <ArrayField
           key={key}
           label={label}
-          items={coursData[key]}
-          onChange={(index, value) => onArrayChange(key, index, value)}
-          onAdd={() => onAddItem(key)}
-          onRemove={(index) => onRemoveItem(key, index)}
+          items={coursData[key] as string[]}
+          onChange={(index, value) => onArrayChange(key as CoursDataFields, index, value)}
+          onAdd={() => onAddItem(key as CoursDataFields)}
+          onRemove={(index) => onRemoveItem(key as CoursDataFields, index)}
         />
       ))}
 

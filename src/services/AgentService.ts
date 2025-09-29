@@ -149,6 +149,23 @@ export class AgentService {
     }
   }
 
+  // Récupérer tous les agents
+  static async getAgents(): Promise<Agent[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/agent`, {
+        headers: this.getAuthHeaders(),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const result = await response.json();
+      return result.data || result; // Handle both formats: {data: Agent[]} or Agent[]
+    } catch (error) {
+      console.error("Erreur lors de la récupération des agents:", error);
+      throw error;
+    }
+  }
+
   // Récupérer un agent spécifique
   static async getAgent(id: string): Promise<Agent> {
     try {

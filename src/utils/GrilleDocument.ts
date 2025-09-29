@@ -436,7 +436,8 @@ class GrilleDocument {
       //   ];
       // }
 
-      evaluations && evaluations.forEach((evaluation) => {
+      if (evaluations) {
+        evaluations.forEach((evaluation) => {
         worksheet.getCell(currentRow, currentCol).value = evaluation.titre;
         worksheet.getCell(currentRow, currentCol).font = { bold: true, size: 10 };
         worksheet.getCell(currentRow, currentCol).alignment = { 
@@ -462,8 +463,9 @@ class GrilleDocument {
           bottom: { style: 'thin' },
           right: { style: 'thin' }
         };
-        currentCol++;
-      });
+          currentCol++;
+        });
+      }
 
       // Colonne Décision UE (déjà créée dans la première ligne)
       worksheet.getCell(currentRow, currentCol).value = 'Tota UE';
@@ -903,7 +905,8 @@ class GrilleDocument {
       }
     }) || [];
 
-    members && members.forEach((member: {fonction: string, nom: string}, index: number) => {
+    if (members) {
+      members.forEach((member: {fonction: string, nom: string}, index: number) => {
       const currentRow = row + index;
       
       // Colonne Fonction (fusionnée sur 2 colonnes)
@@ -922,7 +925,8 @@ class GrilleDocument {
       worksheet.getCell(currentRow, colSignature + 5).value = "__________________________";
       worksheet.mergeCells(currentRow, colSignature + 5, currentRow, colSignature + 7);
       worksheet.getCell(currentRow, colSignature + 5).alignment = { horizontal: 'center', vertical: 'middle' };
-    });
+      });
+    }
 
   }
 
