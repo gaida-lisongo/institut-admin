@@ -625,7 +625,7 @@ export default function SessionCrud() {
     
     // Rechercher dans les titres des cours populés
     const coursMatch = session.cours?.some(coursObj => {
-      return coursObj.titre?.toLowerCase().includes(searchTerm) || false;
+      return coursObj?.titre && coursObj.titre?.toLowerCase().includes(searchTerm) || false;
     }) || false;
     
     return sessionName.includes(searchTerm) || coursMatch;
@@ -893,9 +893,9 @@ export default function SessionCrud() {
                             <ul className="list-disc list-inside">
                               {session.cours.map((coursObj, idx) => (
                                 <li key={idx}>
-                                  {coursObj.titre}
+                                  {coursObj?.titre || "Aucun titre"}
                                   <span className="text-xs text-gray-500 ml-2">
-                                    ({coursObj.credit} crédit{coursObj.credit > 1 ? 's' : ''})
+                                    ({coursObj?.credit || "0"} crédit{coursObj?.credit > 1 ? 's' : ''})
                                   </span>
                                 </li>
                               ))}

@@ -144,13 +144,13 @@ const AppSidebar: React.FC = () => {
     
 
     let relevesSection: { name: string; path: string }[] = [];
-    anneesOrdered.forEach((annee) => {
-      const findSections = sectionsId.map(id => sections.find(sec => sec._id === id)).filter(Boolean);
-      relevesSection = [...relevesSection, ...findSections.map(section => ({
-        name: `Palmarès ${section?.description.sigle} (${annee.debut}-${annee.fin})`,
-        path: `/palmares/${annee._id}-${section?._id || 'inconnu'}`,
-      }))];
-    });
+    // anneesOrdered.forEach((annee) => {
+    //   const findSections = sectionsId.map(id => sections.find(sec => sec._id === id)).filter(Boolean);
+    //   relevesSection = [...relevesSection, ...findSections.map(section => ({
+    //     name: `Palmarès ${section?.description.sigle} (${annee.debut}-${annee.fin})`,
+    //     path: `/palmares/${annee._id}-${section?._id || 'inconnu'}`,
+    //   }))];
+    // });
 
     let validationsSection: { name: string; path: string }[] = [];
     anneesOrdered.forEach((annee) => {
@@ -161,11 +161,11 @@ const AppSidebar: React.FC = () => {
       }))];
     });
     return [
-      {
-        icon: <PageIcon />, 
-        name: "Palmarès",
-        subItems: relevesSection,
-      },
+      // {
+      //   icon: <PageIcon />, 
+      //   name: "Palmarès",
+      //   subItems: relevesSection,
+      // },
       {
         icon: <PageIcon />, 
         name: "Enrollements",
@@ -355,8 +355,8 @@ const AppSidebar: React.FC = () => {
       menu: NavItem[];
     }[] = [
       {
-        role: "appariteur",
-        category: "Appariteur",
+        role: "academique",
+        category: "Académique",
         menu: []
       },
       // {
@@ -371,10 +371,11 @@ const AppSidebar: React.FC = () => {
       // }
     ];
     console.log("Privileges:", privileges);
+    console.log('Types privileges :', typesPrivileges)
     privileges.forEach((privilege) => {
       const typePriv = typesPrivileges.find(tp => tp.role === privilege.role);
       if (typePriv) {
-        if (privilege.role === "chef" || privilege.role === "appariteur") {
+        if (privilege.role === "academique") {
           if (!sectionsId.includes(privilege.sectionId)) {
             sectionsId.push(privilege.sectionId);
           }
@@ -388,7 +389,7 @@ const AppSidebar: React.FC = () => {
     typesPrivileges.forEach((tp) => {
       console.log("Creating enseignement menu with annees:", annees);
       const anneesOrdered = [...annees].sort((a, b) => b.fin - a.fin);
-      if (tp.role === "appariteur") {
+      if (tp.role === "academique") {
         allMenus.push({
           ...tp,
           menu: makeMenuSection(sectionsId, anneesOrdered)
