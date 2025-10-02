@@ -2,7 +2,7 @@ import { Etudiant, EtudiantFormData } from "@/types/etudiant";
 import { PasswordUtils } from "@/utils/passwordUtils";
 import useAuthStore from "@/stores/authStore";
 
-const API_BASE_URL = "https://server.inbtp.net/api/v1/etudiant";
+const API_BASE_URL = "https://server-gr.he-section.site/api/v1/etudiant";
 
 export class EtudiantService {
 

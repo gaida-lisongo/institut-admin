@@ -51,7 +51,7 @@ export interface CoursFormData {
 }
 
 class CoursService {
-  private baseUrl = "https://server.inbtp.net/api/v1/enseignement";
+  private baseUrl = "https://server-gr.he-section.site/api/v1/enseignement";
 
   private getAuthHeaders(): HeadersInit {
     const token = useAuthStore.getState().token;

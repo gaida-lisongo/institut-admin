@@ -3,7 +3,7 @@ import { LoginResponse } from "@/types/auth";
 import { PasswordUtils } from "@/utils/passwordUtils";
 import useAuthStore from "@/stores/authStore";
 
-const API_BASE_URL = "https://server.inbtp.net/api/v1/user";
+const API_BASE_URL = "https://server-gr.he-section.site/api/v1/user";
 
 export class AgentService {
 
@@ -175,7 +175,7 @@ export class AgentService {
 
   static async getPrivilegesByAgent(id: string): Promise<Privilge[] | null> {
     try {
-      const response = await fetch(`https://server.inbtp.net/api/v1/privilege/user/${id}`, {
+      const response = await fetch(`https://server-gr.he-section.site/api/v1/privilege/user/${id}`, {
         headers: this.getAuthHeaders(),
       });
       if (!response.ok) {

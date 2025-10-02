@@ -46,7 +46,7 @@ export interface ProduitWithDetails extends Produit {
 }
 
 class ProduitService {
-  private baseUrl = "https://server.inbtp.net/api/v1";
+  private baseUrl = "https://server-gr.he-section.site/api/v1";
 
   private getAuthHeaders() {
     const { token } = useAuthStore.getState();
