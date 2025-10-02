@@ -41,7 +41,7 @@ export interface SessionResponse {
 }
 
 class SessionService {
-  private baseUrl = "https://server.inbtp.net/api/v1/annee";
+  private baseUrl = "https://server-gr.he-section.site/api/v1/annee";
 
   private getAuthHeaders(): HeadersInit {
     const token = useAuthStore.getState().token;
