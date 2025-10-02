@@ -3,7 +3,7 @@ import { LoginResponse } from "@/types/auth";
 import { PasswordUtils } from "@/utils/passwordUtils";
 import useAuthStore from "@/stores/authStore";
 
-const API_BASE_URL = "https://server.inbtp.net/api/v1/user";
+const API_BASE_URL = "https://server-gr.he-section.site/api/v1/user";
 
 export class AgentService {
 
@@ -175,7 +175,7 @@ export class AgentService {
 
   static async getPrivilegesByAgent(id: string): Promise<Privilge[] | null> {
     try {
-      const response = await fetch(`https://server.inbtp.net/api/v1/privilege/user/${id}`, {
+      const response = await fetch(`https://server-gr.he-section.site/api/v1/privilege/user/${id}`, {
         headers: this.getAuthHeaders(),
       });
       if (!response.ok) {
@@ -190,7 +190,7 @@ export class AgentService {
 
   async createPrivilege(privilegeData: Privilge): Promise<Privilge> {
     try {
-      const response = await fetch(`https://server.inbtp.net/api/v1/privilege`, {
+      const response = await fetch(`https://server-gr.he-section.site/api/v1/privilege`, {
         method: "POST",
         headers: AgentService.getAuthHeaders(),
         body: JSON.stringify(privilegeData),
@@ -208,7 +208,7 @@ export class AgentService {
 
   async deletePrivilege(id: string): Promise<void> {
     try {
-      const response = await fetch(`https://server.inbtp.net/api/v1/privilege/${id}`, {
+      const response = await fetch(`https://server-gr.he-section.site/api/v1/privilege/${id}`, {
         method: "DELETE",
         headers: AgentService.getAuthHeaders(),
       });
@@ -224,7 +224,7 @@ export class AgentService {
 
   async updatePrivilege(id: string, privilegeData: Partial<Privilge>): Promise<Privilge> {
     try {
-      const response = await fetch(`https://server.inbtp.net/api/v1/privilege/${id}`, {
+      const response = await fetch(`https://server-gr.he-section.site/api/v1/privilege/${id}`, {
         method: "PUT",
         headers: AgentService.getAuthHeaders(),
         body: JSON.stringify(privilegeData),

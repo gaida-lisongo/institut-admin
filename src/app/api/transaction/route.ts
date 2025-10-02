@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server';
 
-const SERVER_API_URL = 'https://legendary-barnacle.onrender.com/api/v1';
+const SERVER_API_URL = 'https://server-gr.he-section.site/api/v1';
 
 class TransactionApiHandler {
 

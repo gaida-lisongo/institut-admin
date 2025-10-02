@@ -102,7 +102,7 @@ export const useCommandeStore = create<CommandeState>()(
           try {
             // Supposons qu'il y a un endpoint pour récupérer les années
             // Si ce n'est pas le cas, vous devrez l'ajouter à votre API
-            const response = await fetch('https://legendary-barnacle.onrender.com/api/v1/annee');
+            const response = await fetch('https://server-gr.he-section.site/api/v1/annee');
             const result = await response.json();
             
             if (response.status === 200 && result.success) {

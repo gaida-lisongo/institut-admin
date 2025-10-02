@@ -5,7 +5,7 @@ class SectionService {
 
     constructor() {
         // Utilise les API routes locales au lieu du serveur externe
-        this.baseUrl = 'https://server.inbtp.net/api/v1';
+        this.baseUrl = 'https://server-gr.he-section.site/api/v1';
     }
 
     private getAuthHeaders(): HeadersInit {

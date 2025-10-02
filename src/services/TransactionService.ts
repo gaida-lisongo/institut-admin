@@ -72,7 +72,7 @@ class TransactionService {
 
   constructor() {
     // Utilise l'URL du serveur distant
-    this.baseUrl = 'https://server.inbtp.net/api/v1/transaction';
+    this.baseUrl = 'https://server-gr.he-section.site/api/v1/transaction';
   }
 
   private getAuthHeaders(): HeadersInit {
