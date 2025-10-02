@@ -1,7 +1,7 @@
 import { Offre, OffreFormData, CreateOffreData, UpdateOffreData } from "@/types/offre";
 import useAuthStore from "@/stores/authStore";
 
-const API_BASE_URL = "https://server.inbtp.net/api";
+const API_BASE_URL = "https://server-gr.he-section.site/api";
 
 export class OffreService {
 

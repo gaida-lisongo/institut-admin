@@ -36,7 +36,7 @@ export interface UniteDetails {
 export interface SemestreWithUnites extends Semestre<UniteDetails> {}
 
 class SemestreService {
-  private baseUrl = "https://server.inbtp.net/api/v1/enseignement";
+  private baseUrl = "https://server-gr.he-section.site/api/v1/enseignement";
 
   private getAuthHeaders(): HeadersInit {
     const token = useAuthStore.getState().token;
