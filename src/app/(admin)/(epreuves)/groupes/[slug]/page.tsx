@@ -3,16 +3,18 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useGroupes, useGroupeActions, useGroupeStats, type Groupe, type GroupeDetail, type CreateGroupeData } from '@/stores/groupeStore';
 import { useEtudiants, useEtudiantActions, type Etudiant, parseCSV, generateCSVTemplate } from '@/stores/etudiantStore';
-import { useSeries } from '@/stores/serieStore';
+import { useSeries, type SerieDetail } from '@/stores/serieStore';
+import { useMatieres, type Matiere } from '@/stores/matiereStore';
 import React, { useState, useEffect, useRef } from 'react';
 // import { useStore } from 'zustand';
 import { useUserStore } from '@/stores/userStore';
+import PdfGroupe from '@/utils/pdfGenerator';
 
 const GroupeSeriesPage = () => {
   const params = useParams();
   const router = useRouter();
   const serieId = params.slug as string;
-  const { currentUser } = useUserStore()
+  const { currentUser } = useUserStore();
   const { groupes, isLoading: groupesLoading, error: groupesError } = useGroupes();
   const { fetchGroupesBySerie, createGroupe, updateGroupe, deleteGroupe, clearError } = useGroupeActions();
   const { totalGroupes, totalEtudiants, averageEtudiantsPerGroupe } = useGroupeStats();
@@ -20,6 +22,7 @@ const GroupeSeriesPage = () => {
   const { etudiants } = useEtudiants();
   const { importFromCSV } = useEtudiantActions();
   const { series } = useSeries();
+  const { matieres } = useMatieres();
   
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingGroupe, setEditingGroupe] = useState<GroupeDetail | null>(null);
@@ -43,10 +46,11 @@ const GroupeSeriesPage = () => {
   );
 
   const handleCreateGroupe = async (newGroupe: CreateGroupeData) => {
+    if (!currentUser?._id) return;
     // Ajouter l'ID de l'utilisateur courant
     const groupeWithUser = {
       ...newGroupe,
-      userId: currentUser?._id
+      userId: currentUser._id
     };
     
     const success = await createGroupe(groupeWithUser);
@@ -58,15 +62,15 @@ const GroupeSeriesPage = () => {
   };
 
   const handleUpdateGroupe = async (updatedData: CreateGroupeData) => {
-    if (!editingGroupe) return;
+    if (!editingGroupe || !currentUser?._id) return;
     console.log("Updated data:", updatedData);
     console.log("Editing groupe:", editingGroupe);
     // Créer un objet Groupe pour l'API (avec les IDs simples)
     const groupeToUpdate: Groupe = {
       _id: editingGroupe._id,
-      serieId: editingGroupe.serieId._id,
+      serieId: typeof editingGroupe.serieId === 'string' ? editingGroupe.serieId : editingGroupe.serieId._id,
       etudiantIds: updatedData.etudiantIds,
-      userId: currentUser?._id,
+      userId: currentUser._id,
       designation: updatedData.designation,
       statut: updatedData.statut
     };
@@ -252,6 +256,8 @@ const GroupeSeriesPage = () => {
               groupe={groupe}
               onEdit={setEditingGroupe}
               onDelete={handleDeleteGroupe}
+              currentSerie={currentSerie}
+              matieres={matieres}
             />
           ))}
         </div>
@@ -298,50 +304,200 @@ const GroupeSeriesPage = () => {
 };
 
 // Composant GroupeCard pour afficher un groupe avec ses étudiants
-const GroupeCard = ({ groupe, onEdit, onDelete }: {
+const GroupeCard = ({ groupe, onEdit, onDelete, currentSerie, matieres }: {
   groupe: GroupeDetail;
   onEdit: (groupe: GroupeDetail) => void;
   onDelete: (id: string) => void;
+  currentSerie: SerieDetail | undefined;
+  matieres: Matiere[];
 }) => {
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-      <h3 className="text-lg font-semibold mb-2">{groupe.designation}</h3>
-      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-        {groupe.etudiantIds.length} étudiants • Statut: {groupe.statut}
-      </p>
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  // Fonction pour obtenir la couleur du statut
+  const getStatusColor = (statut: string) => {
+    switch (statut) {
+      case 'OK': return 'bg-green-100 text-green-800 border-green-200';
+      case 'PENDING': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'NO': return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  // Fonction pour obtenir le texte du statut
+  const getStatusText = (statut: string) => {
+    switch (statut) {
+      case 'OK': return 'Validé';
+      case 'PENDING': return 'En attente';
+      case 'NO': return 'Non assigné';
+      default: return statut;
+    }
+  };
+
+  // Fonction pour générer le PDF des fiches individuelles
+  const handleGeneratePDF = async () => {
+    try {
+      setIsGeneratingPDF(true);
       
-      {/* Affichage des étudiants */}
-      {groupe.etudiantIds.length > 0 && (
-        <div className="mb-4">
-          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Étudiants:</h4>
-          <div className="max-h-32 overflow-y-auto space-y-1">
-            {groupe.etudiantIds.slice(0, 5).map(etudiant => (
-              <div key={etudiant._id} className="text-xs text-gray-600 dark:text-gray-400">
-                {etudiant.prenom} {etudiant.nom} ({etudiant.matricule})
-              </div>
-            ))}
-            {groupe.etudiantIds.length > 5 && (
-              <div className="text-xs text-gray-500 dark:text-gray-500">
-                ... et {groupe.etudiantIds.length - 5} autres
-              </div>
-            )}
+      // Utiliser la série courante déjà trouvée
+      if (!currentSerie) {
+        alert('Série non trouvée');
+        return;
+      }
+
+      // Vérifier qu'il y a des étudiants dans le groupe
+      if (!groupe.etudiantIds || groupe.etudiantIds.length === 0) {
+        alert('Aucun étudiant assigné à ce groupe');
+        return;
+      }
+
+      // Trouver le cours/matière
+      const coursId = typeof currentSerie.coursId === 'string' 
+        ? currentSerie.coursId 
+        : currentSerie.coursId._id;
+      const cours = matieres.find(m => m._id === coursId) as Matiere;
+      
+      if (!cours) {
+        alert('Cours non trouvé');
+        return;
+      }
+
+      // Petit délai pour permettre au spinner de s'afficher
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Créer et générer le PDF avec les fiches individuelles
+      const pdfGenerator = new PdfGroupe(groupe, currentSerie, cours);
+      pdfGenerator.generateStudentSheets();
+      
+    } catch (error) {
+      console.error('Erreur lors de la génération du PDF:', error);
+      alert('Erreur lors de la génération du PDF');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 overflow-hidden">
+      {/* Header avec gradient */}
+      <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-4 text-white">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-bold truncate">{groupe.designation}</h3>
+          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(groupe.statut)} bg-white/90`}>
+            {getStatusText(groupe.statut)}
+          </span>
+        </div>
+      </div>
+
+      {/* Contenu principal */}
+      <div className="p-6">
+        {/* Statistiques */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{groupe.etudiantIds.length}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Étudiants</p>
+            </div>
+          </div>
+          
+          <div className="text-right">
+            <p className="text-sm text-gray-500 dark:text-gray-400">ID Groupe</p>
+            <p className="text-xs font-mono text-gray-700 dark:text-gray-300">#{groupe._id.slice(-6)}</p>
           </div>
         </div>
-      )}
-      
-      <div className="flex space-x-2">
-        <button
-          onClick={() => onEdit(groupe)}
-          className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-        >
-          Modifier
-        </button>
-        <button
-          onClick={() => onDelete(groupe._id)}
-          className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
-        >
-          Supprimer
-        </button>
+
+        {/* Liste des étudiants */}
+        {groupe.etudiantIds.length > 0 ? (
+          <div className="mb-6">
+            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              Étudiants inscrits
+            </h4>
+            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 max-h-32 overflow-y-auto">
+              <div className="space-y-2">
+                {groupe.etudiantIds.slice(0, 4).map(etudiant => (
+                  <div key={etudiant._id} className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-gray-900 dark:text-white">
+                      {etudiant.prenom} {etudiant.nom}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                      {etudiant.matricule}
+                    </span>
+                  </div>
+                ))}
+                {groupe.etudiantIds.length > 4 && (
+                  <div className="text-center py-2">
+                    <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+                      +{groupe.etudiantIds.length - 4} autres étudiants
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-6 text-center py-8">
+            <svg className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Aucun étudiant assigné</p>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => onEdit(groupe)}
+            className="inline-flex items-center justify-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Modifier
+          </button>
+          
+          <button
+            onClick={handleGeneratePDF}
+            disabled={isGeneratingPDF}
+            className={`inline-flex items-center justify-center px-3 py-2 text-white text-sm font-medium rounded-lg transition-colors duration-200 ${
+              isGeneratingPDF 
+                ? 'bg-green-400 cursor-not-allowed' 
+                : 'bg-green-600 hover:bg-green-700'
+            }`}
+          >
+            {isGeneratingPDF ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Génération...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                PDF
+              </>
+            )}
+          </button>
+          
+          <button
+            onClick={() => onDelete(groupe._id)}
+            className="col-span-2 inline-flex items-center justify-center px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Supprimer le groupe
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -355,6 +511,7 @@ const GroupeModal = ({ groupe, serieId, etudiants, onSave, onClose }: {
   onSave: (data: CreateGroupeData) => void;
   onClose: () => void;
 }) => {
+  const { currentUser } = useUserStore();
   const [formData, setFormData] = useState({
     designation: groupe?.designation || '',
     statut: groupe?.statut || 'NO',
@@ -440,6 +597,10 @@ const GroupeModal = ({ groupe, serieId, etudiants, onSave, onClose }: {
       alert('La désignation du groupe est obligatoire.');
       return;
     }
+    if (!currentUser?._id) {
+      alert('Utilisateur non authentifié.');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -447,7 +608,8 @@ const GroupeModal = ({ groupe, serieId, etudiants, onSave, onClose }: {
         serieId,
         designation: formData.designation.trim(),
         statut: formData.statut,
-        etudiantIds: formData.etudiants
+        etudiantIds: formData.etudiants,
+        userId: currentUser._id
       });
       // Fermer le modal après succès
       onClose();
