@@ -171,3 +171,22 @@ TailAdmin Next.js Free Version is released under the MIT License.
 ## Support
 
 If you find this project helpful, please consider giving it a star on GitHub. Your support helps us continue developing and maintaining this template.
+
+Tu vas devoir forker la page etudiants pour faire du cud des etudiants avec un dataTable, pour y arriver tu vas créer un store (zustand), qui va permettre de créer, lire, mettre à jour et u supprimer des etudiants dans un premier temps en persistant les données en localstorage, epuis on doit aussi avoir la possibilité d'importer les données des etudiants depuis un fichier csv, ainsi que de les exporter en fichier csv.
+
+Un étudiant est défini comme suite:
+etdiant={
+    _id: string;
+    nom: string;
+    prenom: string;
+    email: string;
+    sexe: string;
+    classeId: string;
+}
+
+Une classe est définie comme suite:
+class={
+    _id: string;
+    nom: string;
+    niveau: string;
+}
