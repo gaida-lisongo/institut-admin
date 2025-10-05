@@ -302,55 +302,55 @@ export default function EpreuvePage() {
           margin: [0, 0, 0, 30]
         },
 
-        // Détail des réponses
-        {
-          text: 'DÉTAIL DES RÉPONSES',
-          style: 'sectionHeader',
-          margin: [0, 0, 0, 15]
-        }
+        // // Détail des réponses
+        // {
+        //   text: 'DÉTAIL DES RÉPONSES',
+        //   style: 'sectionHeader',
+        //   margin: [0, 0, 0, 15]
+        // }
       ];
 
       // Ajouter chaque question et réponse
-      shuffledQuestions.forEach((question, index) => {
-        content.push({
-          table: {
-            widths: ['100%'],
-            body: [
-              [
-                {
-                  stack: [
-                    {
-                      text: `Question ${index + 1} (${question.pts} pts)`,
-                      style: 'questionHeader',
-                      margin: [0, 0, 0, 5]
-                    },
-                    {
-                      text: question.enonce,
-                      style: 'questionText',
-                      margin: [0, 0, 0, 10]
-                    },
-                    {
-                      text: [
-                        { text: 'Votre réponse: ', bold: true, color: '#374151' },
-                        { text: userAnswers[question._id] || 'Aucune réponse', color: '#1f2937' }
-                      ],
-                      margin: [0, 0, 0, 5]
-                    }
-                  ],
-                  fillColor: '#f9fafb'
-                }
-              ]
-            ]
-          },
-          layout: {
-            hLineWidth: () => 1,
-            vLineWidth: () => 1,
-            hLineColor: () => '#e5e7eb',
-            vLineColor: () => '#e5e7eb'
-          },
-          margin: [0, 0, 0, 10]
-        });
-      });
+    //   shuffledQuestions.forEach((question, index) => {
+    //     content.push({
+    //       table: {
+    //         widths: ['100%'],
+    //         body: [
+    //           [
+    //             {
+    //               stack: [
+    //                 {
+    //                   text: `Question ${index + 1} (${question.pts} pts)`,
+    //                   style: 'questionHeader',
+    //                   margin: [0, 0, 0, 5]
+    //                 },
+    //                 {
+    //                   text: question.enonce,
+    //                   style: 'questionText',
+    //                   margin: [0, 0, 0, 10]
+    //                 },
+    //                 {
+    //                   text: [
+    //                     { text: 'Votre réponse: ', bold: true, color: '#374151' },
+    //                     { text: userAnswers[question._id] || 'Aucune réponse', color: '#1f2937' }
+    //                   ],
+    //                   margin: [0, 0, 0, 5]
+    //                 }
+    //               ],
+    //               fillColor: '#f9fafb'
+    //             }
+    //           ]
+    //         ]
+    //       },
+    //       layout: {
+    //         hLineWidth: () => 1,
+    //         vLineWidth: () => 1,
+    //         hLineColor: () => '#e5e7eb',
+    //         vLineColor: () => '#e5e7eb'
+    //       },
+    //       margin: [0, 0, 0, 10]
+    //     });
+    //   });
 
       // Pied de page
       content.push({
