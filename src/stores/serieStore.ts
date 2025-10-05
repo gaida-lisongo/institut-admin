@@ -12,8 +12,9 @@ export interface Question {
   pts: number;
 }
 
-// Interface pour créer une question (sans _id)
+// Interface pour créer une question (avec _id optionnel)
 export interface CreateQuestionData {
+  _id?: string; // ID optionnel pour les questions existantes
   enonce: string;
   assertions: string[];
   reponse: string;
@@ -25,6 +26,14 @@ export interface Serie {
   _id: string;
   coursId: string;
   questions: Question[];
+}
+
+// Interface pour les séries avec détails du cours (populated)
+export interface SerieDetail extends Omit<Serie, 'coursId'> {
+  coursId: {
+    _id: string;
+    nom: string;
+  };
 }
 
 // Interface pour créer une série (sans _id)
@@ -53,20 +62,20 @@ const getAuthHeaders = () => {
 // Interface du store
 interface SerieStore {
   // État
-  series: Serie[];
+  series: SerieDetail[];
   isLoading: boolean;
   error: string | null;
   
   // Actions
   fetchSeriesByCours: (coursId: string) => Promise<void>;
   createSerie: (serieData: CreateSerieData) => Promise<boolean>;
-  updateSerie: (serie: Serie) => Promise<boolean>;
+  updateSerie: (serie: SerieDetail) => Promise<boolean>;
   deleteSerie: (id: string) => Promise<boolean>;
   clearError: () => void;
   
   // Actions locales (pour la gestion d'état)
-  addSerieLocal: (serie: Serie) => void;
-  updateSerieLocal: (serie: Serie) => void;
+  addSerieLocal: (serie: SerieDetail) => void;
+  updateSerieLocal: (serie: SerieDetail) => void;
   deleteSerieLocal: (id: string) => void;
 }
 
@@ -91,13 +100,14 @@ export const useSerieStore = create<SerieStore>()(
             throw new Error(`Erreur ${response.status}: ${response.statusText}`);
           }
           
-          const data: SerieResponse = await response.json();
-          
-          if (data.success && data.data) {
-            const series = Array.isArray(data.data) ? data.data : [data.data];
+          const data: SerieDetail[] = await response.json();
+          console.log("List des series :", data)
+          if (data) {
+            const series = Array.isArray(data) ? data : [...data];
+
             set({ series, isLoading: false });
           } else {
-            throw new Error(data.message || 'Erreur lors du chargement des séries');
+            throw new Error('Erreur lors du chargement des séries');
           }
         } catch (error) {
           console.error('Erreur lors du fetch des séries:', error);
@@ -117,18 +127,14 @@ export const useSerieStore = create<SerieStore>()(
             body: JSON.stringify(serieData)
           });
           
+          const data: Serie = await response.json();
           if (!response.ok) {
             throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-          }
-          
-          const data: SerieResponse = await response.json();
-          
-          if (data.success && data.data && !Array.isArray(data.data)) {
-            get().addSerieLocal(data.data);
+          } else {            
+            // Refetch data to get populated series instead of trying to add the basic Serie
+            await get().fetchSeriesByCours(serieData.coursId);
             set({ isLoading: false });
             return true;
-          } else {
-            throw new Error(data.message || 'Erreur lors de la création de la série');
           }
         } catch (error) {
           console.error('Erreur lors de la création de la série:', error);
@@ -140,27 +146,36 @@ export const useSerieStore = create<SerieStore>()(
         }
       },
 
-      updateSerie: async (serie: Serie) => {
+      updateSerie: async (serie: SerieDetail) => {
         set({ isLoading: true, error: null });
         try {
+          // Convert SerieDetail to Serie for API call
+          const serieForApi: Serie = {
+            _id: serie._id,
+            coursId: typeof serie.coursId === 'string' ? serie.coursId : serie.coursId._id,
+            questions: serie.questions
+          };
+          
           const response = await fetch(`${API_BASE_URL}/serie/${serie._id}`, {
             method: 'PUT',
             headers: getAuthHeaders(),
-            body: JSON.stringify(serie)
+            body: JSON.stringify(serieForApi)
           });
           
           if (!response.ok) {
             throw new Error(`Erreur ${response.status}: ${response.statusText}`);
           }
           
-          const data: SerieResponse = await response.json();
-          
-          if (data.success && data.data && !Array.isArray(data.data)) {
-            get().updateSerieLocal(data.data);
+          const data: Serie = await response.json();
+          console.log("Updated serie :", data)
+          if (data) {
+            // Refetch data to get populated series instead of trying to update with basic Serie
+            const coursId = typeof serie.coursId === 'string' ? serie.coursId : serie.coursId._id;
+            await get().fetchSeriesByCours(coursId);
             set({ isLoading: false });
             return true;
           } else {
-            throw new Error(data.message || 'Erreur lors de la mise à jour de la série');
+            throw new Error('Erreur lors de la mise à jour de la série');
           }
         } catch (error) {
           console.error('Erreur lors de la mise à jour de la série:', error);
@@ -206,12 +221,12 @@ export const useSerieStore = create<SerieStore>()(
       clearError: () => set({ error: null }),
 
       // Actions locales
-      addSerieLocal: (serie: Serie) => {
+      addSerieLocal: (serie: SerieDetail) => {
         const { series } = get();
         set({ series: [...series, serie] });
       },
 
-      updateSerieLocal: (updatedSerie: Serie) => {
+      updateSerieLocal: (updatedSerie: SerieDetail) => {
         const { series } = get();
         const updatedSeries = series.map(serie => 
           serie._id === updatedSerie._id ? updatedSerie : serie

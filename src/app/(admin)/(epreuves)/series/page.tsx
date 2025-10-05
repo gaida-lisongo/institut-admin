@@ -1,7 +1,7 @@
 'use client';
 
 import { useMatieres, type Matiere } from '@/stores/matiereStore';
-import { useSeries, useSerieActions, useSerieStats, type Serie, type CreateSerieData } from '@/stores/serieStore';
+import { useSeries, useSerieActions, useSerieStats, type Serie, type SerieDetail, type CreateSerieData } from '@/stores/serieStore';
 import React, { useState, useEffect } from 'react';
 
 const SeriesPage = () => {
@@ -122,7 +122,7 @@ const SeriesCard: React.FC<SeriesCardProps> = ({ cours, onBack }) => {
   const { totalSeries, totalQuestions, averageQuestionsPerSerie } = useSerieStats();
   
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingSerie, setEditingSerie] = useState<Serie | null>(null);
+  const [editingSerie, setEditingSerie] = useState<SerieDetail | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Charger les séries pour ce cours
@@ -130,9 +130,12 @@ const SeriesCard: React.FC<SeriesCardProps> = ({ cours, onBack }) => {
     fetchSeriesByCours(cours._id);
   }, [cours._id, fetchSeriesByCours]);
 
+  useEffect(() => {
+    console.log("Series :", series)
+  }, [series]);
   // Filtrer les séries selon le terme de recherche
   const filteredSeries = series.filter(serie => 
-    serie.coursId === cours._id && 
+    serie.coursId?._id === cours._id && 
     (searchTerm === '' || serie._id.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
@@ -146,7 +149,7 @@ const SeriesCard: React.FC<SeriesCardProps> = ({ cours, onBack }) => {
     }
   };
 
-  const handleUpdateSerie = async (updatedSerie: Serie) => {
+  const handleUpdateSerie = async (updatedSerie: SerieDetail) => {
     const success = await updateSerie(updatedSerie);
     if (success) {
       setEditingSerie(null);
@@ -156,7 +159,7 @@ const SeriesCard: React.FC<SeriesCardProps> = ({ cours, onBack }) => {
     }
   };
 
-  const handleSaveSerie = async (serieData: CreateSerieData | Serie) => {
+  const handleSaveSerie = async (serieData: CreateSerieData | SerieDetail) => {
     if ('_id' in serieData) {
       await handleUpdateSerie(serieData);
     } else {
@@ -393,31 +396,323 @@ const SeriesCard: React.FC<SeriesCardProps> = ({ cours, onBack }) => {
 
 export default SeriesPage;
 
-// Composant Modal pour créer/modifier une série (à implémenter)
+// Types pour la création étape par étape
+interface CreateQuestionData {
+  _id?: string; // ID optionnel pour les questions existantes
+  enonce: string;
+  assertions: string[];
+  reponse: string;
+  pts: number;
+}
+
+// Composant Modal pour créer/modifier une série étape par étape
 interface SerieModalProps {
-  serie?: Serie | null;
+  serie?: SerieDetail | null;
   coursId: string;
-  onSave: (serie: CreateSerieData | Serie) => Promise<void>;
+  onSave: (serie: CreateSerieData | SerieDetail) => Promise<void>;
   onClose: () => void;
 }
 
 const SerieModal: React.FC<SerieModalProps> = ({ serie, coursId, onSave, onClose }) => {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [questions, setQuestions] = useState<CreateQuestionData[]>([]);
+  const [currentQuestion, setCurrentQuestion] = useState<CreateQuestionData>({
+    enonce: '',
+    assertions: ['', ''],
+    reponse: '',
+    pts: 1
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Initialiser avec les données existantes si modification
+  useEffect(() => {
+    if (serie && serie.questions.length > 0) {
+      setQuestions(serie.questions.map(q => ({
+        _id: q._id, // Conserver l'ID existant
+        enonce: q.enonce,
+        assertions: [...q.assertions],
+        reponse: q.reponse,
+        pts: q.pts
+      })));
+      setCurrentQuestion(serie.questions[0] ? {
+        _id: serie.questions[0]._id, // Conserver l'ID existant
+        enonce: serie.questions[0].enonce,
+        assertions: [...serie.questions[0].assertions],
+        reponse: serie.questions[0].reponse,
+        pts: serie.questions[0].pts
+      } : {
+        enonce: '',
+        assertions: ['', ''],
+        reponse: '',
+        pts: 1
+      });
+    }
+  }, [serie]);
+
+  const addAssertion = () => {
+    setCurrentQuestion(prev => ({
+      ...prev,
+      assertions: [...prev.assertions, '']
+    }));
+  };
+
+  const removeAssertion = (index: number) => {
+    if (currentQuestion.assertions.length > 2) {
+      setCurrentQuestion(prev => ({
+        ...prev,
+        assertions: prev.assertions.filter((_, i) => i !== index)
+      }));
+    }
+  };
+
+  const updateAssertion = (index: number, value: string) => {
+    setCurrentQuestion(prev => ({
+      ...prev,
+      assertions: prev.assertions.map((assertion, i) => i === index ? value : assertion)
+    }));
+  };
+
+  const isCurrentQuestionValid = () => {
+    return (
+      currentQuestion.enonce.trim() !== '' &&
+      currentQuestion.assertions.every(a => a.trim() !== '') &&
+      currentQuestion.reponse.trim() !== '' &&
+      currentQuestion.pts > 0 &&
+      currentQuestion.assertions.includes(currentQuestion.reponse)
+    );
+  };
+
+  const handleNext = () => {
+    if (!isCurrentQuestionValid()) {
+      alert('Veuillez remplir tous les champs et sélectionner une réponse valide.');
+      return;
+    }
+
+    // Ajouter ou mettre à jour la question courante
+    const newQuestions = [...questions];
+    if (currentStep < newQuestions.length) {
+      newQuestions[currentStep] = { ...currentQuestion };
+    } else {
+      newQuestions.push({ ...currentQuestion });
+    }
+    setQuestions(newQuestions);
+
+    // Passer à la question suivante
+    const nextStep = currentStep + 1;
+    setCurrentStep(nextStep);
+
+    // Préparer la question suivante
+    if (nextStep < newQuestions.length) {
+      setCurrentQuestion({ ...newQuestions[nextStep] });
+    } else {
+      setCurrentQuestion({
+        enonce: '',
+        assertions: ['', ''],
+        reponse: '',
+        pts: 1
+      });
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 0) {
+      const prevStep = currentStep - 1;
+      setCurrentStep(prevStep);
+      setCurrentQuestion({ ...questions[prevStep] });
+    }
+  };
+
+  const handleFinish = async () => {
+    if (!isCurrentQuestionValid()) {
+      alert('Veuillez remplir tous les champs de la question courante.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Ajouter la question courante si elle n'est pas encore dans la liste
+      const finalQuestions = [...questions];
+      if (currentStep >= finalQuestions.length) {
+        finalQuestions.push({ ...currentQuestion });
+      } else {
+        finalQuestions[currentStep] = { ...currentQuestion };
+      }
+
+      if (serie) {
+        // Modification
+        await onSave({
+          ...serie,
+          questions: finalQuestions.map(q => ({
+            _id: q._id || '', // Conserver l'ID existant ou vide pour nouvelles questions
+            enonce: q.enonce,
+            assertions: q.assertions,
+            reponse: q.reponse,
+            pts: q.pts
+          }))
+        });
+      } else {
+        // Création
+        await onSave({
+          coursId,
+          questions: finalQuestions
+        });
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          {serie ? 'Modifier la série' : 'Nouvelle série'}
-        </h3>
-        <p className="text-gray-600 dark:text-gray-400 mb-4">
-          Modal à implémenter pour la gestion des séries
-        </p>
-        <div className="flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
-          >
-            Fermer
-          </button>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {serie ? 'Modifier la série' : 'Nouvelle série'}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Question {currentStep + 1} {questions.length > 0 && `sur ${Math.max(questions.length, currentStep + 1)}`}
+              </p>
+            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              {questions.length} question{questions.length > 1 ? 's' : ''} créée{questions.length > 1 ? 's' : ''}
+            </div>
+          </div>
+        </div>
+
+        {/* Contenu */}
+        <div className="p-6 space-y-6 overflow-y-auto max-h-[60vh]">
+          {/* Énoncé */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Énoncé de la question *
+            </label>
+            <textarea
+              value={currentQuestion.enonce}
+              onChange={(e) => setCurrentQuestion(prev => ({ ...prev, enonce: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              rows={3}
+              placeholder="Saisissez l'énoncé de la question..."
+            />
+          </div>
+
+          {/* Assertions */}
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Propositions de réponse *
+              </label>
+              <button
+                type="button"
+                onClick={addAssertion}
+                className="text-purple-600 hover:text-purple-800 dark:text-purple-400 text-sm font-medium"
+              >
+                + Ajouter une proposition
+              </button>
+            </div>
+            <div className="space-y-2">
+              {currentQuestion.assertions.map((assertion, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-6">
+                    {String.fromCharCode(65 + index)}.
+                  </span>
+                  <input
+                    type="text"
+                    value={assertion}
+                    onChange={(e) => updateAssertion(index, e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder={`Proposition ${String.fromCharCode(65 + index)}`}
+                  />
+                  {currentQuestion.assertions.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => removeAssertion(index)}
+                      className="text-red-600 hover:text-red-800 dark:text-red-400 p-1"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Bonne réponse et Points */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Bonne réponse *
+              </label>
+              <select
+                value={currentQuestion.reponse}
+                onChange={(e) => setCurrentQuestion(prev => ({ ...prev, reponse: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">Sélectionnez la bonne réponse</option>
+                {currentQuestion.assertions.map((assertion, index) => (
+                  <option key={index} value={assertion}>
+                    {String.fromCharCode(65 + index)}. {assertion || `Proposition ${String.fromCharCode(65 + index)}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Points *
+              </label>
+              <input
+                type="number"
+                min="0.5"
+                step="0.5"
+                value={currentQuestion.pts}
+                onChange={(e) => setCurrentQuestion(prev => ({ ...prev, pts: parseFloat(e.target.value) || 1 }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-between items-center p-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex space-x-2">
+            <button
+              onClick={handlePrevious}
+              disabled={currentStep === 0}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Précédent
+            </button>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
+            >
+              Annuler
+            </button>
+          </div>
+
+          <div className="flex space-x-2">
+            <button
+              onClick={handleNext}
+              disabled={!isCurrentQuestionValid()}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Suivant
+            </button>
+            <button
+              onClick={handleFinish}
+              disabled={!isCurrentQuestionValid() || isSubmitting}
+              className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Enregistrement...' : 'Enregistrer & Fermer'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
