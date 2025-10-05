@@ -7,9 +7,9 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative w-full h-screen bg-white dark:bg-gray-900">
+    <div className="w-full min-h-screen bg-white dark:bg-gray-900">
       <ThemeProvider>
-        <div className="relative flex lg:flex-row w-full h-full">
+        <div className="w-full min-h-screen">
           {children}
         </div>
       </ThemeProvider>
