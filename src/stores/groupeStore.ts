@@ -87,7 +87,7 @@ export const useGroupeStore = create<GroupeStore>()(
           });
           
           if (!response.ok) {
-            throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+            throw new Error(`Erreur ${response}: ${response.statusText}`);
           }
           
           const data: GroupeDetail[] = await response.json();
