@@ -33,6 +33,11 @@ export interface SerieDetail extends Omit<Serie, 'coursId'> {
   coursId: {
     _id: string;
     nom: string;
+    designation: string;
+    semestre: string;
+    annee: string;
+    credit: number;
+    unite: string;
   };
 }
 
@@ -67,6 +72,7 @@ interface SerieStore {
   error: string | null;
   
   // Actions
+  fetchSeries: () => Promise<void>,
   fetchSeriesByCours: (coursId: string) => Promise<void>;
   createSerie: (serieData: CreateSerieData) => Promise<boolean>;
   updateSerie: (serie: SerieDetail) => Promise<boolean>;
@@ -89,6 +95,34 @@ export const useSerieStore = create<SerieStore>()(
       error: null,
 
       // Actions
+      fetchSeries: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await fetch(`${API_BASE_URL}/serie`, {
+            headers: getAuthHeaders()
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+          }
+          
+          const data: SerieDetail[] = await response.json();
+          console.log("List des series :", data)
+          if (data) {
+            const series = Array.isArray(data) ? data : [...data];
+
+            set({ series, isLoading: false });
+          } else {
+            throw new Error('Erreur lors du chargement des séries');
+          }
+        } catch (error) {
+          console.error('Erreur lors du fetch des séries:', error);
+          set({ 
+            error: error instanceof Error ? error.message : 'Erreur inconnue',
+            isLoading: false 
+          });
+        }
+      },
       fetchSeriesByCours: async (coursId: string) => {
         set({ isLoading: true, error: null });
         try {
@@ -259,6 +293,7 @@ export const useSeries = () => {
 };
 
 export const useSerieActions = () => {
+  const fetchSeries = useSerieStore(state => state.fetchSeries);
   const fetchSeriesByCours = useSerieStore(state => state.fetchSeriesByCours);
   const createSerie = useSerieStore(state => state.createSerie);
   const updateSerie = useSerieStore(state => state.updateSerie);
@@ -266,6 +301,7 @@ export const useSerieActions = () => {
   const clearError = useSerieStore(state => state.clearError);
   
   return {
+    fetchSeries,
     fetchSeriesByCours,
     createSerie,
     updateSerie,
