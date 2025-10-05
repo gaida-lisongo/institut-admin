@@ -31,7 +31,7 @@ class PdfGroupe {
       }
 
       // URL pour le QR code
-      const qrCodeUrl = `${window.location.origin}/epreuve/${this.groupe._id}-${etudiant._id}`;
+      const qrCodeUrl = `https://interro.he-section.site/epreuve/${this.groupe._id}-${etudiant._id}`;
 
       // Contenu de la fiche étudiant
       content.push(

@@ -170,7 +170,6 @@ export default function EpreuvePage() {
     setIsSubmitting(true);
     try {
       // Ici on pourrait envoyer les réponses à l'API
-      console.log('Réponses finales:', userAnswers);
       const payload = {
         etudiantId: etudiantDetail?._id,
         serieId: groupDetail?.serieId,
