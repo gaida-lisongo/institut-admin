@@ -3,12 +3,63 @@ import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
+import { useAuthActions } from "@/hooks/useUser";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import React, { useState } from "react";
 
 export default function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+  });
+
+  const { signup, error, isLoading, clearError } = useAuthActions();
+  const router = useRouter();
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+    
+    // Effacer l'erreur quand l'utilisateur tape
+    if (error) {
+      clearError();
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.email || !formData.password || !formData.firstName || !formData.lastName) {
+      return;
+    }
+
+    if (!isChecked) {
+      return;
+    }
+
+    try {
+      const result = await signup({
+        email: formData.email,
+        password: formData.password,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+      });
+      
+      if (result.success) {
+        router.push('/');
+      }
+    } catch (err) {
+      console.error('Erreur lors de l\'inscription:', err);
+    }
+  };
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full overflow-y-auto no-scrollbar">
       <div className="w-full max-w-md sm:pt-10 mx-auto mb-5">
@@ -83,7 +134,12 @@ export default function SignUpForm() {
                 </span>
               </div>
             </div>
-            <form>
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+            <form onSubmit={handleSubmit}>
               <div className="space-y-5">
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   {/* <!-- First Name --> */}
@@ -93,9 +149,12 @@ export default function SignUpForm() {
                     </Label>
                     <Input
                       type="text"
-                      id="fname"
-                      name="fname"
+                      id="firstName"
+                      name="firstName"
+                      defaultValue={formData.firstName}
+                      onChange={handleChange}
                       placeholder="Enter your first name"
+                      disabled={isLoading}
                     />
                   </div>
                   {/* <!-- Last Name --> */}
@@ -105,9 +164,12 @@ export default function SignUpForm() {
                     </Label>
                     <Input
                       type="text"
-                      id="lname"
-                      name="lname"
+                      id="lastName"
+                      name="lastName"
+                      defaultValue={formData.lastName}
+                      onChange={handleChange}
                       placeholder="Enter your last name"
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
@@ -120,7 +182,10 @@ export default function SignUpForm() {
                     type="email"
                     id="email"
                     name="email"
+                    defaultValue={formData.email}
+                    onChange={handleChange}
                     placeholder="Enter your email"
+                    disabled={isLoading}
                   />
                 </div>
                 {/* <!-- Password --> */}
@@ -130,8 +195,13 @@ export default function SignUpForm() {
                   </Label>
                   <div className="relative">
                     <Input
+                      id="password"
+                      name="password"
+                      defaultValue={formData.password}
+                      onChange={handleChange}
                       placeholder="Enter your password"
                       type={showPassword ? "text" : "password"}
+                      disabled={isLoading}
                     />
                     <span
                       onClick={() => setShowPassword(!showPassword)}
@@ -165,8 +235,12 @@ export default function SignUpForm() {
                 </div>
                 {/* <!-- Button --> */}
                 <div>
-                  <button className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600">
-                    Sign Up
+                  <button 
+                    type="submit"
+                    disabled={isLoading || !formData.email || !formData.password || !formData.firstName || !formData.lastName || !isChecked}
+                    className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:bg-brand-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isLoading ? 'Inscription...' : 'Sign Up'}
                   </button>
                 </div>
               </div>

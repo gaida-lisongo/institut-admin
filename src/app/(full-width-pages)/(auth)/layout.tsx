@@ -1,9 +1,5 @@
-import GridShape from "@/components/common/GridShape";
-import ThemeTogglerTwo from "@/components/common/ThemeTogglerTwo";
-
 import { ThemeProvider } from "@/context/ThemeContext";
 import Image from "next/image";
-import Link from "next/link";
 import React from "react";
 
 export default function AuthLayout({
@@ -12,32 +8,38 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative p-6 bg-white z-1 dark:bg-gray-900 sm:p-0">
+    <div className="relative w-full h-screen bg-white dark:bg-gray-900">
       <ThemeProvider>
-        <div className="relative flex lg:flex-row w-full h-screen justify-center flex-col  dark:bg-gray-900 sm:p-0">
+        <div className="relative flex lg:flex-row w-full h-full">
           {children}
-          <div className="lg:w-1/2 w-full h-full bg-brand-950 dark:bg-white/5 lg:grid items-center hidden">
-            <div className="relative items-center justify-center  flex z-1">
-              {/* <!-- ===== Common Grid Shape Start ===== --> */}
-              <GridShape />
-              <div className="flex flex-col items-center max-w-xs">
-                <Link href="/" className="block mb-4">
-                  <Image
-                    width={231}
-                    height={48}
-                    src="./images/logo/auth-logo.svg"
-                    alt="Logo"
-                  />
-                </Link>
-                <p className="text-center text-gray-400 dark:text-white/60">
-                  Free and Open-Source Tailwind CSS Admin Dashboard Template
-                </p>
+          <div className="lg:w-1/2 w-full h-full bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 lg:flex items-center justify-center hidden relative overflow-hidden">
+            {/* Image de fond avec overlay */}
+            <div className="absolute inset-0 bg-black/20"></div>
+            
+            {/* Image du professeur enseignant */}
+            <div className="relative z-10 w-full h-full flex items-center justify-center">
+              <Image
+                src="https://images.unsplash.com/photo-1590012314607-cda9d9b699ae?q=80&w=871&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                alt="Professeur enseignant à des étudiants"
+                fill
+                className="object-fill"
+                priority
+              />
+              
+              {/* Overlay avec texte */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end justify-center pb-16">
+                <div className="text-center text-white max-w-md px-6">
+                  <h2 className="text-2xl font-bold mb-2">Institut d'Administration</h2>
+                  <p className="text-white/90 text-sm">
+                    Plateforme de gestion éducative moderne pour l'excellence académique
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-          <div className="fixed bottom-6 right-6 z-50 hidden sm:block">
+          {/* <div className="fixed bottom-6 right-6 z-50 hidden sm:block">
             <ThemeTogglerTwo />
-          </div>
+          </div> */}
         </div>
       </ThemeProvider>
     </div>

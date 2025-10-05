@@ -1,12 +1,15 @@
-import SignUpForm from "@/components/auth/SignUpForm";
+import MultiStepSignupForm from "@/components/auth/MultiStepSignupForm";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Next.js SignUp Page | TailAdmin - Next.js Dashboard Template",
-  description: "This is Next.js SignUp Page TailAdmin Dashboard Template",
-  // other metadata
+  title: "Inscription | Institut d'Administration",
+  description: "Créez votre compte sur la plateforme Institut d'Administration",
 };
 
 export default function SignUp() {
-  return <SignUpForm />;
+  return (
+    <div className="lg:w-1/2 w-full h-full flex flex-col justify-center px-4 py-12 sm:px-6 lg:px-20 xl:px-24">
+      <MultiStepSignupForm />
+    </div>
+  );
 }

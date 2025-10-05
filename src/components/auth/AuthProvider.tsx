@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { hasToken } from '@/utils/auth';
+import { useAuth } from '@/hooks/useUser';
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -10,9 +11,9 @@ interface AuthProviderProps {
 
 export default function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const { isAuthenticated } = useAuth();
 
   // Pages qui ne nécessitent pas d'authentification
   const publicRoutes = ['/signin', '/signup', '/reset-password'];
@@ -23,7 +24,6 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const checkAuth = () => {
       const tokenExists = hasToken();
-      setIsAuthenticated(tokenExists);
 
       const isPublicRoute = publicRoutes.includes(pathname);
       const isAuthRoute = authRoutes.includes(pathname);
@@ -40,7 +40,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     };
 
     checkAuth();
-  }, [pathname, router]);
+  }, [pathname, router, isAuthenticated]);
 
   // Afficher un loader pendant la vérification
   if (isLoading) {
@@ -53,7 +53,8 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
   // Afficher le contenu si l'utilisateur est sur une route publique ou authentifié
   const isPublicRoute = publicRoutes.includes(pathname);
-  if (isAuthenticated || isPublicRoute) {
+  const tokenExists = hasToken();
+  if (tokenExists || isPublicRoute) {
     return <>{children}</>;
   }
 
