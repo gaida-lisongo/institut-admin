@@ -49,8 +49,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     
     // URL du serveur Socket.IO (à adapter selon votre configuration)
     const serverUrl = 'http://192.168.1.67:4001'; //process.env.NEXT_PUBLIC_SOCKET_URL || 'https://server-interro.he-section.site';
-    
-    console.log('Tentative de connexion Socket.IO à:', serverUrl);
 
     // Créer la connexion Socket.IO avec configuration optimisée
     const socketInstance = io(serverUrl, {
@@ -69,7 +67,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
     // Événements de connexion améliorés
     socketInstance.on('connect', () => {
-      console.log('✅ Socket.IO connecté:', socketInstance.id);
       setIsConnected(true);
       setConnectionError(null);
       setReconnectAttempts(0);
@@ -77,29 +74,24 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     });
 
     socketInstance.on('disconnect', (reason) => {
-      console.log('❌ Socket.IO déconnecté:', reason);
       setIsConnected(false);
       if (reason === 'io server disconnect') {
         // Le serveur a forcé la déconnexion, reconnexion manuelle nécessaire
-        console.log('🔄 Reconnexion manuelle nécessaire');
         socketInstance.connect();
       }
     });
 
     socketInstance.on('connect_error', (error) => {
-      console.error('❌ Erreur de connexion Socket.IO:', error);
       setConnectionError(error.message);
       setIsConnected(false);
     });
 
     socketInstance.on('reconnect_attempt', (attemptNumber) => {
-      console.log('🔄 Tentative de reconnexion #', attemptNumber);
       setReconnectAttempts(attemptNumber);
       setIsReconnecting(true);
     });
 
     socketInstance.on('reconnect', (attemptNumber) => {
-      console.log('✅ Socket.IO reconnecté après', attemptNumber, 'tentatives');
       setIsConnected(true);
       setConnectionError(null);
       setReconnectAttempts(0);
