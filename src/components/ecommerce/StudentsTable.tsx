@@ -52,6 +52,11 @@ export default function StudentsTable() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [isPollingEnabled, setIsPollingEnabled] = useState(false);
   
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+  const [totalItems, setTotalItems] = useState(0);
+  
   const {
     socket,
     isConnected,
@@ -66,9 +71,20 @@ export default function StudentsTable() {
   useEffect(() => {
     console.log('🔌 Configuration des événements Socket.IO pour les étudiants');
     
-    const handleStudentsData = (data: StudentData[]) => {
-      console.log('✅ Étudiants reçus:', data);
-      setStudents(data || []);
+    const handleStudentsData = (response: { students: StudentData[], total: number, page: number, limit: number }) => {
+      console.log('✅ Étudiants reçus:', response);
+      
+      if (response.students) {
+        setStudents(response.students || []);
+        setTotalItems(response.total || 0);
+        setCurrentPage(response.page || 1);
+        setItemsPerPage(response.limit || 50);
+      } else {
+        // Fallback pour l'ancien format
+        setStudents((response as any) || []);
+        setTotalItems((response as any)?.length || 0);
+      }
+      
       setIsLoading(false);
       setLastUpdate(new Date());
       
@@ -97,7 +113,11 @@ export default function StudentsTable() {
       
       // Petit délai pour s'assurer que la connexion est stable
       const timer = setTimeout(() => {
-        emit('allStudents', {});
+        emit('allStudents', {
+          page: currentPage,
+          limit: itemsPerPage,
+          search: searchTerm
+        });
       }, 200);
       
       return () => clearTimeout(timer);
@@ -105,7 +125,7 @@ export default function StudentsTable() {
       console.log('❌ Socket déconnecté');
       setIsLoading(false);
     }
-  }, [isConnected, emit]);
+  }, [isConnected, emit, currentPage, itemsPerPage, searchTerm]);
 
   // Système de polling intelligent comme fallback
   useEffect(() => {
@@ -115,14 +135,18 @@ export default function StudentsTable() {
     
     const pollInterval = setInterval(() => {
       console.log('📊 Polling des données étudiants...');
-      emit('allStudents', {});
+      emit('allStudents', {
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchTerm
+      });
     }, 10000); // 10 secondes
 
     return () => {
       console.log('🛑 Arrêt du polling');
       clearInterval(pollInterval);
     };
-  }, [isConnected, isPollingEnabled, emit]);
+  }, [isConnected, isPollingEnabled, emit, currentPage, itemsPerPage, searchTerm]);
 
   // Détecter si le serveur n'envoie pas de mises à jour temps réel
   useEffect(() => {
@@ -203,7 +227,11 @@ export default function StudentsTable() {
     if (isConnected) {
       console.log('🔄 Rafraîchissement manuel des données');
       setIsLoading(true);
-      emit('allStudents', {});
+      emit('allStudents', {
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchTerm
+      });
     }
   };
 
@@ -219,18 +247,31 @@ export default function StudentsTable() {
     return student.groupe.serieId.questions.reduce((total, question) => total + (question.pts || 0), 0);
   };
 
-  // Fonction pour filtrer les étudiants selon le terme de recherche
-  const filteredStudents = students.filter(student => {
-    const fullName = `${student.nom} ${student.prenom} ${student.post_nom}`.toLowerCase();
-    const matricule = student.matricule.toLowerCase();
-    const groupeName = student.groupe?.designation?.toLowerCase() || '';
-    const courseName = student.cours?.designation?.toLowerCase() || '';
+  // Pagination côté serveur - pas de filtrage côté client
+  const filteredStudents = students;
+  
+  // Fonctions de pagination
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+  
+  const handleItemsPerPageChange = (newLimit: number) => {
+    setItemsPerPage(newLimit);
+    setCurrentPage(1); // Reset à la première page
+  };
+  
+  // Debounce pour la recherche
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCurrentPage(1); // Reset à la première page lors d'une nouvelle recherche
+    }, 300);
     
-    return fullName.includes(searchTerm.toLowerCase()) ||
-           matricule.includes(searchTerm.toLowerCase()) ||
-           groupeName.includes(searchTerm.toLowerCase()) ||
-           courseName.includes(searchTerm.toLowerCase());
-  });
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // Fonction pour obtenir la couleur du badge selon la performance
   const getPerformanceBadgeColor = (score: number, maxScore: number): "success" | "warning" | "error" => {
@@ -250,7 +291,7 @@ export default function StudentsTable() {
           </h3>
           <div className="flex items-center gap-4 mt-1">
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {filteredStudents.length} étudiant{filteredStudents.length > 1 ? 's' : ''} trouvé{filteredStudents.length > 1 ? 's' : ''}
+              {totalItems} étudiant{totalItems > 1 ? 's' : ''} au total • Page {currentPage} sur {totalPages}
             </p>
             {isPollingEnabled && (
               <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
@@ -267,6 +308,18 @@ export default function StudentsTable() {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Sélecteur d'éléments par page */}
+          <select
+            value={itemsPerPage}
+            onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+          >
+            <option value={25}>25 par page</option>
+            <option value={50}>50 par page</option>
+            <option value={100}>100 par page</option>
+            <option value={200}>200 par page</option>
+          </select>
+
           {/* Barre de recherche */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -518,6 +571,75 @@ export default function StudentsTable() {
               )}
             </TableBody>
           </Table>
+        </div>
+      )}
+
+      {/* Contrôles de pagination */}
+      {!isLoading && totalPages > 1 && (
+        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              Affichage de {Math.min((currentPage - 1) * itemsPerPage + 1, totalItems)} à {Math.min(currentPage * itemsPerPage, totalItems)} sur {totalItems} étudiants
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {/* Bouton Précédent */}
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className={`px-3 py-2 text-sm font-medium rounded-lg border ${
+                currentPage === 1
+                  ? 'border-gray-200 text-gray-400 cursor-not-allowed dark:border-gray-700 dark:text-gray-600'
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
+              }`}
+            >
+              Précédent
+            </button>
+
+            {/* Numéros de page */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => handlePageChange(pageNum)}
+                    className={`px-3 py-2 text-sm font-medium rounded-lg ${
+                      pageNum === currentPage
+                        ? 'bg-purple-600 text-white'
+                        : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Bouton Suivant */}
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className={`px-3 py-2 text-sm font-medium rounded-lg border ${
+                currentPage === totalPages
+                  ? 'border-gray-200 text-gray-400 cursor-not-allowed dark:border-gray-700 dark:text-gray-600'
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
+              }`}
+            >
+              Suivant
+            </button>
+          </div>
         </div>
       )}
     </div>
