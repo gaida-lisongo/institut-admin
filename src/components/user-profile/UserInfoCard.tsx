@@ -1,69 +1,188 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
-import Input from "../form/input/InputField";
 import Label from "../form/Label";
+import { useUserStore } from "@/stores/userStore";
+import { validateAndHashNewPassword } from "@/utils/password";
 
 export default function UserInfoCard() {
+  const { currentUser, updateUser } = useUserStore();
+  const [user, setUser] = useState(currentUser || {
+    _id: '',
+    nom: '',
+    post_nom: '',
+    prenom: '',
+    email: '',
+    grade: '',
+    sexe: 'M' as 'M' | 'F',
+    role: ''
+  });
+
+  // Synchroniser l'état local avec currentUser
+  useEffect(() => {
+    if (currentUser) {
+      setUser(currentUser);
+    }
+  }, [currentUser]);
+  const [data, setData] = useState<{
+    password: string;
+    newPassword: string;
+    confirmNewPassword: string;
+  }>({
+    password: '',
+    newPassword: '',
+    confirmNewPassword: '',
+  });
+  const [message, setMessage] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const { isOpen, openModal, closeModal } = useModal();
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving changes...");
-    closeModal();
+  
+  const handleSave = async () => {
+    if (!currentUser?._id || !user) {
+      setMessage('❌ Erreur: Utilisateur non trouvé');
+      return;
+    }
+
+    // Variables pour le mot de passe crypté
+    let hashedNewPassword: string | undefined;
+
+    // Validation et cryptage des mots de passe si fournis
+    if (data.newPassword || data.confirmNewPassword || data.password) {
+      if (!data.password) {
+        setMessage('❌ Veuillez saisir votre ancien mot de passe');
+        return;
+      }
+      if (!data.newPassword) {
+        setMessage('❌ Veuillez saisir un nouveau mot de passe');
+        return;
+      }
+      if (data.newPassword !== data.confirmNewPassword) {
+        setMessage('❌ Les nouveaux mots de passe ne correspondent pas');
+        return;
+      }
+
+      // Vérifier et crypter le nouveau mot de passe
+      if (!currentUser.password) {
+        setMessage('❌ Erreur: Mot de passe utilisateur non disponible');
+        return;
+      }
+
+      const passwordValidation = validateAndHashNewPassword(
+        data.password,
+        currentUser.password,
+        data.newPassword
+      );
+
+      console.log("passwordValidation :", passwordValidation);
+
+      if (!passwordValidation.success) {
+        setMessage(`❌ ${passwordValidation.error}`);
+        return;
+      }
+
+      hashedNewPassword = passwordValidation.hashedPassword;
+    }
+
+    setIsLoading(true);
+    setMessage('⏳ Mise à jour en cours...');
+
+    try {
+      // Préparer les données à envoyer
+      const updateData: any = {
+        nom: user.nom,
+        post_nom: user.post_nom,
+        prenom: user.prenom,
+        email: user.email,
+        grade: user.grade,
+        sexe: user.sexe,
+      };
+
+      // Ajouter le mot de passe crypté si fourni
+      if (hashedNewPassword) {
+        updateData.password = hashedNewPassword;
+      }
+
+      // Appeler la fonction updateUser du store
+      const result = await updateUser(currentUser._id, updateData);
+
+      if (result) {
+        setMessage('✅ Informations mises à jour avec succès!');
+        // Réinitialiser les champs de mot de passe
+        setData({
+          password: '',
+          newPassword: '',
+          confirmNewPassword: '',
+        });
+        // Fermer le modal après 2 secondes
+        setTimeout(() => {
+          closeModal();
+          setMessage('');
+        }, 2000);
+      } else {
+        setMessage(`❌ Erreur: ${result.error || result.message || 'Échec de la mise à jour'}`);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour:', error);
+      setMessage('❌ Erreur réseau lors de la mise à jour');
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  console.log("User data :", currentUser);
   return (
     <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-6">
-            Personal Information
+            Informations personnelles
           </h4>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
             <div>
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                First Name
+                Nom
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                Musharof
+                {currentUser?.nom}
               </p>
             </div>
 
             <div>
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Last Name
+                Post-nom
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                Chowdhury
+                {currentUser?.post_nom}
               </p>
             </div>
 
             <div>
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Email address
+                Prenom
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                randomuser@pimjo.com
+                {currentUser?.prenom}
               </p>
             </div>
 
             <div>
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Phone
+                Email
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                +09 363 398 46
+                {currentUser?.email}
               </p>
             </div>
 
             <div>
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Bio
+                Grade académique
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                Team Manager
+                {currentUser?.grade}
               </p>
             </div>
           </div>
@@ -88,7 +207,7 @@ export default function UserInfoCard() {
               fill=""
             />
           </svg>
-          Edit
+          Modifier
         </button>
       </div>
 
@@ -96,90 +215,147 @@ export default function UserInfoCard() {
         <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Edit Personal Information
+              Modifier les informations personnelles
             </h4>
-            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-              Update your details to keep your profile up-to-date.
-            </p>
+            {message && (
+              <p className={`mb-6 text-sm lg:mb-7 ${
+                message.includes('✅') ? 'text-green-600 dark:text-green-400' :
+                message.includes('❌') ? 'text-red-600 dark:text-red-400' :
+                'text-blue-600 dark:text-blue-400'
+              }`}>
+                {message}
+              </p>
+            )}
           </div>
-          <form className="flex flex-col">
+          <form className="flex flex-col" onSubmit={(e) => e.preventDefault()}>
             <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
               <div>
                 <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
-                  Social Links
+                  Informations personnelles
                 </h5>
 
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                   <div>
-                    <Label>Facebook</Label>
-                    <Input
+                    <Label>Nom</Label>
+                    <input
                       type="text"
-                      defaultValue="https://www.facebook.com/PimjoHQ"
+                      value={user.nom}
+                      onChange={(e) => setUser({ ...user, nom: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                     />
                   </div>
 
                   <div>
-                    <Label>X.com</Label>
-                    <Input type="text" defaultValue="https://x.com/PimjoHQ" />
-                  </div>
-
-                  <div>
-                    <Label>Linkedin</Label>
-                    <Input
-                      type="text"
-                      defaultValue="https://www.linkedin.com/company/pimjo"
+                    <Label>Post-nom</Label>
+                    <input 
+                      type="text" 
+                      value={user.post_nom} 
+                      onChange={(e) => setUser({ ...user, post_nom: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                     />
                   </div>
 
                   <div>
-                    <Label>Instagram</Label>
-                    <Input
+                    <Label>Prenom</Label>
+                    <input
                       type="text"
-                      defaultValue="https://instagram.com/PimjoHQ"
+                      value={user.prenom}
+                      onChange={(e) => setUser({ ...user, prenom: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                     />
+                  </div>
+
+                  <div>
+                    <Label>Sexe</Label>
+                    <select
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                      value={user.sexe}
+                      onChange={(e) => setUser({ ...user, sexe: e.target.value as 'M' | 'F' })}
+                    >
+                      <option value="M">Masculin</option>
+                      <option value="F">Féminin</option>
+                    </select>
                   </div>
                 </div>
               </div>
               <div className="mt-7">
                 <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
-                  Personal Information
+                  Sécurité
                 </h5>
 
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                   <div className="col-span-2 lg:col-span-1">
-                    <Label>First Name</Label>
-                    <Input type="text" defaultValue="Musharof" />
+                    <Label>Email</Label>
+                    <input 
+                      type="email" 
+                      value={user.email} 
+                      onChange={(e) => setUser({ ...user, email: e.target.value })} 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    />
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
-                    <Label>Last Name</Label>
-                    <Input type="text" defaultValue="Chowdhury" />
-                  </div>
-
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Email Address</Label>
-                    <Input type="text" defaultValue="randomuser@pimjo.com" />
-                  </div>
-
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Phone</Label>
-                    <Input type="text" defaultValue="+09 363 398 46" />
+                    <Label>Grade académique</Label>
+                    <input 
+                      type="text" 
+                      value={user.grade} 
+                      onChange={(e) => setUser({ ...user, grade: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    />
                   </div>
 
                   <div className="col-span-2">
-                    <Label>Bio</Label>
-                    <Input type="text" defaultValue="Team Manager" />
+                    <Label>Ancien mot de passe</Label>
+                    <input 
+                      type="password" 
+                      value={data.password} 
+                      onChange={(e) => setData({ ...data, password: e.target.value })} 
+                      placeholder="Saisissez votre mot de passe actuel"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    />
+                  </div>
+
+                  <div className="col-span-2">
+                    <Label>Nouveau mot de passe</Label>
+                    <input 
+                      type="password" 
+                      value={data.newPassword} 
+                      onChange={(e) => setData({ ...data, newPassword: e.target.value })} 
+                      placeholder="Saisissez un nouveau mot de passe"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    />
+                  </div>
+
+                  <div className="col-span-2">
+                    <Label>Confirmer le nouveau mot de passe</Label>
+                    <input 
+                      type="password" 
+                      value={data.confirmNewPassword} 
+                      onChange={(e) => setData({ ...data, confirmNewPassword: e.target.value })} 
+                      placeholder="Confirmez le nouveau mot de passe"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    />
                   </div>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Button size="sm" variant="outline" onClick={closeModal}>
-                Close
-              </Button>
-              <Button size="sm" onClick={handleSave}>
-                Save Changes
-              </Button>
+              <button 
+                type="button"
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
+                onClick={closeModal} 
+                disabled={isLoading}
+              >
+                Fermer
+              </button>
+              <button 
+                type="button"
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-3"
+                onClick={handleSave} 
+                disabled={isLoading}
+              >
+                {isLoading ? 'Enregistrement...' : 'Enregistrer'}
+              </button>
             </div>
           </form>
         </div>

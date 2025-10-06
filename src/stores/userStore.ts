@@ -132,11 +132,15 @@ export const useUserStore = create<UserState>()(
 
           const result: UserResponse = await response.json();
 
-          if (result.success && result.data) {
-            const updatedUser = result.data;
-            // Mettre à jour l'utilisateur courant si c'est lui qui est modifié
-            const currentUser = get().currentUser;
-            if (currentUser && currentUser._id === id) {
+          // Si le serveur répond sans erreur, mettre à jour avec les données locales
+          if (response.ok && !result.error) {
+            const currentUserInStore = get().currentUser;
+            if (currentUserInStore && currentUserInStore._id === id) {
+              // Mettre à jour avec les données locales (data) envoyées
+              const updatedUser = {
+                ...currentUserInStore,
+                ...data,
+              };
               set({
                 currentUser: updatedUser,
                 isLoading: false,
@@ -146,6 +150,7 @@ export const useUserStore = create<UserState>()(
               set({ isLoading: false, error: null });
             }
           } else {
+            // Le serveur a retourné une erreur
             set({
               isLoading: false,
               error: result.error || result.message || 'Erreur lors de la mise à jour',

@@ -11,6 +11,7 @@ export interface User {
   sexe: 'M' | 'F';
   grade?: string;
   role: string;
+  password?: string;
   avatar?: string;
   isActive?: boolean;
   createdAt?: string;
@@ -56,6 +57,7 @@ export interface UpdateUserData {
   sexe?: 'M' | 'F';
   grade?: string;
   role?: string;
+  password?: string;
   avatar?: string;
   isActive?: boolean;
 }
