@@ -1,3 +1,5 @@
+'use client';
+
 import {
   Table,
   TableBody,
@@ -7,6 +9,8 @@ import {
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
 import Image from "next/image";
+import { useSocket } from "@/context/SocketContext";
+import { useEffect, useState } from "react";
 
 // Define the TypeScript interface for the table rows
 interface Product {
@@ -18,6 +22,40 @@ interface Product {
   // status: string; // Status of the product
   image: string; // URL or path to the product image
   status: "Delivered" | "Pending" | "Canceled"; // Status of the product
+}
+
+interface StudentData {
+  _id: string;
+  nom: string;
+  post_nom: string;
+  prenom: string;
+  matricule: string;
+  groupe: {
+    _id: string;
+    designation: string;
+    statut: string;
+    userId: string;
+    serieId: {
+        _id: string;
+        questions:[{
+            _id: string;
+            enonce: string;
+            pts: number;
+            assertions:string[]
+        }]
+    }
+  };
+  cours:{
+    _id: string;
+    designation: string;
+    unite: string;
+    credit: number;
+    semestre: string;
+  };
+  reponses: [{
+    questionId: string;
+    pts: number;
+  }]
 }
 
 // Define the table data using the interface
@@ -70,6 +108,26 @@ const tableData: Product[] = [
 ];
 
 export default function RecentOrders() {
+  const [students, setStudents] = useState<StudentData[]>([]);
+  const {
+    socket,
+    isConnected,
+    connectionError,
+  } = useSocket();
+
+  useEffect(() => {
+    if (isConnected) {
+      console.log('✅ Socket connecté');
+      socket.emit('allStudents', {});
+      socket.on('allStudents', (data) => {
+        console.log('✅ Etudiants', data);
+        setStudents(data);
+      });
+    } else {
+      console.error('❌ Socket non connecté');
+    }
+  }, [isConnected]);
+
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6">
       <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">

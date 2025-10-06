@@ -1,13 +1,17 @@
 'use client';
 
-import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { useSocket } from '@/context/SocketContext';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://server-interro.he-section.site/api/v1';
-console.log("API_URL", API_URL)
+
 export default function EpreuvePage() {
   const params = useParams();
   const slug = params.slug as string;
+  
+  // Hook Socket.IO
+  const { socket, isConnected, connectionError } = useSocket();
   
   const [groupeId, setGroupeId] = useState<string>('');
   const [etudiantId, setEtudiantId] = useState<string>('');
@@ -452,6 +456,111 @@ export default function EpreuvePage() {
       }
     }
   }, [slug]);
+
+  // Gestion des événements Socket.IO
+  useEffect(() => {
+    console.log('socket', socket);
+    console.log('isConnected', isConnected);
+    console.log('etudiantId', etudiantId);
+    console.log('groupeId', groupeId);
+    console.log('groupDetail', groupDetail);
+    console.log('etudiantDetail', etudiantDetail);
+    
+    // Vérifier que toutes les données nécessaires sont disponibles
+    if (!socket || !isConnected || !etudiantDetail || !groupDetail) {
+      console.log('❌ Données manquantes pour Socket.IO:', {
+        socket: !!socket,
+        isConnected,
+        etudiantDetail: !!etudiantDetail,
+        groupDetail: !!groupDetail
+      });
+      return;
+    }
+
+    console.log('🔌 Configuration des événements Socket.IO pour l\'épreuve');
+
+    // Événements spécifiques à l'épreuve
+    const handleTimeWarning = (data: { remainingTime: number; message: string }) => {
+      console.log('⏰ Avertissement temps:', data);
+      // Afficher une notification de temps restant
+      alert(`⏰ ${data.message} - Temps restant: ${Math.floor(data.remainingTime / 60)} minutes`);
+    };
+
+    const handleForceSubmit = (data: { reason: string }) => {
+      console.log('⏱️ Soumission forcée:', data);
+      alert(`⏱️ Temps écoulé! Soumission automatique: ${data.reason}`);
+      // Forcer la soumission
+      submitFinalAnswer();
+    };
+
+    const handleEpreuveUpdate = (data: any) => {
+      console.log('📝 Mise à jour épreuve:', data);
+      // Mettre à jour les données si nécessaire
+    };
+
+    const handleDisconnection = () => {
+      console.log('❌ Déconnexion détectée');
+      // Sauvegarder automatiquement les réponses
+      if (Object.keys(userAnswers).length > 0) {
+        localStorage.setItem(`epreuve_${slug}_answers`, JSON.stringify(userAnswers));
+      }
+    };
+
+    const handleConnectToGroup = (data: any) => {
+      console.log('🎯 Épreuve connectée:', data);
+    };
+
+    // Enregistrer les événements
+    socket.on('epreuve:time_warning', handleTimeWarning);
+    socket.on('epreuve:force_submit', handleForceSubmit);
+    socket.on('epreuve:updated', handleEpreuveUpdate);
+    socket.on('connectToGroup', handleConnectToGroup);
+    socket.on('disconnect', handleDisconnection);
+
+    // Envoyer la connexion au groupe avec toutes les données
+    console.log('📤 Envoi connectToGroup avec:', {
+      etudiantId: etudiantDetail._id,
+      groupeId: groupDetail._id,
+      slug
+    });
+
+    socket.emit('connectToGroup', {
+      etudiantId: etudiantDetail._id,
+      groupeId: groupDetail._id,
+      slug
+    }, (error: string | null) => {
+      if (error) {
+        console.error('❌ Erreur de connexion à la room:', error);
+        setError(error);
+      } else {
+        console.log('✅ Connexion au groupe réussie');
+      }
+    });
+
+    // Nettoyage
+    return () => {
+      console.log('🧹 Nettoyage événements Socket.IO épreuve');
+      socket.off('epreuve:time_warning', handleTimeWarning);
+      socket.off('epreuve:force_submit', handleForceSubmit);
+      socket.off('epreuve:updated', handleEpreuveUpdate);
+      socket.off('connectToGroup', handleConnectToGroup);
+      socket.off('disconnect', handleDisconnection);
+    };
+  }, [socket, isConnected, etudiantDetail, groupDetail, slug, userAnswers]);
+
+  // Sauvegarder automatiquement les réponses
+  useEffect(() => {
+    if (Object.keys(userAnswers).length > 0 && socket && isConnected) {
+      // Envoyer les réponses au serveur pour sauvegarde
+      socket.emit('epreuve:save_answers', {
+        etudiantId,
+        groupeId,
+        answers: userAnswers,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [userAnswers, socket, isConnected, etudiantId, groupeId]);
+
 
   if (isLoading) {
     return (
