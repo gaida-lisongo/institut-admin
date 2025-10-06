@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Serie } from './serieStore';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api';
+const API_BASE_URL = "http://192.168.1.67:4001/api/V1"; //process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api';
 
 // Interface pour les groupes
 export interface Groupe {
@@ -51,16 +51,22 @@ const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
   return {
     'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
   };
 };
 
 // Interface du store
 interface GroupeStore {
   groupes: GroupeDetail[];
+  groupesData: {
+    groupes: GroupeDetail[];
+    cours: any[];
+  };
   isLoading: boolean;
   error: string | null;
   
   // Actions
+  fetchGroupesData: () => Promise<void>;
   fetchGroupes: () => Promise<void>;
   fetchGroupesBySerie: (serieId: string) => Promise<void>;
   createGroupe: (groupeData: CreateGroupeData) => Promise<boolean>;
@@ -75,10 +81,46 @@ export const useGroupeStore = create<GroupeStore>()(
     (set, get) => ({
       // État initial
       groupes: [],
+      groupesData: {
+        groupes: [],
+        cours: []
+      },
       isLoading: false,
       error: null,
 
       // Actions
+      fetchGroupesData: async () => {
+        set({ isLoading: true, error: null });
+        console.log('AuthHeader :', getAuthHeaders());
+        try {
+          const response = await fetch(`${API_BASE_URL}/groupe/all`, {
+            headers: getAuthHeaders()
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Erreur ${response}: ${response.statusText}`);
+          }
+          
+          const data: {
+            groupes: GroupeDetail[];
+            cours: any[];
+          } = await response.json();
+          console.log("Liste des groupes :", data);
+          
+          if (data) {
+            set({ groupesData: data, isLoading: false });
+          } else {
+            throw new Error('Erreur lors du chargement des groupes');
+          }
+        } catch (error) {
+          console.error('Erreur lors du fetch des groupes:', error);
+          set({ 
+            error: error instanceof Error ? error.message : 'Erreur inconnue',
+            isLoading: false 
+          });
+        }
+      },
+
       fetchGroupes: async () => {
         set({ isLoading: true, error: null });
         try {

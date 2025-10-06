@@ -1,9 +1,37 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Badge from "../ui/badge/Badge";
 import { ArrowDownIcon, ArrowUpIcon, BoxIconLine, GroupIcon } from "@/icons";
+import { useGroupeStore, GroupeDetail } from "@/stores/groupeStore";
+
+interface Cours {
+  _id: string;
+  designation: string;
+  [key: string]: any;
+}
 
 export const EcommerceMetrics = () => {
+  const { groupesData, fetchGroupesData, isLoading } = useGroupeStore();
+  const [groupes, setGroupes] = useState<GroupeDetail[]>([]);
+  const [cours, setCours] = useState<Cours[]>([]);
+  useEffect(() => {
+    fetchGroupesData();
+  }, []);
+
+  useEffect(() => {
+    
+    if (!groupesData.groupes && !Array.isArray(groupesData.groupes)) return;
+    if (!groupesData.cours && !Array.isArray(groupesData.cours)) return;
+
+    const {
+      groupes: dataGroupes,
+      cours: dataCours,
+    } = groupesData;
+    console.log("Detail of groupes :", dataGroupes);
+    console.log("Detail of cours :", dataCours);
+    setGroupes(dataGroupes);
+    setCours(dataCours);
+  }, [groupesData]);
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6">
       {/* <!-- Metric Item Start --> */}
@@ -15,15 +43,22 @@ export const EcommerceMetrics = () => {
         <div className="flex items-end justify-between mt-5">
           <div>
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              Customers
+              Groupes
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              3,782
+              {groupes.length}
             </h4>
           </div>
           <Badge color="success">
             <ArrowUpIcon />
-            11.01%
+            {
+              groupes.length ? Math.round(
+                groupes.reduce(
+                  (total, groupe) => total + groupe.etudiantIds.length,
+                  0
+                ) / groupes.length
+              ) : 0
+            } étudiants/groupe
           </Badge>
         </div>
       </div>
@@ -37,20 +72,21 @@ export const EcommerceMetrics = () => {
         <div className="flex items-end justify-between mt-5">
           <div>
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              Orders
+              Total Cours
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              5,359
+              {
+                cours.length ? cours.length : 0
+              }
             </h4>
           </div>
-
-          <Badge color="error">
-            <ArrowDownIcon className="text-error-500" />
-            9.05%
+          <Badge color="success">
+            <ArrowUpIcon />
+            {cours.reduce((total, cours) => total + cours.credit, 0)} crédits
           </Badge>
         </div>
       </div>
-      {/* <!-- Metric Item End --> */}
+      {/* <!--Metric Item End --> */}
     </div>
   );
 };
