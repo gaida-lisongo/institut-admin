@@ -54,12 +54,15 @@ export default function EpreuvePage() {
   const [shuffledQuestions, setShuffledQuestions] = useState<any[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<{[questionId: string]: string}>({});
+  const [answeredQuestions, setAnsweredQuestions] = useState<Set<number>>(new Set());
   const [isEpreuveStarted, setIsEpreuveStarted] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAlreadyDoneModal, setShowAlreadyDoneModal] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [windowFocusCount, setWindowFocusCount] = useState(0);
+  const [isWindowFocused, setIsWindowFocused] = useState(true);
 
   const fetchGroupDetail = async (id: string) => {
     try {
@@ -109,6 +112,149 @@ export default function EpreuvePage() {
     }
   };
 
+  // Protection contre les captures d'écran et clic droit
+  useEffect(() => {
+    if (!isEpreuveStarted) return;
+
+    // Désactiver le clic droit
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      return false;
+    };
+
+    // Désactiver les raccourcis clavier dangereux
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Désactiver F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+S, Print Screen
+      if (
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
+        (e.ctrlKey && e.key === 'u') ||
+        (e.ctrlKey && e.key === 's') ||
+        e.key === 'PrintScreen'
+      ) {
+        e.preventDefault();
+        return false;
+      }
+    };
+
+    // Désactiver la sélection de texte
+    const handleSelectStart = (e: Event) => {
+      e.preventDefault();
+      return false;
+    };
+
+    // Désactiver le drag
+    const handleDragStart = (e: DragEvent) => {
+      e.preventDefault();
+      return false;
+    };
+
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('selectstart', handleSelectStart);
+    document.addEventListener('dragstart', handleDragStart);
+
+    // Ajouter styles CSS pour désactiver la sélection
+    document.body.style.userSelect = 'none';
+    document.body.style.webkitUserSelect = 'none';
+    (document.body.style as any).msUserSelect = 'none';
+    (document.body.style as any).mozUserSelect = 'none';
+
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('selectstart', handleSelectStart);
+      document.removeEventListener('dragstart', handleDragStart);
+      
+      // Restaurer la sélection
+      document.body.style.userSelect = '';
+      document.body.style.webkitUserSelect = '';
+      (document.body.style as any).msUserSelect = '';
+      (document.body.style as any).mozUserSelect = '';
+    };
+  }, [isEpreuveStarted]);
+
+  // Protection contre la sortie de fenêtre
+  useEffect(() => {
+    if (!isEpreuveStarted || showSummary) return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setIsWindowFocused(false);
+        // Si l'utilisateur quitte la fenêtre et qu'il y a une question en cours
+        if (currentQuestionIndex < shuffledQuestions.length && !answeredQuestions.has(currentQuestionIndex)) {
+          // Passer automatiquement à la question suivante
+          handleNextQuestion(true); // true = passage forcé
+        }
+      } else {
+        setIsWindowFocused(true);
+        setWindowFocusCount(prev => prev + 1);
+      }
+    };
+
+    const handleBlur = () => {
+      setIsWindowFocused(false);
+      if (currentQuestionIndex < shuffledQuestions.length && !answeredQuestions.has(currentQuestionIndex)) {
+        handleNextQuestion(true);
+      }
+    };
+
+    const handleFocus = () => {
+      setIsWindowFocused(true);
+      setWindowFocusCount(prev => prev + 1);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [isEpreuveStarted, currentQuestionIndex, shuffledQuestions.length, answeredQuestions, showSummary]);
+
+  // Fonction pour passer à la question suivante (avec protection)
+  const handleNextQuestion = (forced: boolean = false) => {
+    if (forced || answeredQuestions.has(currentQuestionIndex)) {
+      // Marquer la question actuelle comme répondue si pas déjà fait
+      if (!answeredQuestions.has(currentQuestionIndex)) {
+        setAnsweredQuestions(prev => new Set([...prev, currentQuestionIndex]));
+      }
+      
+      // Passer à la question suivante
+      if (currentQuestionIndex < shuffledQuestions.length - 1) {
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
+      } else {
+        // Dernière question, aller au résumé
+        setShowSummary(true);
+      }
+    }
+  };
+
+  // Fonction pour répondre à une question (avec protection)
+  const handleAnswerQuestion = (questionId: string, answer: string) => {
+    // Vérifier si la question n'a pas déjà été répondue
+    if (answeredQuestions.has(currentQuestionIndex)) {
+      return; // Ne pas permettre de modifier la réponse
+    }
+
+    // Enregistrer la réponse
+    setUserAnswers(prev => ({
+      ...prev,
+      [questionId]: answer
+    }));
+
+    // Marquer la question comme répondue
+    setAnsweredQuestions(prev => new Set([...prev, currentQuestionIndex]));
+
+    // Passer automatiquement à la question suivante après 1 seconde
+    setTimeout(() => {
+      handleNextQuestion(true);
+    }, 1000);
+  };
+
   // Fonction pour mélanger les questions
   const shuffleArray = (array: any[]) => {
     const shuffled = [...array];
@@ -143,25 +289,22 @@ export default function EpreuvePage() {
     }
   };
 
-  // Navigation entre questions
+  // Navigation entre questions (avec protection)
   const goToNextQuestion = () => {
-    if (currentQuestionIndex < shuffledQuestions.length - 1) {
+    // Ne permettre d'avancer que si la question actuelle a été répondue
+    if (answeredQuestions.has(currentQuestionIndex) && currentQuestionIndex < shuffledQuestions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
 
   const goToPreviousQuestion = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
-    }
+    // Désactiver le retour en arrière pour protéger les questions
+    return; // Pas de retour en arrière autorisé
   };
 
-  // Gérer les réponses
+  // Gérer les réponses (remplacé par handleAnswerQuestion pour la sécurité)
   const handleAnswerChange = (questionId: string, answer: string) => {
-    setUserAnswers(prev => ({
-      ...prev,
-      [questionId]: answer
-    }));
+    handleAnswerQuestion(questionId, answer);
   };
 
   // Afficher le résumé avant soumission
@@ -438,8 +581,7 @@ export default function EpreuvePage() {
           const extractedGroupeId = parts[0];
           // L'etudiantId est tout ce qui suit le premier tiret
           const extractedEtudiantId = parts.slice(1).join('-');
-          console.log("Extracted group ID:", extractedGroupeId);
-          console.log("Extracted etudiant ID:", extractedEtudiantId);
+          
           setGroupeId(extractedGroupeId);
           setEtudiantId(extractedEtudiantId);
           setError('');
@@ -459,12 +601,6 @@ export default function EpreuvePage() {
 
   // Gestion des événements Socket.IO
   useEffect(() => {
-    console.log('socket', socket);
-    console.log('isConnected', isConnected);
-    console.log('etudiantId', etudiantId);
-    console.log('groupeId', groupeId);
-    console.log('groupDetail', groupDetail);
-    console.log('etudiantDetail', etudiantDetail);
     
     // Vérifier que toutes les données nécessaires sont disponibles
     if (!socket || !isConnected || !etudiantDetail || !groupDetail) {
@@ -886,6 +1022,43 @@ export default function EpreuvePage() {
       {/* Interface d'épreuve */}
       {isEpreuveStarted && shuffledQuestions.length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+          {/* Indicateurs de sécurité */}
+          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center space-x-4">
+                <span className="flex items-center text-blue-700 dark:text-blue-300">
+                  🔒 Mode sécurisé activé
+                </span>
+                <span className="flex items-center text-gray-600 dark:text-gray-400">
+                  📸 Captures d'écran désactivées
+                </span>
+                <span className="flex items-center text-gray-600 dark:text-gray-400">
+                  ⬅️ Retour en arrière bloqué
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${isWindowFocused ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <span className={`text-xs ${isWindowFocused ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
+                  {isWindowFocused ? 'Fenêtre active' : 'Fenêtre inactive'}
+                </span>
+              </div>
+            </div>
+            {windowFocusCount > 3 && (
+              <div className="mt-2 text-xs text-orange-600 dark:text-orange-400">
+                ⚠️ Attention: {windowFocusCount} changements de fenêtre détectés
+              </div>
+            )}
+          </div>
+
+          {/* Alerte si question déjà répondue */}
+          {answeredQuestions.has(currentQuestionIndex) && (
+            <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <div className="flex items-center text-sm text-green-700 dark:text-green-300">
+                ✅ Question déjà répondue - Passage automatique à la suivante dans quelques secondes
+              </div>
+            </div>
+          )}
+
           {/* Progression */}
           <div className="mb-6">
             <div className="flex justify-between items-center mb-2">
@@ -912,19 +1085,47 @@ export default function EpreuvePage() {
               </h2>
               
               <div className="space-y-3">
-                {shuffledQuestions[currentQuestionIndex].assertions.map((assertion: string, index: number) => (
-                  <label key={index} className="flex items-center p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                    <input
-                      type="radio"
-                      name={`question_${shuffledQuestions[currentQuestionIndex]._id}`}
-                      value={assertion}
-                      checked={userAnswers[shuffledQuestions[currentQuestionIndex]._id] === assertion}
-                      onChange={(e) => handleAnswerChange(shuffledQuestions[currentQuestionIndex]._id, e.target.value)}
-                      className="mr-3 text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="text-gray-900 dark:text-white">{assertion}</span>
-                  </label>
-                ))}
+                {shuffledQuestions[currentQuestionIndex].assertions.map((assertion: string, index: number) => {
+                  const isQuestionAnswered = answeredQuestions.has(currentQuestionIndex);
+                  const isSelected = userAnswers[shuffledQuestions[currentQuestionIndex]._id] === assertion;
+                  
+                  return (
+                    <label 
+                      key={index} 
+                      className={`flex items-center p-3 border rounded-lg transition-all ${
+                        isQuestionAnswered 
+                          ? (isSelected 
+                              ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
+                              : 'border-gray-300 bg-gray-50 dark:bg-gray-700 opacity-60')
+                          : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name={`question_${shuffledQuestions[currentQuestionIndex]._id}`}
+                        value={assertion}
+                        checked={isSelected}
+                        onChange={(e) => handleAnswerChange(shuffledQuestions[currentQuestionIndex]._id, e.target.value)}
+                        disabled={isQuestionAnswered}
+                        className={`mr-3 ${
+                          isQuestionAnswered 
+                            ? 'text-green-600 cursor-not-allowed' 
+                            : 'text-purple-600 focus:ring-purple-500'
+                        }`}
+                      />
+                      <span className={`${
+                        isQuestionAnswered 
+                          ? (isSelected 
+                              ? 'text-green-800 dark:text-green-200 font-semibold' 
+                              : 'text-gray-500 dark:text-gray-400')
+                          : 'text-gray-900 dark:text-white'
+                      }`}>
+                        {assertion}
+                        {isQuestionAnswered && isSelected && ' ✓'}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -932,15 +1133,11 @@ export default function EpreuvePage() {
           {/* Navigation */}
           <div className="flex justify-between">
             <button
-              onClick={goToPreviousQuestion}
-              disabled={currentQuestionIndex === 0}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                currentQuestionIndex === 0
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-gray-600 hover:bg-gray-700 text-white'
-              }`}
+              disabled={true}
+              className="px-4 py-2 rounded-lg bg-gray-300 text-gray-500 cursor-not-allowed"
+              title="Retour en arrière désactivé pour la sécurité"
             >
-              Précédent
+              🔒 Précédent
             </button>
 
             <div className="flex space-x-3">
