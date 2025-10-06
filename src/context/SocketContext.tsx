@@ -48,7 +48,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     if (typeof window === 'undefined') return;
     
     // URL du serveur Socket.IO (à adapter selon votre configuration)
-    const serverUrl = 'http://192.168.1.67:4001'; //process.env.NEXT_PUBLIC_SOCKET_URL || 'https://server-interro.he-section.site';
+    const serverUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://server-interro.he-section.site';
 
     // Créer la connexion Socket.IO avec configuration optimisée
     const socketInstance = io(serverUrl, {

@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Serie } from './serieStore';
 
-const API_BASE_URL = "http://192.168.1.67:4001/api/V1"; //process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api';
 
 // Interface pour les groupes
 export interface Groupe {
