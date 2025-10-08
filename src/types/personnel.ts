@@ -1,3 +1,28 @@
+// Types pour les grades spécifiques à chaque catégorie
+export type GradeAdministratifOuvrier = 
+  | 'AGA1' // Agent d'Administration de 1ère classe
+  | 'AGA2' // Agent d'Administration de 2ème classe
+  | 'ATA1' // Attaché d'Administration de 1ère classe
+  | 'ATA2' // Attaché d'Administration de 2ème classe
+  | 'AA1'  // Agent Auxiliaire de 1ère classe
+  | 'AA2'  // Agent Auxiliaire de 2ème classe
+  | 'CB'   // Chef de Bureau
+  | 'Directeur'
+  | 'CDS'; // Chef de Service
+
+export type GradeScientifique = 
+  | 'CPP' // Chef de Projet Principal
+  | 'ASS' // Assistant
+  | 'CT';  // Chef de Travaux
+
+export type GradeAcademique = 
+  | 'P'  // Professeur
+  | 'PO' // Professeur Ordinaire
+  | 'PA' // Professeur Associé
+  | 'PE'; // Professeur Émérite
+
+export type GradePersonnel = GradeAdministratifOuvrier | GradeAcademique | GradeScientifique;
+
 export interface Personnel {
   _id: string;
   matricule: string;
@@ -13,7 +38,7 @@ export interface Personnel {
   date_naissance: Date | string;
   province: string | Province; // ObjectId ou objet Province populé
   categorie: 'SCIENTIFIQUE' | 'ADMINISTRATIF' | 'ACADEMIQUE' | 'OUVRIER';
-  grade?: string;
+  grade?: GradePersonnel;
   niveau?: string;
   photo?: string;
   documents?: PersonnelDocument[];
@@ -37,7 +62,7 @@ export interface PersonnelDocument {
 
 export interface Autorisation {
   _id?: string;
-  type: 'admin' | 'gestionnaire' | 'secretaire' | 'comptable' | 'directeur';
+  type: 'DG' | 'SGACAD' | 'SGAD' | 'SGR' | 'AB';
   password: string; // Sera hashé côté serveur
   action: boolean;
   dateCreation?: Date | string;
@@ -46,7 +71,7 @@ export interface Autorisation {
 
 export interface Province {
   _id: string;
-  nom: string;
+  designation: string;
   code?: string;
 }
 
@@ -98,8 +123,7 @@ export interface CreatePersonnelData {
   grade?: string;
   niveau?: string;
   photo?: string;
-  documents?: Omit<PersonnelDocument, '_id'>[];
-  autorisations?: Omit<Autorisation, '_id'>[];
+  // Note: password et autorisations sont gérés séparément
 }
 
 // Interface pour la mise à jour d'un personnel

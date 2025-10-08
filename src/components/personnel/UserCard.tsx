@@ -2,14 +2,26 @@
 
 import React, { useState } from 'react';
 import { Personnel } from '@/types/personnel';
+import AutorisationModal from './AutorisationModal';
+import { getGradeLabel } from '@/utils/gradeUtils';
 
 interface UserCardProps {
   user: Personnel;
   onClose: () => void;
+  onUpdate?: (updatedUser: Personnel) => void;
 }
 
-const UserCard: React.FC<UserCardProps> = ({ user, onClose }) => {
+const UserCard: React.FC<UserCardProps> = ({ user, onClose, onUpdate }) => {
   const [activeTab, setActiveTab] = useState('autorisations');
+  const [showAutorisationModal, setShowAutorisationModal] = useState(false);
+  const [currentUser, setCurrentUser] = useState<Personnel>(user);
+
+  const handleUserUpdate = (updatedUser: Personnel) => {
+    setCurrentUser(updatedUser);
+    if (onUpdate) {
+      onUpdate(updatedUser);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -42,7 +54,7 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClose }) => {
         {/* Tabs */}
         <div className="border-b border-gray-200 dark:border-gray-700">
           <nav className="-mb-px flex space-x-8 px-6">
-            {['autorisations', 'documents', 'profil'].map((tab) => (
+            {['autorisations', 'profil'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -68,14 +80,17 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClose }) => {
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white">
                   Autorisations
                 </h3>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                  Ajouter une autorisation
+                <button 
+                  onClick={() => setShowAutorisationModal(true)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Gérer les autorisations
                 </button>
               </div>
               
-              {user.autorisations && user.autorisations.length > 0 ? (
+              {currentUser.autorisations && currentUser.autorisations.length > 0 ? (
                 <div className="space-y-4">
-                  {user.autorisations.map((auth, index) => (
+                  {currentUser.autorisations.map((auth, index) => (
                     <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div>
@@ -197,7 +212,7 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClose }) => {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Grade
                     </label>
-                    <p className="text-gray-900 dark:text-white">{user.grade}</p>
+                    <p className="text-gray-900 dark:text-white">{getGradeLabel(user.grade, user.categorie)}</p>
                   </div>
                 )}
                 {user.adresse && (
@@ -212,6 +227,15 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClose }) => {
             </div>
           )}
         </div>
+
+        {/* Modal d'autorisations */}
+        {showAutorisationModal && (
+          <AutorisationModal
+            user={currentUser}
+            onClose={() => setShowAutorisationModal(false)}
+            onUpdate={handleUserUpdate}
+          />
+        )}
       </div>
     </div>
   );

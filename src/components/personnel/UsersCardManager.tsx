@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { usePersonnelContext } from './PersonnelDataWrapper';
 import { usePersonnelStore } from '@/stores/personnelStore';
-import { useProvinceStore } from '@/stores/provinceStore';
 import { Personnel, CreatePersonnelData, Province } from '@/types/personnel';
 // Icônes SVG simples pour remplacer Heroicons
 const PlusIcon = ({ className }: { className?: string }) => (
@@ -61,6 +61,7 @@ const FunnelIcon = ({ className }: { className?: string }) => (
 );
 import UserCard from './UserCard';
 import UserModal from './UserModal';
+import { getGradeLabel } from '@/utils/gradeUtils';
 
 // Composants HTML simples pour remplacer les composants UI
 const Button = ({ 
@@ -165,18 +166,21 @@ const UsersCardManager: React.FC<UsersCardManagerProps> = ({
   provinceId, 
   provinceName 
 }) => {
+  // Utiliser le Context pour les données (pas de fetch automatique)
   const { 
     personnels, 
     isLoading, 
     error, 
-    loadPersonnels, 
-    deletePersonnel,
-    searchPersonnels,
-    setFilters,
-    clearFilters
-  } = usePersonnelStore();
+    provinces,
+    refreshData
+  } = usePersonnelContext();
 
-  const { provinces, fetchProvinces } = useProvinceStore();
+  // Utiliser le store seulement pour les actions CRUD
+  const { 
+    deletePersonnel,
+    addPersonnel,
+    updatePersonnel
+  } = usePersonnelStore();
 
   // États locaux
   const [searchQuery, setSearchQuery] = useState('');
@@ -186,7 +190,7 @@ const UsersCardManager: React.FC<UsersCardManagerProps> = ({
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // Filtrer les personnels par catégorie et province
+  // Filtrer les personnels par catégorie, province et recherche
   const filteredPersonnels = useMemo(() => {
     return personnels.filter(personnel => {
       const matchCategorie = personnel.categorie === categorie;
@@ -194,38 +198,28 @@ const UsersCardManager: React.FC<UsersCardManagerProps> = ({
         ? personnel.province === provinceId 
         : personnel.province._id === provinceId;
       
-      return matchCategorie && matchProvince;
+      // Filtrage par recherche
+      const matchSearch = !searchQuery || 
+        personnel.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        personnel.prenom.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        personnel.matricule?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        personnel.email?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      return matchCategorie && matchProvince && matchSearch;
     });
-  }, [personnels, categorie, provinceId]);
+  }, [personnels, categorie, provinceId, searchQuery]);
 
   // Récupérer le nom de la province
   const currentProvince = useMemo(() => {
     return provinces.find(p => p._id === provinceId);
   }, [provinces, provinceId]);
 
-  // Charger les données au montage
-  useEffect(() => {
-    if (personnels.length === 0) {
-      loadPersonnels();
-    }
-    if (provinces.length === 0) {
-      fetchProvinces();
-    }
-  }, [personnels.length, provinces.length, loadPersonnels, fetchProvinces]);
-
-  // Appliquer les filtres
-  useEffect(() => {
-    setFilters({
-      categorie,
-      province: provinceId,
-      search: searchQuery
-    });
-  }, [categorie, provinceId, searchQuery, setFilters]);
+  // Plus besoin de charger les données - elles viennent du Context
+  // Plus besoin d'appliquer les filtres automatiquement - on filtre côté client
 
   // Gestionnaires d'événements
   const handleSearch = (value: string) => {
-    setSearchQuery(value);
-    searchPersonnels(value);
+    setSearchQuery(value); // Le filtrage se fait automatiquement via useMemo
   };
 
   const handleCreateUser = () => {
@@ -259,6 +253,7 @@ const UsersCardManager: React.FC<UsersCardManagerProps> = ({
     setActionLoading(`delete-${user._id}`);
     try {
       await deletePersonnel(user._id);
+      await refreshData(); // Rafraîchir les données après suppression
     } catch (error) {
       console.error('Erreur lors de la suppression:', error);
     } finally {
@@ -267,12 +262,11 @@ const UsersCardManager: React.FC<UsersCardManagerProps> = ({
   };
 
   const handleRefresh = () => {
-    loadPersonnels();
+    refreshData(); // Utiliser la fonction du Context
   };
 
   const handleClearFilters = () => {
     setSearchQuery('');
-    clearFilters();
   };
 
   // Fonction pour obtenir les initiales
@@ -453,7 +447,7 @@ const UsersCardManager: React.FC<UsersCardManagerProps> = ({
                     </p>
                     {personnel.grade && (
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Grade:</span> {personnel.grade}
+                        <span className="font-medium">Grade:</span> {getGradeLabel(personnel.grade, personnel.categorie)}
                       </p>
                     )}
                   </div>

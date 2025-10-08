@@ -53,9 +53,11 @@ export const usePersonnelStore = create<PersonnelStore>()(
       loadPersonnels: async () => {
         set({ isLoading: true, error: null });
         try {
+          const token = localStorage.getItem('token');
           const response = await fetch(`${API_URL}/users`, {
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
             },
           });
           
@@ -79,9 +81,6 @@ export const usePersonnelStore = create<PersonnelStore>()(
               filteredPersonnels: processedPersonnels,
               isLoading: false
             });
-            
-            // Charger les statistiques séparément
-            get().loadPersonnelStats();
           } else {
             throw new Error(result.message || 'Erreur lors du chargement des personnels');
           }
@@ -96,9 +95,11 @@ export const usePersonnelStore = create<PersonnelStore>()(
 
       loadPersonnelStats: async () => {
         try {
+          const token = localStorage.getItem('token');
           const response = await fetch(`${API_URL}/users/stats/overview`, {
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
             },
           });
           
@@ -154,10 +155,12 @@ export const usePersonnelStore = create<PersonnelStore>()(
       addPersonnel: async (personnelData) => {
         set({ isLoading: true, error: null });
         try {
+          const token = localStorage.getItem('token');
           const response = await fetch(`${API_URL}/users`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify(personnelData),
           });
@@ -203,10 +206,12 @@ export const usePersonnelStore = create<PersonnelStore>()(
       updatePersonnel: async (id, updates) => {
         set({ isLoading: true, error: null });
         try {
+          const token = localStorage.getItem('token');
           const response = await fetch(`${API_URL}/users/${id}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify(updates),
           });
@@ -254,10 +259,12 @@ export const usePersonnelStore = create<PersonnelStore>()(
       deletePersonnel: async (id) => {
         set({ isLoading: true, error: null });
         try {
+          const token = localStorage.getItem('token');
           const response = await fetch(`${API_URL}/users/${id}`, {
             method: 'DELETE',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
             },
           });
           

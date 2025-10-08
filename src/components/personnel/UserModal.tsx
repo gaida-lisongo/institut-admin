@@ -3,27 +3,26 @@
 import React, { useState, useEffect } from 'react';
 import { Personnel, CreatePersonnelData } from '@/types/personnel';
 import { usePersonnelStore } from '@/stores/personnelStore';
-import { useProvinceStore } from '@/stores/provinceStore';
+import { usePersonnelContext } from './PersonnelDataWrapper';
+import { getGradesByCategorie, getGradeLabel } from '@/utils/gradeUtils';
 
 interface UserModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  user?: Personnel | null;
   mode: 'create' | 'edit' | 'view';
-  user?: Personnel;
-  categorie: Personnel['categorie'];
-  provinceId: string;
+  defaultCategorie?: Personnel['categorie'];
+  defaultProvince?: string;
+  onClose: () => void;
 }
 
 const UserModal: React.FC<UserModalProps> = ({
-  isOpen,
-  onClose,
-  mode,
   user,
-  categorie,
-  provinceId
+  mode,
+  defaultCategorie,
+  defaultProvince,
+  onClose
 }) => {
   const { addPersonnel, updatePersonnel, isLoading } = usePersonnelStore();
-  const { provinces } = useProvinceStore();
+  const { provinces, refreshData } = usePersonnelContext();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -39,11 +38,10 @@ const UserModal: React.FC<UserModalProps> = ({
     nationalite: 'Congolaise',
     lieu_naissance: '',
     date_naissance: '',
-    categorie: categorie,
-    province: provinceId,
+    categorie: defaultCategorie || 'ACADEMIQUE',
+    province: defaultProvince || '',
     grade: '',
-    niveau: '',
-    password: ''
+    niveau: ''
   });
 
   useEffect(() => {
@@ -60,11 +58,10 @@ const UserModal: React.FC<UserModalProps> = ({
         nationalite: user.nationalite || 'Congolaise',
         lieu_naissance: user.lieu_naissance || '',
         date_naissance: user.date_naissance ? new Date(user.date_naissance).toISOString().split('T')[0] : '',
-        categorie: user.categorie || categorie,
-        province: typeof user.province === 'string' ? user.province : user.province?._id || provinceId,
+        categorie: user.categorie || defaultCategorie || 'ACADEMIQUE',
+        province: typeof user.province === 'string' ? user.province : user.province?._id || defaultProvince || '',
         grade: user.grade || '',
-        niveau: user.niveau || '',
-        password: ''
+        niveau: user.niveau || ''
       });
     } else if (mode === 'create') {
       setFormData({
@@ -79,23 +76,30 @@ const UserModal: React.FC<UserModalProps> = ({
         nationalite: 'Congolaise',
         lieu_naissance: '',
         date_naissance: '',
-        categorie: categorie,
-        province: provinceId,
+        categorie: defaultCategorie || 'ACADEMIQUE',
+        province: defaultProvince || '',
         grade: '',
-        niveau: '',
-        password: ''
+        niveau: ''
       });
     }
-  }, [user, mode, categorie, provinceId]);
+  }, [user, mode, defaultCategorie, defaultProvince]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
 
+    // Validation des champs requis
+    if (!formData.matricule || !formData.nom || !formData.prenom || !formData.email || 
+        !formData.telephone || !formData.date_naissance || !formData.province) {
+      setError('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+
     try {
       if (mode === 'create') {
         await addPersonnel(formData);
+        await refreshData(); // Rafraîchir les données
         setSuccess('Personnel créé avec succès !');
         setTimeout(() => {
           onClose();
@@ -103,6 +107,7 @@ const UserModal: React.FC<UserModalProps> = ({
         }, 2000);
       } else if (mode === 'edit' && user) {
         await updatePersonnel(user._id, formData);
+        await refreshData(); // Rafraîchir les données
         setSuccess('Personnel modifié avec succès !');
         setTimeout(() => {
           onClose();
@@ -110,6 +115,7 @@ const UserModal: React.FC<UserModalProps> = ({
         }, 2000);
       }
     } catch (err) {
+      console.error('Erreur lors de la soumission:', err);
       setError(err instanceof Error ? err.message : 'Une erreur est survenue');
     }
   };
@@ -122,7 +128,8 @@ const UserModal: React.FC<UserModalProps> = ({
     }));
   };
 
-  if (!isOpen) return null;
+  // Obtenir les grades disponibles selon la catégorie sélectionnée
+  const availableGrades = getGradesByCategorie(formData.categorie);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -330,14 +337,25 @@ const UserModal: React.FC<UserModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Grade
               </label>
-              <input
-                type="text"
+              <select
                 name="grade"
-                value={formData.grade}
+                value={formData.grade || ''}
                 onChange={handleInputChange}
                 disabled={mode === 'view'}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white disabled:opacity-50"
-              />
+              >
+                <option value="">Sélectionner un grade</option>
+                {availableGrades.map((grade) => (
+                  <option key={grade.value} value={grade.value} title={grade.niveauFormation}>
+                    {grade.label}
+                  </option>
+                ))}
+              </select>
+              {formData.grade && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Niveau requis: {availableGrades.find(g => g.value === formData.grade)?.niveauFormation}
+                </p>
+              )}
             </div>
 
             {/* Niveau */}
@@ -355,22 +373,6 @@ const UserModal: React.FC<UserModalProps> = ({
               />
             </div>
 
-            {/* Mot de passe (seulement en création) */}
-            {mode === 'create' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Mot de passe *
-                </label>
-                <input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-            )}
           </div>
 
           {/* Adresse */}
