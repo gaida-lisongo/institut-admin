@@ -18,6 +18,7 @@ import {
   UserCircleIcon,
 } from "../icons/index";
 import SidebarWidget from "./SidebarWidget";
+import { useProvinceStore } from "@/stores/provinceStore";
 
 type NavItem = {
   name: string;
@@ -96,6 +97,7 @@ const othersItems: NavItem[] = [
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const { provinces, fetchProvinces } = useProvinceStore();
   const pathname = usePathname();
 
   const renderMenuItems = (
@@ -236,6 +238,10 @@ const AppSidebar: React.FC = () => {
   // const isActive = (path: string) => path === pathname;
    const isActive = useCallback((path: string) => path === pathname, [pathname]);
 
+  useEffect(() => {
+    fetchProvinces();
+  }, []);
+  
   useEffect(() => {
     // Check if the current path matches any submenu item
     let submenuMatched = false;

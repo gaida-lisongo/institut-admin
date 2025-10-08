@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { X, MapPin, FileText, Loader2, Image } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, MapPin, FileText, Loader2, Image, Upload, Trash2 } from 'lucide-react';
 import { Province, ProvinceFormData } from '@/types/province';
 import { useProvinceStore } from '@/stores/provinceStore';
+import BlobManager from '@/services/BlobManager';
 
 interface ProvinceModalProps {
   isOpen: boolean;
@@ -20,6 +21,12 @@ export default function ProvinceModal({ isOpen, onClose, province, mode }: Provi
     photo: ''
   });
 
+  // États pour la gestion de l'upload d'image
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const { createProvince, updateProvince, loading } = useProvinceStore();
 
   // Initialiser le formulaire avec les données de la province si en mode édition
@@ -31,6 +38,7 @@ export default function ProvinceModal({ isOpen, onClose, province, mode }: Provi
         description: province.description,
         photo: province.photo || ''
       });
+      setImagePreview(province.photo || '');
     } else if (mode === 'create') {
       // Réinitialiser pour une nouvelle province
       setFormData({
@@ -39,7 +47,12 @@ export default function ProvinceModal({ isOpen, onClose, province, mode }: Provi
         description: '',
         photo: ''
       });
+      setImagePreview('');
     }
+    
+    // Réinitialiser les états d'upload
+    setImageFile(null);
+    setUploadingImage(false);
   }, [province, mode, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,19 +74,40 @@ export default function ProvinceModal({ isOpen, onClose, province, mode }: Provi
     }
 
     try {
+      let finalFormData = { ...formData };
+
+      // Si une nouvelle image a été sélectionnée, l'uploader d'abord
+      if (imageFile) {
+        setUploadingImage(true);
+        try {
+          const uploadResult = await BlobManager.createBlob(imageFile, {
+            type: 'province-photo',
+            provinceCode: formData.code
+          });
+          finalFormData.photo = uploadResult.url;
+        } catch (uploadError) {
+          console.error('Erreur lors de l\'upload de l\'image:', uploadError);
+          alert('Erreur lors de l\'upload de l\'image. Veuillez réessayer.');
+          setUploadingImage(false);
+          return;
+        }
+        setUploadingImage(false);
+      }
+
       if (mode === 'create') {
-        const newProvince = await createProvince(formData);
+        const newProvince = await createProvince(finalFormData);
         if (newProvince) {
           onClose();
         }
       } else if (mode === 'edit' && province) {
-        const updatedProvince = await updateProvince(province._id, formData);
+        const updatedProvince = await updateProvince(province._id, finalFormData);
         if (updatedProvince) {
           onClose();
         }
       }
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
+      setUploadingImage(false);
     }
   };
 
@@ -95,6 +129,47 @@ export default function ProvinceModal({ isOpen, onClose, province, mode }: Provi
         .substring(0, 10);
       handleInputChange('code', code);
     }
+  };
+
+  // Fonctions pour la gestion de l'upload d'image
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validation du type de fichier
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('Type de fichier non supporté. Veuillez sélectionner une image (JPEG, PNG, WebP, GIF).');
+        return;
+      }
+
+      // Validation de la taille (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('La taille du fichier ne doit pas dépasser 5MB.');
+        return;
+      }
+
+      setImageFile(file);
+      
+      // Créer une prévisualisation
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleImageRemove = () => {
+    setImageFile(null);
+    setImagePreview('');
+    setFormData(prev => ({ ...prev, photo: '' }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
 
   if (!isOpen) return null;
@@ -202,31 +277,116 @@ export default function ProvinceModal({ isOpen, onClose, province, mode }: Provi
             {/* Photo */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Photo (URL)
+                Photo de la province
               </label>
-              <div className="flex items-center space-x-2">
-                <Image className="w-5 h-5 text-gray-400" />
+              
+              {/* Zone d'upload et prévisualisation */}
+              <div className="space-y-4">
+                {/* Input file caché */}
                 <input
-                  type="url"
-                  value={formData.photo}
-                  onChange={(e) => handleInputChange('photo', e.target.value)}
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
                   disabled={isReadOnly}
-                  placeholder="https://exemple.com/photo.jpg"
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
                 />
-              </div>
-              {formData.photo && (
-                <div className="mt-2">
-                  <img
-                    src={formData.photo}
-                    alt="Aperçu"
-                    className="w-20 h-20 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
+
+                {/* Zone de prévisualisation */}
+                {imagePreview ? (
+                  <div className="relative">
+                    <img
+                      src={imagePreview}
+                      alt="Aperçu de la province"
+                      className="w-full h-48 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
+                    />
+                    {!isReadOnly && (
+                      <button
+                        type="button"
+                        onClick={handleImageRemove}
+                        className="absolute top-2 right-2 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full transition-colors duration-200"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    {imageFile && (
+                      <div className="absolute bottom-2 left-2 px-2 py-1 bg-blue-600 text-white text-xs rounded">
+                        Nouvelle image sélectionnée
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div 
+                    onClick={!isReadOnly ? triggerFileInput : undefined}
+                    className={`w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center ${
+                      !isReadOnly ? 'cursor-pointer hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10' : ''
+                    } transition-colors duration-200`}
+                  >
+                    <div className="text-center">
+                      <Image className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {isReadOnly ? 'Aucune photo disponible' : 'Cliquez pour sélectionner une image'}
+                      </p>
+                      {!isReadOnly && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          JPEG, PNG, WebP, GIF - Max 5MB
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Boutons d'action pour l'image */}
+                {!isReadOnly && (
+                  <div className="flex space-x-2">
+                    <button
+                      type="button"
+                      onClick={triggerFileInput}
+                      disabled={uploadingImage}
+                      className="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors duration-200"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {imagePreview ? 'Changer l\'image' : 'Sélectionner une image'}
+                    </button>
+                    
+                    {imagePreview && (
+                      <button
+                        type="button"
+                        onClick={handleImageRemove}
+                        disabled={uploadingImage}
+                        className="inline-flex items-center px-3 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg transition-colors duration-200"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Supprimer
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* URL manuelle (optionnel) */}
+                <div className="border-t border-gray-200 dark:border-gray-600 pt-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Ou saisir une URL d'image
+                  </label>
+                  <div className="flex items-center space-x-2">
+                    <Image className="w-5 h-5 text-gray-400" />
+                    <input
+                      type="url"
+                      value={formData.photo}
+                      onChange={(e) => {
+                        handleInputChange('photo', e.target.value);
+                        if (e.target.value) {
+                          setImagePreview(e.target.value);
+                          setImageFile(null);
+                        }
+                      }}
+                      disabled={isReadOnly}
+                      placeholder="https://exemple.com/photo.jpg"
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+                    />
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Informations supplémentaires */}
@@ -265,11 +425,13 @@ export default function ProvinceModal({ isOpen, onClose, province, mode }: Provi
               {!isReadOnly && (
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || uploadingImage}
                   className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors duration-200"
                 >
-                  {loading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                  {mode === 'create' ? 'Créer' : 'Modifier'}
+                  {(loading || uploadingImage) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                  {uploadingImage ? 'Upload en cours...' : 
+                   loading ? 'Sauvegarde...' :
+                   mode === 'create' ? 'Créer' : 'Modifier'}
                 </button>
               )}
             </div>
