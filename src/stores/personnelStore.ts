@@ -1,7 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Personnel } from '@/types/personnel';
-import { fakePersonnelData, generatePersonnelStats } from '@/data/personnelData';
+import { 
+  Personnel, 
+  PersonnelStats, 
+  PersonnelFilters, 
+  CreatePersonnelData, 
+  UpdatePersonnelData,
+  PersonnelApiResponse,
+  PersonnelStatsApiResponse
+} from '@/types/personnel';
 
 const API_URL = process.env.NEXT_PUBLIC_SERVER_API_URL;
 interface PersonnelStore {
@@ -14,12 +21,13 @@ interface PersonnelStore {
   error: string | null;
   
   // Actions
-  loadPersonnels: () => void;
-  getPersonnelsByType: (type: 'Académique' | 'Scientifique' | 'Administratif') => Personnel[];
+  loadPersonnels: () => Promise<void>;
+  loadPersonnelStats: () => Promise<void>;
+  getPersonnelsByCategorie: (categorie: Personnel['categorie']) => Personnel[];
   getPersonnelsByProvince: (provinceId: string) => Personnel[];
-  addPersonnel: (personnel: CreatePersonnelData) => void;
-  updatePersonnel: (id: string, personnel: Partial<Personnel>) => void;
-  deletePersonnel: (id: string) => void;
+  addPersonnel: (personnel: CreatePersonnelData) => Promise<void>;
+  updatePersonnel: (id: string, personnel: UpdatePersonnelData) => Promise<void>;
+  deletePersonnel: (id: string) => Promise<void>;
   setFilters: (filters: Partial<PersonnelFilters>) => void;
   clearFilters: () => void;
   applyFilters: () => void;
@@ -27,7 +35,7 @@ interface PersonnelStore {
   
   // Getters
   getPersonnelById: (id: string) => Personnel | undefined;
-  getPersonnelStats: () => PersonnelStats;
+  getPersonnelByMatricule: (matricule: string) => Personnel | undefined;
 }
 
 export const usePersonnelStore = create<PersonnelStore>()(
@@ -45,98 +53,243 @@ export const usePersonnelStore = create<PersonnelStore>()(
       loadPersonnels: async () => {
         set({ isLoading: true, error: null });
         try {
-          const response = await fetch(`${API_URL}/users`);
-          const result = await response.json();
+          const response = await fetch(`${API_URL}/users`, {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
           
           if (!response.ok) {
-            throw new Error(result.message || 'Erreur lors du chargement des personnels');
+            throw new Error(`Erreur HTTP: ${response.status}`);
           }
 
-          if (result.success) {
-            const stats = generatePersonnelStats(result.data);
+          const result: PersonnelApiResponse = await response.json();
+          
+          if (result.success && Array.isArray(result.data)) {
+            // Traitement des données pour ajouter les champs calculés
+            const processedPersonnels = result.data.map((personnel: Personnel) => ({
+              ...personnel,
+              nomComplet: `${personnel.nom} ${personnel.post_nom} ${personnel.prenom}`,
+              age: personnel.date_naissance ? 
+                new Date().getFullYear() - new Date(personnel.date_naissance).getFullYear() : undefined
+            }));
+            
             set({
-              personnels: result.data,
-              filteredPersonnels: result.data,
-              stats,
+              personnels: processedPersonnels,
+              filteredPersonnels: processedPersonnels,
               isLoading: false
             });
+            
+            // Charger les statistiques séparément
+            get().loadPersonnelStats();
           } else {
             throw new Error(result.message || 'Erreur lors du chargement des personnels');
           }
         } catch (error) {
+          console.error('Erreur loadPersonnels:', error);
           set({ 
-            error: 'Erreur lors du chargement des personnels', 
+            error: error instanceof Error ? error.message : 'Erreur lors du chargement des personnels', 
             isLoading: false 
           });
         }
       },
 
-      getPersonnelsByType: (type) => {
+      loadPersonnelStats: async () => {
+        try {
+          const response = await fetch(`${API_URL}/users/stats/overview`, {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+          }
+
+          const result: PersonnelStatsApiResponse = await response.json();
+          
+          if (result.success && result.data) {
+            // Transformation des données API vers notre format PersonnelStats
+            const stats: PersonnelStats = {
+              total: result.data.totalUsers,
+              parCategorie: {
+                scientifique: result.data.usersByCategory.find(cat => cat._id === 'SCIENTIFIQUE')?.count || 0,
+                administratif: result.data.usersByCategory.find(cat => cat._id === 'ADMINISTRATIF')?.count || 0,
+                academique: result.data.usersByCategory.find(cat => cat._id === 'ACADEMIQUE')?.count || 0,
+                ouvrier: result.data.usersByCategory.find(cat => cat._id === 'OUVRIER')?.count || 0,
+              },
+              parSexe: {
+                M: 0, // À calculer côté client si nécessaire
+                F: 0,
+              },
+              avecAutorisations: result.data.usersWithAutorisations,
+              sansAutorisations: result.data.usersWithoutAutorisations,
+              nouveaux: 0, // À calculer côté client
+              actifs: result.data.totalUsers, // Supposons que tous sont actifs
+            };
+            
+            set({ stats });
+          }
+        } catch (error) {
+          console.error('Erreur loadPersonnelStats:', error);
+          // Ne pas mettre d'erreur pour les stats, ce n'est pas critique
+        }
+      },
+
+      getPersonnelsByCategorie: (categorie) => {
         const { personnels } = get();
-        return personnels.filter(p => p.type === type);
+        return personnels.filter(p => p.categorie === categorie);
       },
 
       getPersonnelsByProvince: (provinceId) => {
         const { personnels } = get();
-        return personnels.filter(p => p.provinceId === provinceId);
+        return personnels.filter(p => {
+          if (typeof p.province === 'string') {
+            return p.province === provinceId;
+          }
+          return p.province._id === provinceId;
+        });
       },
 
-      addPersonnel: (personnelData) => {
-        const { personnels } = get();
-        const newPersonnel: Personnel = {
-          ...personnelData,
-          _id: `new_${Date.now()}`,
-          statut: 'Actif',
-          diplomes: [],
-          experiences: [],
-          documents: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
+      addPersonnel: async (personnelData) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await fetch(`${API_URL}/users`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(personnelData),
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+          }
 
-        const updatedPersonnels = [...personnels, newPersonnel];
-        const stats = generatePersonnelStats(updatedPersonnels);
-        
-        set({
-          personnels: updatedPersonnels,
-          stats
-        });
-        
-        // Réappliquer les filtres
-        get().applyFilters();
+          const result: PersonnelApiResponse = await response.json();
+          
+          if (result.success && result.data && !Array.isArray(result.data)) {
+            const { personnels } = get();
+            const newPersonnel = {
+              ...result.data,
+              nomComplet: `${result.data.nom} ${result.data.post_nom} ${result.data.prenom}`,
+              age: result.data.date_naissance ? 
+                new Date().getFullYear() - new Date(result.data.date_naissance).getFullYear() : undefined
+            };
+            
+            const updatedPersonnels = [...personnels, newPersonnel];
+            
+            set({
+              personnels: updatedPersonnels,
+              isLoading: false
+            });
+            
+            // Réappliquer les filtres et recharger les stats
+            get().applyFilters();
+            get().loadPersonnelStats();
+          } else {
+            throw new Error(result.message || 'Erreur lors de la création du personnel');
+          }
+        } catch (error) {
+          console.error('Erreur addPersonnel:', error);
+          set({ 
+            error: error instanceof Error ? error.message : 'Erreur lors de la création du personnel', 
+            isLoading: false 
+          });
+          throw error;
+        }
       },
 
-      updatePersonnel: (id, updates) => {
-        const { personnels } = get();
-        const updatedPersonnels = personnels.map(p =>
-          p._id === id 
-            ? { ...p, ...updates, updatedAt: new Date().toISOString() }
-            : p
-        );
-        
-        const stats = generatePersonnelStats(updatedPersonnels);
-        
-        set({
-          personnels: updatedPersonnels,
-          stats
-        });
-        
-        // Réappliquer les filtres
-        get().applyFilters();
+      updatePersonnel: async (id, updates) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await fetch(`${API_URL}/users/${id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(updates),
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+          }
+
+          const result: PersonnelApiResponse = await response.json();
+          
+          if (result.success && result.data && !Array.isArray(result.data)) {
+            const { personnels } = get();
+            const updatedPersonnel = {
+              ...result.data,
+              nomComplet: `${result.data.nom} ${result.data.post_nom} ${result.data.prenom}`,
+              age: result.data.date_naissance ? 
+                new Date().getFullYear() - new Date(result.data.date_naissance).getFullYear() : undefined
+            };
+            
+            const updatedPersonnels = personnels.map(p =>
+              p._id === id ? updatedPersonnel : p
+            );
+            
+            set({
+              personnels: updatedPersonnels,
+              isLoading: false
+            });
+            
+            // Réappliquer les filtres et recharger les stats
+            get().applyFilters();
+            get().loadPersonnelStats();
+          } else {
+            throw new Error(result.message || 'Erreur lors de la mise à jour du personnel');
+          }
+        } catch (error) {
+          console.error('Erreur updatePersonnel:', error);
+          set({ 
+            error: error instanceof Error ? error.message : 'Erreur lors de la mise à jour du personnel', 
+            isLoading: false 
+          });
+          throw error;
+        }
       },
 
-      deletePersonnel: (id) => {
-        const { personnels } = get();
-        const updatedPersonnels = personnels.filter(p => p._id !== id);
-        const stats = generatePersonnelStats(updatedPersonnels);
-        
-        set({
-          personnels: updatedPersonnels,
-          stats
-        });
-        
-        // Réappliquer les filtres
-        get().applyFilters();
+      deletePersonnel: async (id) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await fetch(`${API_URL}/users/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+          }
+
+          const result: PersonnelApiResponse = await response.json();
+          
+          if (result.success) {
+            const { personnels } = get();
+            const updatedPersonnels = personnels.filter(p => p._id !== id);
+            
+            set({
+              personnels: updatedPersonnels,
+              isLoading: false
+            });
+            
+            // Réappliquer les filtres et recharger les stats
+            get().applyFilters();
+            get().loadPersonnelStats();
+          } else {
+            throw new Error(result.message || 'Erreur lors de la suppression du personnel');
+          }
+        } catch (error) {
+          console.error('Erreur deletePersonnel:', error);
+          set({ 
+            error: error instanceof Error ? error.message : 'Erreur lors de la suppression du personnel', 
+            isLoading: false 
+          });
+          throw error;
+        }
       },
 
       setFilters: (newFilters) => {
@@ -155,19 +308,33 @@ export const usePersonnelStore = create<PersonnelStore>()(
         const { personnels, filters } = get();
         let filtered = [...personnels];
 
-        // Filtrer par type
-        if (filters.type) {
-          filtered = filtered.filter(p => p.type === filters.type);
+        // Filtrer par catégorie
+        if (filters.categorie) {
+          filtered = filtered.filter(p => p.categorie === filters.categorie);
         }
 
-        // Filtrer par statut
-        if (filters.statut) {
-          filtered = filtered.filter(p => p.statut === filters.statut);
+        // Filtrer par sexe
+        if (filters.sexe) {
+          filtered = filtered.filter(p => p.sexe === filters.sexe);
         }
 
         // Filtrer par province
-        if (filters.provinceId) {
-          filtered = filtered.filter(p => p.provinceId === filters.provinceId);
+        if (filters.province) {
+          filtered = filtered.filter(p => {
+            if (typeof p.province === 'string') {
+              return p.province === filters.province;
+            }
+            return p.province._id === filters.province;
+          });
+        }
+
+        // Filtrer par autorisation
+        if (filters.hasAutorisation) {
+          filtered = filtered.filter(p => 
+            p.autorisations?.some(auth => 
+              auth.type === filters.hasAutorisation && auth.action === true
+            )
+          );
         }
 
         // Recherche textuelle
@@ -175,29 +342,24 @@ export const usePersonnelStore = create<PersonnelStore>()(
           const searchLower = filters.search.toLowerCase();
           filtered = filtered.filter(p =>
             p.nom.toLowerCase().includes(searchLower) ||
+            p.post_nom.toLowerCase().includes(searchLower) ||
             p.prenom.toLowerCase().includes(searchLower) ||
+            p.matricule.toLowerCase().includes(searchLower) ||
             p.email.toLowerCase().includes(searchLower) ||
             p.telephone.includes(filters.search!) ||
-            (p.grade && p.grade.toLowerCase().includes(searchLower))
+            (p.grade && p.grade.toLowerCase().includes(searchLower)) ||
+            (p.nomComplet && p.nomComplet.toLowerCase().includes(searchLower))
           );
         }
 
         // Filtrer par âge
         if (filters.ageMin || filters.ageMax) {
           filtered = filtered.filter(p => {
-            const age = new Date().getFullYear() - new Date(p.dateNaissance).getFullYear();
+            if (!p.date_naissance) return false;
+            const age = new Date().getFullYear() - new Date(p.date_naissance).getFullYear();
             const minAge = filters.ageMin || 0;
             const maxAge = filters.ageMax || 100;
             return age >= minAge && age <= maxAge;
-          });
-        }
-
-        // Filtrer par salaire
-        if (filters.salaireMin || filters.salaireMax) {
-          filtered = filtered.filter(p => {
-            const minSalaire = filters.salaireMin || 0;
-            const maxSalaire = filters.salaireMax || Infinity;
-            return p.salaire >= minSalaire && p.salaire <= maxSalaire;
           });
         }
 
@@ -214,13 +376,9 @@ export const usePersonnelStore = create<PersonnelStore>()(
         return personnels.find(p => p._id === id);
       },
 
-      getPersonnelStats: async () => {
-        try {
-          const requet = await fetch(`${API_URL}/users/stats/overview`);
-          
-        } catch (error) {
-          
-        }
+      getPersonnelByMatricule: (matricule) => {
+        const { personnels } = get();
+        return personnels.find(p => p.matricule === matricule);
       }
     }),
     {
@@ -269,15 +427,15 @@ export const usePersonnelStats = () => {
   const store = usePersonnelStore();
   return {
     stats: store.stats,
-    getPersonnelStats: store.getPersonnelStats
+    loadPersonnelStats: store.loadPersonnelStats
   };
 };
 
-export const usePersonnelsByType = (type: 'Académique' | 'Scientifique' | 'Administratif') => {
+export const usePersonnelsByCategorie = (categorie: Personnel['categorie']) => {
   const store = usePersonnelStore();
   return {
-    personnels: store.getPersonnelsByType(type),
-    count: store.getPersonnelsByType(type).length
+    personnels: store.getPersonnelsByCategorie(categorie),
+    count: store.getPersonnelsByCategorie(categorie).length
   };
 };
 
