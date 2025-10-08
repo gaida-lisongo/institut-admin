@@ -23,7 +23,7 @@ const AutorisationModal: React.FC<AutorisationModalProps> = ({
   
   // Formulaire pour nouvelle autorisation
   const [newAutorisation, setNewAutorisation] = useState<Partial<Autorisation>>({
-    type: 'SGAD',
+    type: 'DRH',
     password: '',
     action: true,
     dateExpiration: ''
@@ -34,7 +34,10 @@ const AutorisationModal: React.FC<AutorisationModalProps> = ({
     SGACAD: 'Secrétaire Général Académique',
     SGAD: 'Secrétaire Général Administratif',
     SGR: 'Secrétaire Général à la Recherche',
-    AB: 'Administrateur du Budget'
+    AB: 'Administrateur du Budget',
+    DRH: 'Personnels',
+    ADMIN: 'Gestion Etablissement',
+    FIN: 'Gestion Finance'
   };
 
   const typeColors = {
@@ -42,7 +45,10 @@ const AutorisationModal: React.FC<AutorisationModalProps> = ({
     SGACAD: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
     SGAD: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
     SGR: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400',
-    AB: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+    AB: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+    DRH: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400',
+    ADMIN: 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-400',
+    FIN: 'bg-teal-100 text-teal-800 dark:bg-teal-900/20 dark:text-teal-400'
   };
 
   const handleAddAutorisation = async () => {
@@ -74,7 +80,7 @@ const AutorisationModal: React.FC<AutorisationModalProps> = ({
       setSuccess('Autorisation ajoutée avec succès !');
       setShowAddForm(false);
       setNewAutorisation({
-        type: 'SGAD',
+        type: 'DRH',
         password: '',
         action: true,
         dateExpiration: ''

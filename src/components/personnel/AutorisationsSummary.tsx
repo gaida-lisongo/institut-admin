@@ -38,6 +38,27 @@ const AutorisationsSummary: React.FC = () => {
       description: 'Gestion budgétaire et financière',
       niveau: 'Direction Financière',
       couleur: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+    },
+    {
+      code: 'DRH',
+      label: 'Personnels',
+      description: 'Gestion des ressources humaines et du personnel',
+      niveau: 'Direction RH',
+      couleur: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400'
+    },
+    {
+      code: 'ADMIN',
+      label: 'Gestion Etablissement',
+      description: 'Administration générale de l\'établissement',
+      niveau: 'Administration Générale',
+      couleur: 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-400'
+    },
+    {
+      code: 'FIN',
+      label: 'Gestion Finance',
+      description: 'Gestion financière et comptable',
+      niveau: 'Direction Financière',
+      couleur: 'bg-teal-100 text-teal-800 dark:bg-teal-900/20 dark:text-teal-400'
     }
   ];
 
@@ -134,6 +155,24 @@ const AutorisationsSummary: React.FC = () => {
               <span className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 px-3 py-1 rounded-full text-sm font-mono">
                 AB - Administrateur Budget
               </span>
+              <span className="bg-teal-100 text-teal-800 dark:bg-teal-900/20 dark:text-teal-400 px-3 py-1 rounded-full text-sm font-mono">
+                FIN - Gestion Finance
+              </span>
+            </div>
+          </div>
+
+          {/* Niveau 4 - Gestion Opérationnelle */}
+          <div className="border-l-4 border-indigo-500 pl-4">
+            <h3 className="font-semibold text-indigo-600 dark:text-indigo-400 mb-2">
+              Niveau 4 - Gestion Opérationnelle
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              <span className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400 px-3 py-1 rounded-full text-sm font-mono">
+                DRH - Personnels
+              </span>
+              <span className="bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-400 px-3 py-1 rounded-full text-sm font-mono">
+                ADMIN - Gestion Etablissement
+              </span>
             </div>
           </div>
         </div>
@@ -217,7 +256,7 @@ const AutorisationsSummary: React.FC = () => {
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4 text-center">
           Statistiques du Système
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
             <div className="text-3xl font-bold text-red-600 dark:text-red-400">
               1
@@ -236,15 +275,23 @@ const AutorisationsSummary: React.FC = () => {
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
             <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
-              1
+              2
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400">
               Admin Spécialisée
             </div>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
+            <div className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
+              2
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Gestion Opérationnelle
+            </div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
             <div className="text-3xl font-bold text-gray-600 dark:text-gray-400">
-              5
+              8
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400">
               Total Autorisations

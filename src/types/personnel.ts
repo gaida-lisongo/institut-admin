@@ -62,7 +62,7 @@ export interface PersonnelDocument {
 
 export interface Autorisation {
   _id?: string;
-  type: 'DG' | 'SGACAD' | 'SGAD' | 'SGR' | 'AB';
+  type: 'DG' | 'SGACAD' | 'SGAD' | 'SGR' | 'AB' | 'DRH' | 'ADMIN' | 'FIN';
   password: string; // Sera hashé côté serveur
   action: boolean;
   dateCreation?: Date | string;
@@ -117,7 +117,7 @@ export interface CreatePersonnelData {
   adresse?: string;
   nationalite: string;
   lieu_naissance: string;
-  date_naissance: Date | string;
+  date_naissance: string; // Always string for HTML date input compatibility
   province: string; // ObjectId de la province
   categorie: Personnel['categorie'];
   grade?: string;

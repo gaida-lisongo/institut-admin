@@ -63,6 +63,18 @@ import UserCard from './UserCard';
 import UserModal from './UserModal';
 import { getGradeLabel } from '@/utils/gradeUtils';
 
+// Types pour les composants UI
+interface ButtonProps {
+  children: React.ReactNode;
+  onClick?: () => void;
+  variant?: 'default' | 'outline' | 'ghost';
+  size?: 'default' | 'sm' | 'lg';
+  disabled?: boolean;
+  className?: string;
+  title?: string;
+  [key: string]: any; // Pour les autres props HTML
+}
+
 // Composants HTML simples pour remplacer les composants UI
 const Button = ({ 
   children, 
@@ -73,7 +85,7 @@ const Button = ({
   className = '',
   title,
   ...props 
-}: any) => {
+}: ButtonProps) => {
   const baseClasses = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
   
   const variantClasses = {
@@ -101,32 +113,69 @@ const Button = ({
   );
 };
 
-const Card = ({ children, className = '', ...props }: any) => (
+interface CardProps {
+  children: React.ReactNode;
+  className?: string;
+  [key: string]: any;
+}
+
+interface BadgeProps {
+  children: React.ReactNode;
+  variant?: 'default' | 'outline';
+  className?: string;
+  [key: string]: any;
+}
+
+interface InputProps {
+  className?: string;
+  [key: string]: any;
+}
+
+interface AvatarProps {
+  children: React.ReactNode;
+  className?: string;
+  [key: string]: any;
+}
+
+interface AvatarImageProps {
+  src?: string;
+  alt?: string;
+  className?: string;
+  [key: string]: any;
+}
+
+interface AvatarFallbackProps {
+  children: React.ReactNode;
+  className?: string;
+  [key: string]: any;
+}
+
+const Card = ({ children, className = '', ...props }: CardProps) => (
   <div className={`rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800 ${className}`} {...props}>
     {children}
   </div>
 );
 
-const CardHeader = ({ children, className = '', ...props }: any) => (
+const CardHeader = ({ children, className = '', ...props }: CardProps) => (
   <div className={`flex flex-col space-y-1.5 p-6 ${className}`} {...props}>
     {children}
   </div>
 );
 
-const CardContent = ({ children, className = '', ...props }: any) => (
+const CardContent = ({ children, className = '', ...props }: CardProps) => (
   <div className={`p-6 pt-0 ${className}`} {...props}>
     {children}
   </div>
 );
 
-const Input = ({ className = '', ...props }: any) => (
+const Input = ({ className = '', ...props }: InputProps) => (
   <input
     className={`flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:ring-offset-gray-800 dark:placeholder:text-gray-400 dark:focus-visible:ring-blue-400 ${className}`}
     {...props}
   />
 );
 
-const Badge = ({ children, variant = 'default', className = '', ...props }: any) => {
+const Badge = ({ children, variant = 'default', className = '', ...props }: BadgeProps) => {
   const variantClasses = {
     default: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
     outline: 'border border-gray-200 dark:border-gray-700'
@@ -139,17 +188,17 @@ const Badge = ({ children, variant = 'default', className = '', ...props }: any)
   );
 };
 
-const Avatar = ({ children, className = '', ...props }: any) => (
+const Avatar = ({ children, className = '', ...props }: AvatarProps) => (
   <div className={`relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full ${className}`} {...props}>
     {children}
   </div>
 );
 
-const AvatarImage = ({ src, alt, className = '', ...props }: any) => (
+const AvatarImage = ({ src, alt, className = '', ...props }: AvatarImageProps) => (
   src ? <img className={`aspect-square h-full w-full object-cover ${className}`} src={src} alt={alt} {...props} /> : null
 );
 
-const AvatarFallback = ({ children, className = '', ...props }: any) => (
+const AvatarFallback = ({ children, className = '', ...props }: AvatarFallbackProps) => (
   <div className={`flex h-full w-full items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 ${className}`} {...props}>
     {children}
   </div>
@@ -316,7 +365,7 @@ const UsersCardManager: React.FC<UsersCardManagerProps> = ({
             Personnel {getCategorieLabel(categorie)}
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            {currentProvince?.nom || provinceName || 'Province'} • {filteredPersonnels.length} agent{filteredPersonnels.length > 1 ? 's' : ''}
+            {currentProvince?.designation || provinceName || 'Province'} • {filteredPersonnels.length} agent{filteredPersonnels.length > 1 ? 's' : ''}
           </p>
         </div>
         
