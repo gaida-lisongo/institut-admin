@@ -98,11 +98,12 @@ const othersItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const { provinces, fetchProvinces } = useProvinceStore();
+  const [navPers, setNavPers] = useState<NavItem[]>();
   const pathname = usePathname();
 
   const renderMenuItems = (
     navItems: NavItem[],
-    menuType: "main" | "others"
+    menuType: "main" | "others" | "personnels"
   ) => (
     <ul className="flex flex-col gap-4">
       {navItems.map((nav, index) => (
@@ -226,8 +227,53 @@ const AppSidebar: React.FC = () => {
     </ul>
   );
 
+  const renderMenuPersonnels = () => {
+    const menuAcad : NavItem = {
+      icon: <UserCircleIcon />,
+      name: "Académique",
+      subItems: [],
+    };
+
+    const menuScien : NavItem = {
+      icon: <UserCircleIcon />,
+      name: "Scientifique",
+      subItems: [],
+    };
+
+    const menuAdmin : NavItem = {
+      icon: <UserCircleIcon />,
+      name: "Administratif",
+      subItems: [],
+    };
+
+    provinces.forEach((province) => {
+      menuAcad.subItems?.push({
+        name: province.designation,
+        path: `/pacad/${province._id}`,
+      });
+
+      menuScien.subItems?.push({
+        name: province.designation,
+        path: `/pscien/${province._id}`,
+      });
+
+      menuAdmin.subItems?.push({
+        name: province.designation,
+        path: `/padmin/${province._id}`,
+      });
+    });
+
+    const menuItems = [
+      menuAcad,
+      menuScien,
+      menuAdmin,
+    ];
+    
+    setNavPers(menuItems);
+  }
+
   const [openSubmenu, setOpenSubmenu] = useState<{
-    type: "main" | "others";
+    type: string;
     index: number;
   } | null>(null);
   const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
@@ -241,6 +287,10 @@ const AppSidebar: React.FC = () => {
   useEffect(() => {
     fetchProvinces();
   }, []);
+  
+  useEffect(() => {
+    renderMenuPersonnels();
+  }, [provinces]);
   
   useEffect(() => {
     // Check if the current path matches any submenu item
@@ -281,7 +331,7 @@ const AppSidebar: React.FC = () => {
     }
   }, [openSubmenu]);
 
-  const handleSubmenuToggle = (index: number, menuType: "main" | "others") => {
+  const handleSubmenuToggle = (index: number, menuType: "main" | "others" | "personnels") => {
     setOpenSubmenu((prevOpenSubmenu) => {
       if (
         prevOpenSubmenu &&
@@ -378,9 +428,26 @@ const AppSidebar: React.FC = () => {
               </h2>
               {renderMenuItems(othersItems, "others")}
             </div>
+
+            {navPers && navPers.length > 0 && <div>
+              <h2
+                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
+                  !isExpanded && !isHovered
+                    ? "lg:justify-center"
+                    : "justify-start"
+                }`}
+              >
+                {isExpanded || isHovered || isMobileOpen ? (
+                  "Personnels"
+                ) : (
+                  <HorizontaLDots />
+                )}
+              </h2>
+              {renderMenuItems(navPers, "personnels")}
+            </div>}
           </div>
         </nav>
-        {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null}
+        {/* {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null} */}
       </div>
     </aside>
   );
