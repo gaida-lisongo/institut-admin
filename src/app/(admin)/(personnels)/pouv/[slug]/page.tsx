@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useProvinceStore } from '@/stores/provinceStore';
 import UsersCardManager from '@/components/personnel/UsersCardManager';
 
-const PersonnelAcademiqueProvincePage: React.FC = () => {
+const PersonnelOuvrierProvincePage: React.FC = () => {
   const params = useParams();
   const provinceId = params?.slug as string;
   const { provinces } = useProvinceStore();
@@ -31,7 +31,7 @@ const PersonnelAcademiqueProvincePage: React.FC = () => {
   return (
     <div className="p-6">
       <UsersCardManager
-        categorie="ACADEMIQUE"
+        categorie="OUVRIER"
         provinceId={provinceId}
         provinceName={province?.designation}
       />
@@ -39,4 +39,4 @@ const PersonnelAcademiqueProvincePage: React.FC = () => {
   );
 };
 
-export default PersonnelAcademiqueProvincePage;
+export default PersonnelOuvrierProvincePage;

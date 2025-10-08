@@ -246,6 +246,12 @@ const AppSidebar: React.FC = () => {
       subItems: [],
     };
 
+    const menuOuvrier : NavItem = {
+      icon: <UserCircleIcon />,
+      name: "Ouvrier",
+      subItems: [],
+    }
+
     provinces.forEach((province) => {
       menuAcad.subItems?.push({
         name: province.designation,
@@ -261,12 +267,18 @@ const AppSidebar: React.FC = () => {
         name: province.designation,
         path: `/padmin/${province._id}`,
       });
+
+      menuOuvrier.subItems?.push({
+        name: province.designation,
+        path: `/pouv/${province._id}`,
+      });
     });
 
     const menuItems = [
       menuAcad,
       menuScien,
       menuAdmin,
+      menuOuvrier,
     ];
     
     setNavPers(menuItems);
@@ -330,6 +342,10 @@ const AppSidebar: React.FC = () => {
       }
     }
   }, [openSubmenu]);
+
+  useEffect(() => {
+    console.log("Navigation pers : ", navPers)
+  }, [navPers])
 
   const handleSubmenuToggle = (index: number, menuType: "main" | "others" | "personnels") => {
     setOpenSubmenu((prevOpenSubmenu) => {
@@ -412,7 +428,7 @@ const AppSidebar: React.FC = () => {
               {renderMenuItems(navItems, "main")}
             </div>
 
-            <div className="">
+            {/* <div className="">
               <h2
                 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
                   !isExpanded && !isHovered
@@ -427,7 +443,7 @@ const AppSidebar: React.FC = () => {
                 )}
               </h2>
               {renderMenuItems(othersItems, "others")}
-            </div>
+            </div> */}
 
             {navPers && navPers.length > 0 && <div>
               <h2
