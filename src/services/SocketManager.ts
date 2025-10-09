@@ -77,6 +77,12 @@ class SocketManager {
         this.socket.off('authenticated');
         this.socket.off('connect');
         this.socket.off('disconnect');
+        this.socket.off('rooms_list');
+        this.socket.off('room_created');
+        this.socket.off('room_joined');
+        this.socket.off('user_joined');
+        this.socket.off('new_message');
+        this.socket.off('message_deleted');
     }
 
     isConnected() {

@@ -55,6 +55,11 @@ export default function ChatLayout() {
         
         if (!currentRoom) return;
 
+        // Demander confirmation avant suppression
+        if (!confirm('Êtes-vous sûr de vouloir supprimer ce message ?')) {
+            return;
+        }
+
         // Supprimer localement d'abord pour une réaction immédiate
         setCurrentRoom(prev => prev ? {
             ...prev,
@@ -180,7 +185,7 @@ export default function ChatLayout() {
             'message_deleted',
             (data) => {
                 console.log('Event message_deleted reçu:', data);
-                socketManager.onDeleteMessage(data, console.log)
+                socketManager.onDeleteMessage(data, renderDeletedMessage)
             }
         )
         // Événement de connexion
@@ -336,7 +341,7 @@ export default function ChatLayout() {
                                 
                                 return (
                                     <div key={index} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                                        <div className={`relative group max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                                             isMine 
                                                 ? 'bg-blue-600 text-white' 
                                                 : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white'
@@ -417,6 +422,19 @@ export default function ChatLayout() {
                                             <p className={`text-xs mt-1 ${isMine ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
                                                 {formatTime(msg.createdAt ? msg.createdAt : msg.dateCreation)}
                                             </p>
+
+                                            {/* Bouton de suppression (seulement pour mes messages) */}
+                                            {isMine && (
+                                                <button
+                                                    onClick={() => handleDeleteMessage(msg)}
+                                                    className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg"
+                                                    title="Supprimer ce message"
+                                                >
+                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 );
