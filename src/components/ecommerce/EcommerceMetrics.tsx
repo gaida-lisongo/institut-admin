@@ -38,12 +38,12 @@ export const EcommerceMetrics = () => {
           <Badge color="success">
             <ArrowUpIcon />
             {
-              stats?.total && ([
+              stats?.total && (([
                 "scientifique",
                 "academique"
               ].reduce((total, categorie) => {
                 return total + stats?.parCategorie[categorie] || 0;
-              }, 0)) * 100/(stats?.total)
+              }, 0)) * 100/(stats?.total)).toFixed(2)
             }
           </Badge>
         </div>
@@ -75,12 +75,12 @@ export const EcommerceMetrics = () => {
           <Badge color="error">
             <ArrowDownIcon className="text-error-500" />
             {
-              stats?.total && ([
+              stats?.total && (([
                 "administratif",
                 "ouvrier"
               ].reduce((total, categorie) => {
                 return total + stats?.parCategorie[categorie] || 0;
-              }, 0)) * 100/(stats?.total)
+              }, 0)) * 100/(stats?.total)).toFixed(2)
             }
           </Badge>
         </div>

@@ -121,29 +121,20 @@ export default function MonthlySalesChart() {
   }
 
   const handleSelect = (value: string, categories: string[]) => {
-    console.log('Selected value:', value);
     setGraphique(value);
     const seriesData = [];
 
     provinces.map((province) => {
-      console.log("Province : ", province);
-      console.log("Data personnels :", personnels);
-
       const allPersonnels =personnels.filter((p: any) => p.province._id === province._id);
-      console.log("All personnels : ", allPersonnels);
       let totalProvince = 0;
 
       categories.map(function(categorie){
-        console.log("Categorie : ", categorie);
         allPersonnels.forEach(p => {
-          console.log("Personnel : ", p);
           totalProvince += p.categorie.toLowerCase() === categorie.toLowerCase() ? 1 : 0;
         });
       })
-      console.log("Total province : ", totalProvince);
       seriesData.push(personnels.length > 0 ? Math.round(totalProvince * 100 / personnels.length) : 0);
     });
-    console.log("Series data : ", seriesData);
     setData({
       data: seriesData,
       name: "Personnel"
@@ -157,10 +148,8 @@ export default function MonthlySalesChart() {
   }, []);
 
   useEffect(() => {
-    console.log("Provinces : ", provinces);
     if (provinces.length > 0) {
       const categories = provinces.map((province) => province.code);
-      console.log("Categories : ", categories);
       setConfig({
         ...options,
         xaxis: {
