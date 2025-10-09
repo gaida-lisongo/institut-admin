@@ -1,6 +1,6 @@
 import { Personnel } from "@/types/personnel";
 import { io, Socket } from "socket.io-client";
-const ServerUrl = "http://192.168.1.68:4000";
+const ServerUrl = "http://localhost:4000";
 
 export interface Message {
     _id: number;

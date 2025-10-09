@@ -3,8 +3,11 @@ import { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import { MoreDotIcon } from "@/icons";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
+import { useProvinceStore } from "@/stores/provinceStore";
+import { Loader } from "lucide-react";
+import { usePersonnelStore } from "@/stores/personnelStore";
 
 // Dynamically import the ReactApexChart component
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
@@ -12,6 +15,9 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
 });
 
 export default function MonthlySalesChart() {
+  const { provinces, loading, fetchProvinces } = useProvinceStore();
+  const { personnels, loadPersonnels } = usePersonnelStore();
+
   const options: ApexOptions = {
     colors: ["#465fff"],
     chart: {
@@ -91,13 +97,20 @@ export default function MonthlySalesChart() {
       },
     },
   };
+  const [config, setConfig] = useState(options);
+  const [data, setData] = useState({
+    data: [],
+    name: "Personnel"
+  });
+
   const series = [
     {
-      name: "Sales",
-      data: [168, 385, 201, 298, 187, 195, 291, 110, 215, 390, 280, 112],
+      name: data.name,
+      data: data.data,
     },
   ];
   const [isOpen, setIsOpen] = useState(false);
+  const [graphique, setGraphique] = useState("Personnel Académique et Scientifique");
 
   function toggleDropdown() {
     setIsOpen(!isOpen);
@@ -107,11 +120,66 @@ export default function MonthlySalesChart() {
     setIsOpen(false);
   }
 
+  const handleSelect = (value: string, categories: string[]) => {
+    console.log('Selected value:', value);
+    setGraphique(value);
+    const seriesData = [];
+
+    provinces.map((province) => {
+      console.log("Province : ", province);
+      console.log("Data personnels :", personnels);
+
+      const allPersonnels =personnels.filter((p: any) => p.province._id === province._id);
+      console.log("All personnels : ", allPersonnels);
+      let totalProvince = 0;
+
+      categories.map(function(categorie){
+        console.log("Categorie : ", categorie);
+        allPersonnels.forEach(p => {
+          console.log("Personnel : ", p);
+          totalProvince += p.categorie.toLowerCase() === categorie.toLowerCase() ? 1 : 0;
+        });
+      })
+      console.log("Total province : ", totalProvince);
+      seriesData.push(personnels.length > 0 ? Math.round(totalProvince * 100 / personnels.length) : 0);
+    });
+    console.log("Series data : ", seriesData);
+    setData({
+      data: seriesData,
+      name: "Personnel"
+    });
+    setIsOpen(false);
+  };
+
+  useEffect(() => {
+    fetchProvinces();
+    loadPersonnels();
+  }, []);
+
+  useEffect(() => {
+    console.log("Provinces : ", provinces);
+    if (provinces.length > 0) {
+      const categories = provinces.map((province) => province.code);
+      console.log("Categories : ", categories);
+      setConfig({
+        ...options,
+        xaxis: {
+          categories,
+        },
+      });
+      handleSelect("Personnel Académique et Scientifique", ["academique", "scientifique"]);
+    }
+  }, [provinces]);
+
+  if (loading) {
+    return <Loader />;
+  }
+
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-          Monthly Sales
+          {graphique}
         </h3>
 
         <div className="relative inline-block">
@@ -123,18 +191,28 @@ export default function MonthlySalesChart() {
             onClose={closeDropdown}
             className="w-40 p-2"
           >
-            <DropdownItem
-              onItemClick={closeDropdown}
-              className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-            >
-              View More
-            </DropdownItem>
-            <DropdownItem
-              onItemClick={closeDropdown}
-              className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-            >
-              Delete
-            </DropdownItem>
+          {
+            [
+              {
+                label: "PAS",
+                value: "Personnel Académique et Scientifique",
+                onClick: () => handleSelect("Personnel Académique et Scientifique", ["academique", "scientifique"])
+              },
+              {
+                label: "PATO",
+                value: "Personnel Administratif, Technique et Ouvrier",
+                onClick: () => handleSelect("Personnel Administratif, Technique et Ouvrier", ["administratif", "technique", "ouvrier"])
+              }
+            ].map((item, index) => (
+              <DropdownItem
+                key={index}
+                onItemClick={item.onClick}
+                className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+              >
+                {item.label}
+              </DropdownItem>
+            ))
+          }
           </Dropdown>
         </div>
       </div>
@@ -142,7 +220,7 @@ export default function MonthlySalesChart() {
       <div className="max-w-full overflow-x-auto custom-scrollbar">
         <div className="-ml-5 min-w-[650px] xl:min-w-full pl-2">
           <ReactApexChart
-            options={options}
+            options={config}
             series={series}
             type="bar"
             height={180}

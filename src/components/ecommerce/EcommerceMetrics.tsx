@@ -1,12 +1,11 @@
 "use client";
 import React, { useEffect } from "react";
 import Badge from "../ui/badge/Badge";
-import { ArrowDownIcon, ArrowUpIcon, BoxIconLine, GroupIcon } from "@/icons";
+import { ArrowDownIcon, ArrowUpIcon, GroupIcon } from "@/icons";
 import { usePersonnelStats } from "@/stores/personnelStore";
 
 export const EcommerceMetrics = () => {
   const { stats, loadPersonnelStats } = usePersonnelStats();
-  console.log("Detail personnels : ",  stats);
 
   useEffect(() => {
     loadPersonnelStats();
