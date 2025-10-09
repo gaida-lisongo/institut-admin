@@ -399,7 +399,7 @@ const UsersCardManager: React.FC<UsersCardManagerProps> = ({
                 <Input
                   placeholder="Rechercher par nom, matricule, email..."
                   value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
+                  onChange={(e : any) => handleSearch(e.target.value)}
                   className="pl-10"
                 />
               </div>

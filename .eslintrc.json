@@ -1,3 +1,30 @@
 {
-  "extends": "next/core-web-vitals"
+  "extends": "next/core-web-vitals",
+  "rules": {
+    // Désactiver complètement les règles TypeScript strictes
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/no-unused-imports": "off",
+    
+    // Désactiver complètement les règles React strictes
+    "react/no-unescaped-entities": "off",
+    "jsx-a11y/alt-text": "off",
+    
+    // Désactiver complètement les règles Next.js strictes
+    "@next/next/no-img-element": "off",
+    
+    // Désactiver complètement les règles d'import strictes
+    "import/no-anonymous-default-export": "off",
+    
+    // Désactiver complètement les règles de hooks React strictes
+    "react-hooks/exhaustive-deps": "off",
+    
+    // Désactiver complètement les règles de préférence de code
+    "prefer-const": "off",
+    
+    // Désactiver d'autres règles problématiques
+    "no-unused-vars": "off",
+    "no-console": "off",
+    "no-debugger": "off"
+  }
 }

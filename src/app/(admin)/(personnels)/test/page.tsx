@@ -1,14 +1,14 @@
 "use client";
 
 import React from 'react';
-import { usePersonnelContext } from '../layout';
-import { usePersonnelsByType } from '@/stores/personnelStore';
+import { usePersonnelContext } from '@/components/personnel/PersonnelDataWrapper';
+import { usePersonnelsByCategorie } from '@/stores/personnelStore';
 
 const PersonnelTestPage: React.FC = () => {
   const { personnels, stats, provinces, refreshData } = usePersonnelContext();
-  const { personnels: personnelsAcademiques } = usePersonnelsByType('Académique');
-  const { personnels: personnelsScientifiques } = usePersonnelsByType('Scientifique');
-  const { personnels: personnelsAdministratifs } = usePersonnelsByType('Administratif');
+  const { personnels: personnelsAcademiques } = usePersonnelsByCategorie('ACADEMIQUE');
+  const { personnels: personnelsScientifiques } = usePersonnelsByCategorie('SCIENTIFIQUE');
+  const { personnels: personnelsAdministratifs } = usePersonnelsByCategorie('ADMINISTRATIF');
   
   return (
     <div className="p-6 space-y-6">
@@ -20,7 +20,7 @@ const PersonnelTestPage: React.FC = () => {
               Test du Système de Personnel
             </h1>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Démonstration des données fictives et du contexte
+              Démonstration des données du système de personnel
             </p>
           </div>
           <button
@@ -57,25 +57,25 @@ const PersonnelTestPage: React.FC = () => {
             </div>
             <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
               <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                {Math.round(stats.salaireMoyen).toLocaleString()} FC
+                {stats.avecAutorisations}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                Salaire Moyen
+                Avec Autorisations
               </div>
             </div>
             <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
               <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                {Math.round(stats.agesMoyens.global)} ans
+                {stats.nouveaux}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                Âge Moyen
+                Nouveaux
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Répartition par type */}
+      {/* Répartition par catégorie */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400 mb-4">
@@ -87,7 +87,7 @@ const PersonnelTestPage: React.FC = () => {
           <div className="space-y-2">
             {personnelsAcademiques.slice(0, 3).map((personnel) => (
               <div key={personnel._id} className="text-sm text-gray-600 dark:text-gray-400">
-                • {personnel.prenom} {personnel.nom} - {personnel.grade}
+                • {personnel.prenom} {personnel.nom} - {personnel.grade || 'Non spécifié'}
               </div>
             ))}
             {personnelsAcademiques.length > 3 && (
@@ -108,7 +108,7 @@ const PersonnelTestPage: React.FC = () => {
           <div className="space-y-2">
             {personnelsScientifiques.slice(0, 3).map((personnel) => (
               <div key={personnel._id} className="text-sm text-gray-600 dark:text-gray-400">
-                • {personnel.prenom} {personnel.nom} - {personnel.grade}
+                • {personnel.prenom} {personnel.nom} - {personnel.grade || 'Non spécifié'}
               </div>
             ))}
             {personnelsScientifiques.length > 3 && (
@@ -129,7 +129,7 @@ const PersonnelTestPage: React.FC = () => {
           <div className="space-y-2">
             {personnelsAdministratifs.slice(0, 3).map((personnel) => (
               <div key={personnel._id} className="text-sm text-gray-600 dark:text-gray-400">
-                • {personnel.prenom} {personnel.nom} - {personnel.grade}
+                • {personnel.prenom} {personnel.nom} - {personnel.grade || 'Non spécifié'}
               </div>
             ))}
             {personnelsAdministratifs.length > 3 && (
@@ -142,28 +142,31 @@ const PersonnelTestPage: React.FC = () => {
       </div>
 
       {/* Répartition par provinces */}
-      {stats && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            Répartition par Provinces
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(stats.parProvince).map(([provinceId, count]) => {
-              const province = provinces.find(p => p._id === provinceId);
-              return (
-                <div key={provinceId} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {province?.designation || provinceId}
-                  </span>
-                  <span className="text-sm text-blue-600 dark:text-blue-400 font-semibold">
-                    {count} personnel{count > 1 ? 's' : ''}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+          Répartition par Provinces
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {provinces.map((province) => {
+            const count = personnels.filter(p => 
+              (typeof p.province === 'string' ? p.province : p.province?._id) === province._id
+            ).length;
+            
+            if (count === 0) return null;
+            
+            return (
+              <div key={province._id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {province.designation}
+                </span>
+                <span className="text-sm text-blue-600 dark:text-blue-400 font-semibold">
+                  {count} personnel{count > 1 ? 's' : ''}
+                </span>
+              </div>
+            );
+          })}
         </div>
-      )}
+      </div>
 
       {/* Liste complète du personnel */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
@@ -181,7 +184,7 @@ const PersonnelTestPage: React.FC = () => {
                     Personnel
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Type
+                    Catégorie
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Grade
@@ -192,14 +195,11 @@ const PersonnelTestPage: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Statut
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Salaire
-                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {personnels.map((personnel) => {
-                  const province = provinces.find(p => p._id === personnel.provinceId);
+                  const province = provinces.find(p => p._id === (typeof personnel.province === 'string' ? personnel.province : personnel.province?._id));
                   return (
                     <tr key={personnel._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -219,11 +219,11 @@ const PersonnelTestPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          personnel.type === 'Académique' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' :
-                          personnel.type === 'Scientifique' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400' :
+                          personnel.categorie === 'ACADEMIQUE' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' :
+                          personnel.categorie === 'SCIENTIFIQUE' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400' :
                           'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
                         }`}>
-                          {personnel.type}
+                          {personnel.categorie}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
@@ -233,16 +233,9 @@ const PersonnelTestPage: React.FC = () => {
                         {province?.designation || 'Inconnue'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          personnel.statut === 'Actif' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
-                          personnel.statut === 'Inactif' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' :
-                          'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-                        }`}>
-                          {personnel.statut}
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                          Actif
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {personnel.salaire.toLocaleString()} FC
                       </td>
                     </tr>
                   );
