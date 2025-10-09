@@ -5,18 +5,16 @@ import React, { useEffect, useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/stores/personnelStore";
 
 export default function UserDropdown() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState(null);
+  const { currentUser, logout, initializeAuth } = useAuth();
 
   useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (user) {
-      setUser(JSON.parse(user));
-    }
-  }, []);
+    initializeAuth();
+  }, [initializeAuth]);
 
 
   function toggleDropdown(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
@@ -112,16 +110,31 @@ export default function UserDropdown() {
         onClick={toggleDropdown} 
         className="flex items-center text-gray-700 dark:text-gray-400 dropdown-toggle"
       >
-        <span className="mr-3 overflow-hidden rounded-full h-11 w-11">
-          <Image
-            width={44}
-            height={44}
-            src="/images/user/owner.jpg"
-            alt="User"
-          />
+        <span className="mr-3 overflow-hidden rounded-full h-11 w-11 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+          {currentUser?.photo ? (
+            <Image
+              width={44}
+              height={44}
+              src={currentUser.photo}
+              alt="Photo de profil"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                // En cas d'erreur de chargement, masquer l'image et afficher les initiales
+                e.currentTarget.style.display = 'none';
+                const parent = e.currentTarget.parentElement;
+                if (parent) {
+                  parent.innerHTML = `<div class="text-lg font-semibold text-gray-400 dark:text-gray-500">${currentUser?.nom?.charAt(0) || ''}${currentUser?.prenom?.charAt(0) || ''}</div>`;
+                }
+              }}
+            />
+          ) : (
+            <div className="text-lg font-semibold text-gray-400 dark:text-gray-500">
+              {currentUser?.nom?.charAt(0)}{currentUser?.prenom?.charAt(0)}
+            </div>
+          )}
         </span>
 
-        <span className="block mr-1 font-medium text-theme-sm">{user?.nom}</span>
+        <span className="block mr-1 font-medium text-theme-sm">{currentUser?.nom}</span>
 
         <svg
           className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${
@@ -150,10 +163,10 @@ export default function UserDropdown() {
       >
         <div>
           <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-            {user?.matricule}
+            {currentUser?.matricule}
           </span>
           <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
-            {user?.email}
+            {currentUser?.email}
           </span>
         </div>
 
@@ -177,13 +190,9 @@ export default function UserDropdown() {
           href="#"
           onClick={(e) => {
             e.preventDefault();
-            setTimeout(() => {
-              localStorage.removeItem("user");
-              localStorage.removeItem("accessToken");
-              localStorage.removeItem("expiresIn");
-              router.push("/signin");
-            }, 2000);
+            logout();
             closeDropdown();
+            router.push("/signin");
           }}
           className="flex items-center gap-3 px-3 py-2 mt-3 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
         >

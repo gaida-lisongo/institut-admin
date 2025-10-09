@@ -1,51 +1,60 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/stores/personnelStore";
 
 export default function UserMetaCard() {
-  const [user, setUser] = useState(null);
   const router = useRouter();
+  const { currentUser, logout, initializeAuth } = useAuth();
 
   useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (user) {
-      setUser(JSON.parse(user));
-    }
-  }, []);
+    initializeAuth();
+  }, [initializeAuth]);
 
   const handleLogout = () => {
-    setTimeout(() => {
-      localStorage.removeItem("user");
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("expiresIn");
-      router.push("/signin");
-    }, 2000);
+    logout();
+    router.push("/signin");
   };
   return (
     <>
       <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-col items-center w-full gap-6 xl:flex-row">
-            <div className="w-20 h-20 overflow-hidden border border-gray-200 rounded-full dark:border-gray-800">
-              <Image
-                width={80}
-                height={80}
-                src={user?.photo ? user.photo : "/images/user/owner.jpg"}
-                alt="user"
-              />
+            <div className="w-20 h-20 overflow-hidden border border-gray-200 rounded-full dark:border-gray-800 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+              {currentUser?.photo ? (
+                <Image
+                  width={80}
+                  height={80}
+                  src={currentUser.photo}
+                  alt="Photo de profil"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // En cas d'erreur de chargement, masquer l'image et afficher les initiales
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if (parent) {
+                      parent.innerHTML = `<div class="text-2xl font-semibold text-gray-400 dark:text-gray-500">${currentUser?.nom?.charAt(0) || ''}${currentUser?.prenom?.charAt(0) || ''}</div>`;
+                    }
+                  }}
+                />
+              ) : (
+                <div className="text-2xl font-semibold text-gray-400 dark:text-gray-500">
+                  {currentUser?.nom?.charAt(0)}{currentUser?.prenom?.charAt(0)}
+                </div>
+              )}
             </div>
             <div className="order-3 xl:order-2">
               <h4 className="mb-2 text-lg font-semibold text-center text-gray-800 dark:text-white/90 xl:text-left">
-                {user?.nom} {user?.post_nom} {user?.prenom}
+                {currentUser?.nom} {currentUser?.post_nom} {currentUser?.prenom}
               </h4>
               <div className="flex flex-col items-center gap-1 text-center xl:flex-row xl:gap-3 xl:text-left">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {user?.matricule}
+                  {currentUser?.matricule}
                 </p>
                 <div className="hidden h-3.5 w-px bg-gray-300 dark:bg-gray-700 xl:block"></div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Grade: {user?.grade}
+                  Grade: {currentUser?.grade}
                 </p>
               </div>
             </div>

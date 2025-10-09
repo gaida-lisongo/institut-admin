@@ -1,69 +1,202 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
+import { Personnel, UpdatePersonnelData } from "@/types/personnel";
+import { useCurrentUser } from "@/stores/personnelStore";
+import BlobManager from "@/services/BlobManager";
 
 export default function UserInfoCard() {
   const { isOpen, openModal, closeModal } = useModal();
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving changes...");
-    closeModal();
+  const { currentUser, updateCurrentUser, updateCurrentUserPhoto, isLoading } = useCurrentUser();
+  const [formData, setFormData] = useState<Partial<Personnel>>({});
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  
+  useEffect(() => {
+    if (currentUser) {
+      setFormData(currentUser);
+    }
+  }, [currentUser]);
+  const handleInputChange = (field: keyof Personnel, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Vérifier le type de fichier
+      if (!file.type.startsWith('image/')) {
+        alert('Veuillez sélectionner un fichier image valide');
+        return;
+      }
+      
+      // Vérifier la taille (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('La taille du fichier ne doit pas dépasser 5MB');
+        return;
+      }
+
+      setPhotoFile(file);
+      
+      // Créer une prévisualisation
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPhotoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadPhoto = async () => {
+    if (!photoFile || !currentUser) return;
+
+    setIsUploadingPhoto(true);
+    try {
+      const result = await BlobManager.createBlob(photoFile, {
+        userId: currentUser._id,
+        type: 'profile-photo'
+      });
+
+      if (result.url) {
+        // Mettre à jour la photo dans le store
+        await updateCurrentUserPhoto(result.url);
+        
+        // Mettre à jour formData pour le formulaire
+        setFormData(prev => ({ ...prev, photo: result.url }));
+        
+        // Réinitialiser les états de photo
+        setPhotoFile(null);
+        setPhotoPreview(null);
+        
+        alert('Photo mise à jour avec succès !');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'upload de la photo:', error);
+      alert('Erreur lors de l\'upload de la photo');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!currentUser || !formData) return;
+    
+    try {
+      // Extract _id and create update data without _id
+      const { _id, ...updateData } = formData;
+      
+      // Handle save logic here using the store
+      await updateCurrentUser(updateData as UpdatePersonnelData);
+      
+      closeModal();
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour:', error);
+      alert('Erreur lors de la mise à jour des informations');
+    }
+  };
+
+  const formatDateForInput = (date: string | Date) => {
+    if (!date) return '';
+    const dateObj = date instanceof Date ? date : new Date(date);
+    return dateObj.toISOString().split('T')[0];
+  };
+
+  const renderCustomLoader = () => (
+    <div className="animate-spin h-6 w-6 mx-auto my-6 text-gray-500 dark:text-gray-400">
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /></svg>
+    </div>
+  );
+
+  const parseToFrenchDate = (date: string | Date) => {
+    const dateTime = date instanceof Date ? date : new Date(date);
+    const day = dateTime.getDate();
+    const month = dateTime.getMonth() + 1;
+    const year = dateTime.getFullYear();
+
+    return `${day}/${month}/${year}`;
+  };
+
+  if (!currentUser) {
+    return (
+      <div className="animate-spin h-6 w-6 mx-auto my-6 text-gray-500 dark:text-gray-400">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /></svg>
+      </div>
+    );
+  }
   return (
     <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-6">
-            Personal Information
+            Identités
           </h4>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
             <div>
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                First Name
+                Nom
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                Musharof
+                {currentUser?.nom}
               </p>
             </div>
 
             <div>
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Last Name
+                Nationalité
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                Chowdhury
+                {currentUser?.nationalite}
               </p>
             </div>
 
             <div>
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Email address
+                Post-nom
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                randomuser@pimjo.com
+                {currentUser?.post_nom}
               </p>
             </div>
 
             <div>
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Phone
+                Lieu de naissance
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                +09 363 398 46
+                {currentUser?.lieu_naissance}
               </p>
             </div>
 
             <div>
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Bio
+                Prenom
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                Team Manager
+                {currentUser?.prenom}
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                Date de naissance
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                {currentUser?.date_naissance ? parseToFrenchDate(currentUser?.date_naissance) : ""}
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                Sexe
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                {currentUser?.sexe}
               </p>
             </div>
           </div>
@@ -88,7 +221,7 @@ export default function UserInfoCard() {
               fill=""
             />
           </svg>
-          Edit
+          Modifier
         </button>
       </div>
 
@@ -96,89 +229,203 @@ export default function UserInfoCard() {
         <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Edit Personal Information
+              Modifier les informations personnelles
             </h4>
             <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-              Update your details to keep your profile up-to-date.
+              Mettez à jour vos informations pour maintenir votre profil à jour.
             </p>
           </div>
           <form className="flex flex-col">
             <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
-              <div>
+              {/* Section Photo de profil */}
+              <div className="mb-7">
                 <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
-                  Social Links
+                  Photo de profil
                 </h5>
-
-                <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                  <div>
-                    <Label>Facebook</Label>
-                    <Input
-                      type="text"
-                      defaultValue="https://www.facebook.com/PimjoHQ"
-                    />
+                
+                <div className="flex flex-col items-center gap-4">
+                  {/* Affichage de la photo actuelle ou preview */}
+                  <div className="relative">
+                    <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                      {photoPreview ? (
+                        <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                      ) : currentUser?.photo ? (
+                        <img 
+                          src={currentUser.photo} 
+                          alt="Photo de profil" 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // En cas d'erreur de chargement, masquer l'image et afficher les initiales
+                            e.currentTarget.style.display = 'none';
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `<div class="text-2xl font-semibold text-gray-400 dark:text-gray-500">${currentUser?.nom?.charAt(0) || ''}${currentUser?.prenom?.charAt(0) || ''}</div>`;
+                            }
+                          }}
+                        />
+                      ) : (
+                        <div className="text-2xl font-semibold text-gray-400 dark:text-gray-500">
+                          {currentUser?.nom?.charAt(0)}{currentUser?.prenom?.charAt(0)}
+                        </div>
+                      )}
+                    </div>
                   </div>
-
-                  <div>
-                    <Label>X.com</Label>
-                    <Input type="text" defaultValue="https://x.com/PimjoHQ" />
-                  </div>
-
-                  <div>
-                    <Label>Linkedin</Label>
-                    <Input
-                      type="text"
-                      defaultValue="https://www.linkedin.com/company/pimjo"
+                  
+                  {/* Input file et boutons */}
+                  <div className="flex flex-col gap-3 w-full max-w-xs">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/20 dark:file:text-blue-400"
                     />
-                  </div>
-
-                  <div>
-                    <Label>Instagram</Label>
-                    <Input
-                      type="text"
-                      defaultValue="https://instagram.com/PimjoHQ"
-                    />
+                    
+                    {photoFile && (
+                      <Button
+                        size="sm"
+                        onClick={uploadPhoto}
+                        disabled={isUploadingPhoto}
+                        className="w-full"
+                      >
+                        {isUploadingPhoto ? (
+                          <div className="flex items-center gap-2">
+                            <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                            Upload...
+                          </div>
+                        ) : (
+                          'Mettre à jour la photo'
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
-              <div className="mt-7">
+
+              <div>
                 <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
-                  Personal Information
+                  Informations personnelles
                 </h5>
 
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                   <div className="col-span-2 lg:col-span-1">
-                    <Label>First Name</Label>
-                    <Input type="text" defaultValue="Musharof" />
+                    <Label>Nom</Label>
+                    <Input 
+                      type="text" 
+                      defaultValue={formData.nom || ''}
+                      onChange={(e) => handleInputChange('nom', e.target.value)}
+                    />
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
-                    <Label>Last Name</Label>
-                    <Input type="text" defaultValue="Chowdhury" />
+                    <Label>Post-nom</Label>
+                    <Input 
+                      type="text" 
+                      defaultValue={formData.post_nom || ''}
+                      onChange={(e) => handleInputChange('post_nom', e.target.value)}
+                    />
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
-                    <Label>Email Address</Label>
-                    <Input type="text" defaultValue="randomuser@pimjo.com" />
+                    <Label>Prénom</Label>
+                    <Input 
+                      type="text" 
+                      defaultValue={formData.prenom || ''}
+                      onChange={(e) => handleInputChange('prenom', e.target.value)}
+                    />
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
-                    <Label>Phone</Label>
-                    <Input type="text" defaultValue="+09 363 398 46" />
+                    <Label>Matricule</Label>
+                    <Input 
+                      type="text" 
+                      defaultValue={formData.matricule || ''}
+                      disabled
+                      className="bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Email</Label>
+                    <Input 
+                      type="email" 
+                      defaultValue={formData.email || ''}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Téléphone</Label>
+                    <Input 
+                      type="tel" 
+                      defaultValue={formData.telephone || ''}
+                      onChange={(e) => handleInputChange('telephone', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Sexe</Label>
+                    <select 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                      value={formData.sexe || ''}
+                      onChange={(e) => handleInputChange('sexe', e.target.value as 'M' | 'F')}
+                    >
+                      <option value="">Sélectionner</option>
+                      <option value="M">Masculin</option>
+                      <option value="F">Féminin</option>
+                    </select>
+                  </div>
+
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Nationalité</Label>
+                    <Input 
+                      type="text" 
+                      defaultValue={formData.nationalite || ''}
+                      onChange={(e) => handleInputChange('nationalite', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Lieu de naissance</Label>
+                    <Input 
+                      type="text" 
+                      defaultValue={formData.lieu_naissance || ''}
+                      onChange={(e) => handleInputChange('lieu_naissance', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Date de naissance</Label>
+                    <Input 
+                      type="date" 
+                      defaultValue={formatDateForInput(formData.date_naissance || '')}
+                      onChange={(e) => handleInputChange('date_naissance', e.target.value)}
+                    />
                   </div>
 
                   <div className="col-span-2">
-                    <Label>Bio</Label>
-                    <Input type="text" defaultValue="Team Manager" />
+                    <Label>Adresse</Label>
+                    <Input 
+                      type="text" 
+                      defaultValue={formData.adresse || ''}
+                      onChange={(e) => handleInputChange('adresse', e.target.value)}
+                    />
                   </div>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Button size="sm" variant="outline" onClick={closeModal}>
-                Close
+              <Button size="sm" variant="outline" onClick={closeModal} disabled={isLoading}>
+                Annuler
               </Button>
-              <Button size="sm" onClick={handleSave}>
-                Save Changes
+              <Button size="sm" onClick={handleSave} disabled={isLoading}>
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    Sauvegarde...
+                  </div>
+                ) : (
+                  'Sauvegarder'
+                )}
               </Button>
             </div>
           </form>

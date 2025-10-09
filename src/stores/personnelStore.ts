@@ -20,6 +20,12 @@ interface PersonnelStore {
   isLoading: boolean;
   error: string | null;
   
+  // Authentification et utilisateur courant
+  currentUser: Personnel | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  isAuthLoading: boolean;
+  
   // Actions
   loadPersonnels: () => Promise<void>;
   loadPersonnelStats: () => Promise<void>;
@@ -32,6 +38,13 @@ interface PersonnelStore {
   clearFilters: () => void;
   applyFilters: () => void;
   searchPersonnels: (query: string) => void;
+  
+  // Actions d'authentification
+  login: (matricule: string, password: string, type: string) => Promise<{ success: boolean; message?: string }>;
+  logout: () => void;
+  updateCurrentUser: (userData: UpdatePersonnelData) => Promise<void>;
+  initializeAuth: () => void;
+  updateCurrentUserPhoto: (photoUrl: string) => Promise<void>;
   
   // Getters
   getPersonnelById: (id: string) => Personnel | undefined;
@@ -48,6 +61,12 @@ export const usePersonnelStore = create<PersonnelStore>()(
       filters: {},
       isLoading: false,
       error: null,
+      
+      // État d'authentification
+      currentUser: null,
+      token: null,
+      isAuthenticated: false,
+      isAuthLoading: false,
 
       // Actions
       loadPersonnels: async () => {
@@ -206,7 +225,7 @@ export const usePersonnelStore = create<PersonnelStore>()(
       updatePersonnel: async (id, updates) => {
         set({ isLoading: true, error: null });
         try {
-          const token = localStorage.getItem('token');
+          const token = localStorage.getItem('accessToken');
           const response = await fetch(`${API_URL}/users/${id}`, {
             method: 'PUT',
             headers: {
@@ -377,6 +396,136 @@ export const usePersonnelStore = create<PersonnelStore>()(
         get().setFilters({ search: query });
       },
 
+      // Actions d'authentification
+      login: async (matricule, password, type) => {
+        set({ isAuthLoading: true, error: null });
+        try {
+          const request = await fetch(`${API_URL}/users/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ matricule, password, type }),
+          });
+
+          const response = await request.json();
+
+          if (response.success) {
+            const {user, accessToken} = response.data;
+            // Ajouter les champs calculés
+            user.nomComplet = `${user.nom} ${user.post_nom} ${user.prenom}`;
+            if (user.date_naissance) {
+              const age = new Date().getFullYear() - new Date(user.date_naissance).getFullYear();
+              user.age = age;
+            }
+
+            set({
+              currentUser: user,
+              token: accessToken,
+              isAuthenticated: true,
+              isAuthLoading: false,
+            });
+
+            // Sauvegarder dans localStorage
+            localStorage.setItem('token', accessToken);
+            localStorage.setItem('user', JSON.stringify(user));
+
+            return { success: true };
+          } else {
+            set({ isAuthLoading: false, error: response.message || 'Erreur de connexion' });
+            return { success: false, message: response.message || 'Erreur de connexion' };
+          }
+        } catch (error) {
+          const errorMessage = 'Erreur de connexion au serveur';
+          set({ isAuthLoading: false, error: errorMessage });
+          return { success: false, message: errorMessage };
+        }
+      },
+
+      logout: () => {
+        set({
+          currentUser: null,
+          token: null,
+          isAuthenticated: false,
+        });
+        
+        // Nettoyer localStorage
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      },
+
+      updateCurrentUser: async (userData) => {
+        const { currentUser, token } = get();
+        if (!currentUser || !token) return;
+
+        set({ isLoading: true, error: null });
+        try {
+          const response = await fetch(`${API_URL}/users/${currentUser._id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(userData),
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            const updatedUser = { ...currentUser, ...userData };
+            // Recalculer les champs calculés
+            updatedUser.nomComplet = `${updatedUser.nom} ${updatedUser.post_nom} ${updatedUser.prenom}`;
+            if (updatedUser.date_naissance) {
+              const age = new Date().getFullYear() - new Date(updatedUser.date_naissance).getFullYear();
+              updatedUser.age = age;
+            }
+
+            set({ 
+              currentUser: updatedUser as Personnel,
+              isLoading: false 
+            });
+
+            // Mettre à jour localStorage
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+          } else {
+            set({ isLoading: false, error: data.message || 'Erreur de mise à jour' });
+            throw new Error(data.message || 'Erreur de mise à jour');
+          }
+        } catch (error) {
+          set({ isLoading: false, error: 'Erreur de mise à jour' });
+          throw error;
+        }
+      },
+
+      updateCurrentUserPhoto: async (photoUrl) => {
+        const { currentUser } = get();
+        if (!currentUser) return;
+
+        const updatedUser = { ...currentUser, photo: photoUrl };
+        set({ currentUser: updatedUser });
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      },
+
+      initializeAuth: () => {
+        const token = localStorage.getItem('token');
+        const userStr = localStorage.getItem('user');
+        
+        if (token && userStr) {
+          try {
+            const user = JSON.parse(userStr);
+            set({
+              currentUser: user,
+              token,
+              isAuthenticated: true,
+            });
+          } catch (error) {
+            // Si erreur de parsing, nettoyer localStorage
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+          }
+        }
+      },
+
       // Getters
       getPersonnelById: (id) => {
         const { personnels } = get();
@@ -392,7 +541,10 @@ export const usePersonnelStore = create<PersonnelStore>()(
       name: 'personnel-store',
       partialize: (state) => ({
         personnels: state.personnels,
-        filters: state.filters
+        filters: state.filters,
+        currentUser: state.currentUser,
+        token: state.token,
+        isAuthenticated: state.isAuthenticated
       })
     }
   )
@@ -451,5 +603,29 @@ export const usePersonnelsByProvince = (provinceId: string) => {
   return {
     personnels: store.getPersonnelsByProvince(provinceId),
     count: store.getPersonnelsByProvince(provinceId).length
+  };
+};
+
+// Hooks d'authentification
+export const useAuth = () => {
+  const store = usePersonnelStore();
+  return {
+    currentUser: store.currentUser,
+    token: store.token,
+    isAuthenticated: store.isAuthenticated,
+    isAuthLoading: store.isAuthLoading,
+    login: store.login,
+    logout: store.logout,
+    initializeAuth: store.initializeAuth
+  };
+};
+
+export const useCurrentUser = () => {
+  const store = usePersonnelStore();
+  return {
+    currentUser: store.currentUser,
+    updateCurrentUser: store.updateCurrentUser,
+    updateCurrentUserPhoto: store.updateCurrentUserPhoto,
+    isLoading: store.isLoading
   };
 };

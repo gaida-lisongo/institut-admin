@@ -6,40 +6,50 @@ import Button from "@/components/ui/button/Button";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/stores/personnelStore";
 
-const API_URL = process.env.NEXT_PUBLIC_SERVER_API_URL;
 export default function SignInForm() {
   const router = useRouter();
+  const { login, isAuthLoading, isAuthenticated, initializeAuth } = useAuth();
+  
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
   const [matricule, setMatricule] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  // Initialiser l'authentification au montage du composant
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+
+  // Rediriger si déjà authentifié
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/");
+    }
+  }, [isAuthenticated, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     
+    if (!matricule.trim() || !password.trim()) {
+      setError("Veuillez remplir tous les champs");
+      return;
+    }
+
     try {
-      const request = await fetch(`${API_URL}/users/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ matricule, password, type:"DRH" }),
-      });
-      const response = await request.json();
+      const result = await login(matricule, password, "DRH");
       
-      if(response.success){
-        const {
-          user,
-          accessToken,
-          expiresIn
-        } = response.data;
-        localStorage.setItem("user", JSON.stringify(user));
-        localStorage.setItem("accessToken", accessToken);
-        localStorage.setItem("expiresIn", expiresIn);
+      if (result.success) {
         router.push("/");
+      } else {
+        setError(result.message || "Erreur de connexion");
       }
     } catch (error) {
+      setError("Erreur de connexion au serveur");
       console.error(error);
     }
   };
@@ -119,6 +129,11 @@ export default function SignInForm() {
             </div>
             <form onSubmit={handleSubmit}>
               <div className="space-y-6">
+                {error && (
+                  <div className="p-4 text-sm text-red-700 bg-red-100 border border-red-300 rounded-lg dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
+                    {error}
+                  </div>
+                )}
                 <div>
                   <Label>
                     Matricule <span className="text-error-500">*</span>{" "}
@@ -128,6 +143,7 @@ export default function SignInForm() {
                   type="text" 
                   defaultValue={matricule}
                   onChange={(e) => setMatricule(e.target.value)}
+                  disabled={isAuthLoading}
                   />
                 </div>
                 <div>
@@ -137,9 +153,10 @@ export default function SignInForm() {
                   <div className="relative">
                     <Input
                       type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
+                      placeholder="Entrez votre mot de passe"
                       defaultValue={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      disabled={isAuthLoading}
                     />
                     <span
                       onClick={() => setShowPassword(!showPassword)}
@@ -168,8 +185,15 @@ export default function SignInForm() {
                   </Link>
                 </div>
                 <div>
-                  <Button className="w-full" size="sm">
-                    Sign in
+                  <Button className="w-full" size="sm" disabled={isAuthLoading}>
+                    {isAuthLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        Connexion...
+                      </div>
+                    ) : (
+                      'Se connecter'
+                    )}
                   </Button>
                 </div>
               </div>

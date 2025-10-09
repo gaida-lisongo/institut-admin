@@ -1,17 +1,59 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
+import { useCurrentUser } from "@/stores/personnelStore";
+import { Personnel, UpdatePersonnelData } from "@/types/personnel";
+import { useProvinceStore } from "@/stores/provinceStore";
 
 export default function UserAddressCard() {
   const { isOpen, openModal, closeModal } = useModal();
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving changes...");
-    closeModal();
+  const { currentUser, updateCurrentUser, isLoading } = useCurrentUser();
+  const { provinces, fetchProvinces } = useProvinceStore();
+  const [formData, setFormData] = useState<Partial<Personnel>>({});
+
+  useEffect(() => {
+    if (currentUser) {
+      setFormData(currentUser);
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    // Charger les provinces si elles ne sont pas déjà chargées
+    if (!provinces || provinces.length === 0) {
+      fetchProvinces();
+    }
+  }, [provinces, fetchProvinces]);
+
+  const handleInputChange = (field: keyof Personnel, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+  
+  const getCurrentProvince = (_id : string) =>{
+    if(!provinces){
+      return ""
+    }
+    return provinces.find((province) => province._id === _id)?.designation || "";
+  }
+
+  const handleSave = async () => {
+    if (!currentUser || !formData) return;
+    
+    try {
+      // Extract _id and create update data without _id
+      const { _id, ...updateData } = formData;
+      
+      // Handle save logic here using the store
+      await updateCurrentUser(updateData as UpdatePersonnelData);
+      
+      closeModal();
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour:', error);
+      alert('Erreur lors de la mise à jour des informations');
+    }
   };
   return (
     <>
@@ -19,43 +61,43 @@ export default function UserAddressCard() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-6">
-              Address
+              Coordonnées
             </h4>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  Country
+                  Province
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  United States
+                  {typeof formData?.province == "string" ? getCurrentProvince(formData?.province as string) : formData?.province?.designation}
                 </p>
               </div>
 
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  City/State
+                  Adresse
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  Phoenix, Arizona, United States.
+                  {formData?.adresse}
                 </p>
               </div>
 
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  Postal Code
+                  Téléphone
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  ERT 2489
+                  {formData?.telephone}
                 </p>
               </div>
 
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  TAX ID
+                  E-mail
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  AS4568384
+                  {formData?.email}
                 </p>
               </div>
             </div>
@@ -80,7 +122,7 @@ export default function UserAddressCard() {
                 fill=""
               />
             </svg>
-            Edit
+            Modifier
           </button>
         </div>
       </div>
@@ -88,42 +130,73 @@ export default function UserAddressCard() {
         <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Edit Address
+              Modifier les coordonnées
             </h4>
             <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-              Update your details to keep your profile up-to-date.
+              Mettez à jour vos coordonnées pour maintenir votre profil à jour.
             </p>
           </div>
           <form className="flex flex-col">
             <div className="px-2 overflow-y-auto custom-scrollbar">
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                <div>
-                  <Label>Country</Label>
-                  <Input type="text" defaultValue="United States" />
+                {/* Province en lecture seule */}
+                <div className="col-span-2">
+                  <Label>Province (géré par l'administration)</Label>
+                  <Input 
+                    type="text" 
+                    defaultValue={typeof formData?.province === "string" ? getCurrentProvince(formData?.province as string) : formData?.province?.designation || ''}
+                    disabled
+                    className="bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    La province ne peut être modifiée que par un administrateur
+                  </p>
                 </div>
 
-                <div>
-                  <Label>City/State</Label>
-                  <Input type="text" defaultValue="Arizona, United States." />
+                <div className="col-span-2">
+                  <Label>Adresse</Label>
+                  <Input 
+                    type="text" 
+                    defaultValue={formData.adresse || ''}
+                    onChange={(e) => handleInputChange('adresse', e.target.value)}
+                    placeholder="Entrez votre adresse complète"
+                  />
                 </div>
 
-                <div>
-                  <Label>Postal Code</Label>
-                  <Input type="text" defaultValue="ERT 2489" />
+                <div className="col-span-2 lg:col-span-1">
+                  <Label>Téléphone</Label>
+                  <Input 
+                    type="tel" 
+                    defaultValue={formData.telephone || ''}
+                    onChange={(e) => handleInputChange('telephone', e.target.value)}
+                    placeholder="Ex: +243 123 456 789"
+                  />
                 </div>
 
-                <div>
-                  <Label>TAX ID</Label>
-                  <Input type="text" defaultValue="AS4568384" />
+                <div className="col-span-2 lg:col-span-1">
+                  <Label>E-mail</Label>
+                  <Input 
+                    type="email" 
+                    defaultValue={formData.email || ''}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    placeholder="votre.email@exemple.com"
+                  />
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Button size="sm" variant="outline" onClick={closeModal}>
-                Close
+              <Button size="sm" variant="outline" onClick={closeModal} disabled={isLoading}>
+                Annuler
               </Button>
-              <Button size="sm" onClick={handleSave}>
-                Save Changes
+              <Button size="sm" onClick={handleSave} disabled={isLoading}>
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    Sauvegarde...
+                  </div>
+                ) : (
+                  'Sauvegarder'
+                )}
               </Button>
             </div>
           </form>
