@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useSystemeStore } from '@/stores/systemeStore';
 import { SystemeFormData, Cycle, Classe } from '@/types/systemes';
+import ImageUploader from './ImageUploader';
 
 interface SystemeCreateCardProps {
     onSuccess: () => void;
@@ -82,6 +83,14 @@ const SystemeCreateCard: React.FC<SystemeCreateCardProps> = ({ onSuccess, onCanc
                 >
                     + Ajouter une description
                 </button>
+            </div>
+
+            <div>
+                <ImageUploader
+                    currentImageUrl={formData.photo}
+                    onImageUploaded={(url) => setFormData({...formData, photo: url})}
+                    onImageRemoved={() => setFormData({...formData, photo: ''})}
+                />
             </div>
         </div>
     );

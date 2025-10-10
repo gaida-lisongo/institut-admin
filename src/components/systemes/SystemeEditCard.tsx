@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSystemeStore } from '@/stores/systemeStore';
 import { SystemeFormData, Systeme, Cycle, Classe } from '@/types/systemes';
+import ImageUploader from './ImageUploader';
 
 interface SystemeEditCardProps {
     systeme: Systeme;
@@ -94,15 +95,10 @@ const SystemeEditCard: React.FC<SystemeEditCardProps> = ({ systeme, onSuccess, o
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Photo (URL)
-                </label>
-                <input
-                    type="url"
-                    value={formData.photo}
-                    onChange={(e) => setFormData({...formData, photo: e.target.value})}
-                    placeholder="https://exemple.com/image.jpg"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                <ImageUploader
+                    currentImageUrl={formData.photo}
+                    onImageUploaded={(url) => setFormData({...formData, photo: url})}
+                    onImageRemoved={() => setFormData({...formData, photo: ''})}
                 />
             </div>
         </div>
