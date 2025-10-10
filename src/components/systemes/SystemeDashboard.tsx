@@ -154,38 +154,22 @@ const SystemeDashboard: React.FC<SystemeDashboardProps> = ({ systeme, onBack }) 
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            {/* Header avec navigation */}
-            <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                        <button
-                            onClick={onBack}
-                            className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                        >
-                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                            </svg>
-                            Retour aux systèmes
-                        </button>
-                        <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
-                        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-                            {localSysteme.designation}
-                        </h1>
-                    </div>
-                    
-                    <div className="flex items-center space-x-3">
-                        <button
-                            onClick={saveChanges}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
-                        >
-                            Sauvegarder
-                        </button>
-                    </div>
-                </div>
-            </div>
 
             {/* Bannière avec image modifiable */}
             <div className="relative h-64 bg-gradient-to-r from-blue-600 to-purple-600">
+                {/* Bouton retour en position absolue sur la bannière */}
+                <button
+                    onClick={() => {
+                        console.log('Bouton retour cliqué');
+                        onBack();
+                    }}
+                    className="absolute top-4 left-4 z-20 flex items-center px-4 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg shadow-lg text-white hover:bg-black/50 transition-all duration-200"
+                >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Retour aux systèmes
+                </button>
                 {localSysteme.photo ? (
                     <img 
                         src={localSysteme.photo} 
@@ -228,6 +212,35 @@ const SystemeDashboard: React.FC<SystemeDashboardProps> = ({ systeme, onBack }) 
                     </div>
                 </div>
             </div>
+
+            {/* Header avec navigation */}
+            {/* <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+                            {localSysteme.designation}
+                        </h1>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3">
+                        <button
+                            onClick={() => {
+                                console.log('Bouton retour alternatif cliqué');
+                                onBack();
+                            }}
+                            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm font-medium transition-colors"
+                        >
+                            ← Retour
+                        </button>
+                        <button
+                            onClick={saveChanges}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                        >
+                            Sauvegarder
+                        </button>
+                    </div>
+                </div>
+            </div> */}
 
             {/* Contenu principal */}
             <div className="max-w-7xl mx-auto px-6 py-8">

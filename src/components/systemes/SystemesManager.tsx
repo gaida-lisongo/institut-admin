@@ -77,7 +77,10 @@ const SystemesManager: React.FC<SystemesManagerProps> = ({
         return (
             <SystemeDashboard
                 systeme={selectedSysteme}
-                onBack={() => setSelectedSysteme(null)}
+                onBack={() => {
+                    console.log('Retour à la liste des systèmes');
+                    setSelectedSysteme(null);
+                }}
             />
         );
     }
