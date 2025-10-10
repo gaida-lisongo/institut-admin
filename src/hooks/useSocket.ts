@@ -42,7 +42,7 @@ export const useSocket = ({
             socketManager.onAuthenticated(data, stableOnAuth);
         });
 
-        socketManager.on('rooms_list', (data: { id: number; name: string; userCount: number }[]) => {
+        socketManager.on('rooms_list', (data: { id: string; name: string; userCount: number }[]) => {
             console.log('Event list_rooms reçu:', data);
             socketManager.onRefreshRoom(data, console.log);
         });

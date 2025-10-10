@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Outfit } from 'next/font/google';
 import './globals.css';
 
@@ -47,15 +47,6 @@ export const metadata: Metadata = {
       noimageindex: true,
     },
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-  },
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#1f2937" }
-  ],
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -88,6 +79,16 @@ export const metadata: Metadata = {
     description: "Système complet de gestion administrative pour institut supérieur",
     images: ["/images/og-image.jpg"],
   },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#1f2937" }
+  ],
 };
 
 export default function RootLayout({

@@ -1,15 +1,7 @@
-import type { Metadata } from "next";
+'use client';
+
 import Link from "next/link";
 import { ShieldX, ArrowLeft, Home } from "lucide-react";
-
-export const metadata: Metadata = {
-  title: "Accès Non Autorisé",
-  description: "Vous n'avez pas les autorisations nécessaires pour accéder à cette page.",
-  robots: {
-    index: false,
-    follow: false,
-  },
-};
 
 export default function UnauthorizedPage() {
   return (

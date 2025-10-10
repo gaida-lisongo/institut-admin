@@ -28,11 +28,6 @@ export const metadata: Metadata = {
     index: false, // Pas d'indexation pour les pages admin
     follow: false,
   },
-  viewport: "width=device-width, initial-scale=1",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#1f2937" }
-  ],
 };
 
 export default function Ecommerce() {

@@ -111,7 +111,7 @@ export default function ChatLayoutOptimized() {
 
         // Envoyer la suppression au serveur
         socketManager.deleteMessage({
-            roomId: currentRoom.roomId,
+            roomId: currentRoom.roomId.toString(),
             messageId: message._id
         });
     }, [currentRoom, socketManager]);
