@@ -2,8 +2,61 @@
 
 import { useState } from 'react';
 import { Systeme } from '@/types/systemes';
-import SystemeCard from './SystemeCard';
-import SystemeCreateCard from './SystemeCreateCard';
+import SystemeDashboard from './SystemeDashboard';
+
+// Composant temporaire pour SystemeCard
+const SystemeCard: React.FC<{ systeme: Systeme; onViewDetails: () => void }> = ({ systeme, onViewDetails }) => (
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all duration-200 overflow-hidden group">
+        <div className="h-32 bg-gradient-to-br from-blue-500 to-purple-600 relative">
+            {systeme.photo ? (
+                <img src={systeme.photo} alt={systeme.designation} className="w-full h-full object-cover" />
+            ) : (
+                <div className="flex items-center justify-center h-full">
+                    <svg className="w-12 h-12 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                </div>
+            )}
+        </div>
+        <div className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{systeme.designation}</h3>
+            <div className="flex space-x-4 mb-4">
+                <div className="text-center">
+                    <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{systeme.cycles?.length || 0}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Cycles</div>
+                </div>
+                <div className="text-center">
+                    <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                        {systeme.cycles?.reduce((acc, cycle) => acc + (cycle.classes?.length || 0), 0) || 0}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Classes</div>
+                </div>
+            </div>
+            <button
+                onClick={onViewDetails}
+                className="w-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+                Voir détails
+            </button>
+        </div>
+    </div>
+);
+
+// Composant temporaire pour SystemeCreateCard
+const SystemeCreateCard: React.FC<{ onSuccess: () => void; onCancel: () => void }> = ({ onSuccess, onCancel }) => (
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Créer un nouveau système</h3>
+        <p className="text-gray-600 dark:text-gray-400 mb-4">Fonctionnalité de création en cours de développement...</p>
+        <div className="flex space-x-3">
+            <button onClick={onCancel} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg">
+                Annuler
+            </button>
+            <button onClick={onSuccess} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                Créer
+            </button>
+        </div>
+    </div>
+);
 
 interface SystemesManagerProps {
     systemes: Systeme[];
@@ -17,6 +70,17 @@ const SystemesManager: React.FC<SystemesManagerProps> = ({
     onSearchChange
 }) => {
     const [showCreateForm, setShowCreateForm] = useState(false);
+    const [selectedSysteme, setSelectedSysteme] = useState<Systeme | null>(null);
+
+    // Si un système est sélectionné, afficher le dashboard
+    if (selectedSysteme) {
+        return (
+            <SystemeDashboard
+                systeme={selectedSysteme}
+                onBack={() => setSelectedSysteme(null)}
+            />
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -104,6 +168,7 @@ const SystemesManager: React.FC<SystemesManagerProps> = ({
                         <SystemeCard
                             key={systeme._id}
                             systeme={systeme}
+                            onViewDetails={() => setSelectedSysteme(systeme)}
                         />
                     ))}
                 </div>

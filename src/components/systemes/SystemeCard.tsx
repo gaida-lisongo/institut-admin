@@ -8,9 +8,10 @@ import SystemeDetailView from './SystemeDetailView';
 
 interface SystemeCardProps {
     systeme: Systeme;
+    onViewDetails?: () => void;
 }
 
-const SystemeCard: React.FC<SystemeCardProps> = ({ systeme }) => {
+const SystemeCard: React.FC<SystemeCardProps> = ({ systeme, onViewDetails }) => {
     const { deleteSysteme } = useSystemeStore();
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -139,7 +140,7 @@ const SystemeCard: React.FC<SystemeCardProps> = ({ systeme }) => {
                 {/* Actions principales */}
                 <div className="flex space-x-2">
                     <button
-                        onClick={() => setShowDetailView(true)}
+                        onClick={onViewDetails || (() => setShowDetailView(true))}
                         className="flex-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                     >
                         Voir détails
