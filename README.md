@@ -1,21 +1,79 @@
-# TailAdmin Next.js - Free Next.js Tailwind Admin Dashboard Template
+# 🎓 Institut Admin - Système de Gestion Académique
 
-TailAdmin is a free and open-source admin dashboard template built on **Next.js and Tailwind CSS** providing developers with everything they need to create a feature-rich and data-driven: back-end, dashboard, or admin panel solution for any sort of web project.
+Institut Admin est une application web complète de gestion administrative pour institut supérieur, construite avec **Next.js 15**, **React 19**, **TypeScript** et **Tailwind CSS**. Elle offre une solution moderne et sécurisée pour la gestion des personnels, étudiants, inscriptions, notes et ressources académiques.
 
-![TailAdmin - Next.js Dashboard Preview](./banner.png)
+![Institut Admin - Dashboard Preview](./banner.png)
 
-With TailAdmin Next.js, you get access to all the necessary dashboard UI components, elements, and pages required to build a high-quality and complete dashboard or admin panel. Whether you're building a dashboard or admin panel for a complex web application or a simple website. 
+## 🚀 Fonctionnalités Principales
 
-TailAdmin utilizes the powerful features of **Next.js 15** and common features of Next.js such as server-side rendering (SSR), static site generation (SSG), and seamless API route integration. Combined with the advancements of **React 19** and the robustness of **TypeScript**, TailAdmin is the perfect solution to help get your project up and running quickly.
+### 👥 Gestion du Personnel
+- **CRUD complet** : Création, modification, suppression des agents
+- **Système d'autorisations** : 8 niveaux hiérarchiques (DG, SGACAD, SGAD, SGR, AB, FIN, ADMIN, DRH)
+- **Grades dynamiques** : 16 grades selon la catégorie (Académique, Scientifique, Administratif/Ouvrier)
+- **Upload de documents** : Photos de profil et pièces justificatives
+- **Recherche avancée** : Filtrage par nom, matricule, grade, niveau
 
-## Overview
+### 🎓 Gestion Académique
+- **Classes et cycles** : Organisation hiérarchique des formations
+- **Inscriptions étudiants** : Gestion des statuts (OK/PENDING/NO)
+- **Relevés de notes** : Génération automatique de documents
+- **Grilles de délibération** : Export Excel professionnel
+- **Semestres et unités** : Structure académique complète
 
-TailAdmin provides essential UI components and layouts for building feature-rich, data-driven admin dashboards and control panels. It's built on:
+### 💰 Gestion Financière
+- **Produits et services** : Catalogue avec tarification
+- **Suivi des paiements** : États financiers par étudiant
+- **Rapports comptables** : Statistiques et analyses
+- **Import/Export CSV** : Traitement en lot des données
 
-- Next.js 15.x
-- React 19
-- TypeScript
-- Tailwind CSS V4
+### 💬 Communication
+- **Chat temps réel** : WebSocket avec Socket.IO
+- **Pièces jointes** : Upload et partage de fichiers
+- **Notifications** : Système d'alertes intégré
+- **Autorisations contextuelles** : Chat adapté au niveau d'autorisation
+
+## 🛡️ Sécurité et Authentification
+
+### Middleware de Sécurité Avancé
+- **JWT avec `jose`** : Vérification cryptographique des tokens
+- **Protection des routes** : Middleware Next.js pour toutes les pages protégées
+- **Autorisations hiérarchiques** : Contrôle d'accès selon les rôles
+- **Anti-indexation** : Protection complète contre l'indexation des moteurs de recherche
+
+### Authentification Multi-Niveaux
+- **Vérification serveur** : Middleware avant rendu des pages
+- **Synchronisation tokens** : localStorage ↔ cookies pour compatibilité
+- **Déconnexion sécurisée** : Nettoyage automatique de tous les tokens
+- **Sessions persistantes** : Gestion d'état avec Zustand
+
+## 🏗️ Architecture Technique
+
+### Stack Technologique
+- **Frontend** : Next.js 15.x, React 19, TypeScript
+- **Styling** : Tailwind CSS V4, Mode sombre/clair
+- **État global** : Zustand avec persistance
+- **Authentification** : JWT avec `jose`, Middleware Next.js
+- **Communication** : Socket.IO pour le chat temps réel
+- **Upload** : BlobManager pour la gestion des fichiers
+
+### Structure du Projet
+```
+src/
+├── app/                    # App Router Next.js 15
+│   ├── (admin)/           # Routes protégées
+│   ├── (auth)/            # Pages d'authentification
+│   └── layout.tsx         # Layout principal avec métadonnées
+├── components/            # Composants réutilisables
+│   ├── auth/              # Composants d'authentification
+│   ├── classe/            # Gestion des classes
+│   ├── personnel/         # Gestion du personnel
+│   └── common/            # Composants partagés
+├── stores/                # Stores Zustand
+├── services/              # Services API
+├── utils/                 # Utilitaires et helpers
+├── middleware.ts          # Middleware de sécurité
+└── types/                 # Définitions TypeScript
+```
 
 ### Quick Links
 - [✨ Visit Website](https://tailadmin.com)

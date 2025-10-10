@@ -4,6 +4,7 @@ import './globals.css';
 
 import { SidebarProvider } from '@/context/SidebarContext';
 import { ThemeProvider } from '@/context/ThemeContext';
+import AuthSync from '@/components/auth/AuthSync';
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -97,6 +98,7 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={`${outfit.className} dark:bg-gray-900`}>
+        <AuthSync />
         <ThemeProvider>
           <SidebarProvider>{children}</SidebarProvider>
         </ThemeProvider>

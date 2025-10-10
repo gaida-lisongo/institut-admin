@@ -9,6 +9,7 @@ import {
   PersonnelApiResponse,
   PersonnelStatsApiResponse
 } from '@/types/personnel';
+import { syncAuthToken, clearAuthTokens } from '@/utils/auth';
 
 const API_URL = process.env.NEXT_PUBLIC_SERVER_API_URL;
 interface PersonnelStore {
@@ -426,9 +427,12 @@ export const usePersonnelStore = create<PersonnelStore>()(
               isAuthLoading: false,
             });
 
-            // Sauvegarder dans localStorage
-            localStorage.setItem('token', accessToken);
-            localStorage.setItem('user', JSON.stringify(user));
+            // Sauvegarder dans localStorage avec le bon nom de clé
+            localStorage.setItem('auth-token', accessToken);
+            localStorage.setItem('user-data', JSON.stringify(user));
+            
+            // Synchroniser avec les cookies pour le middleware
+            syncAuthToken();
 
             return { success: true };
           } else {
@@ -449,9 +453,8 @@ export const usePersonnelStore = create<PersonnelStore>()(
           isAuthenticated: false,
         });
         
-        // Nettoyer localStorage
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        // Nettoyer tous les tokens d'authentification
+        clearAuthTokens();
       },
 
       updateCurrentUser: async (userData) => {
