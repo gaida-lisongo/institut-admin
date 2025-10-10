@@ -214,7 +214,7 @@ const SystemeDashboard: React.FC<SystemeDashboardProps> = ({ systeme, onBack }) 
             </div>
 
             {/* Header avec navigation */}
-            {/* <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+            <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                         <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -240,7 +240,7 @@ const SystemeDashboard: React.FC<SystemeDashboardProps> = ({ systeme, onBack }) 
                         </button>
                     </div>
                 </div>
-            </div> */}
+            </div>
 
             {/* Contenu principal */}
             <div className="max-w-7xl mx-auto px-6 py-8">
