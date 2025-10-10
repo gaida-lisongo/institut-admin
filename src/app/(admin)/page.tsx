@@ -8,9 +8,31 @@ import RecentOrders from "@/components/ecommerce/RecentOrders";
 import DemographicCard from "@/components/ecommerce/DemographicCard";
 
 export const metadata: Metadata = {
-  title:
-    "Next.js E-commerce Dashboard | TailAdmin - Next.js Dashboard Template",
-  description: "This is Next.js Home for TailAdmin Dashboard Template",
+  title: "Tableau de Bord - Administration Institut | Système de Gestion Académique",
+  description: "Tableau de bord principal pour la gestion administrative de l'institut. Suivi des personnels, étudiants, inscriptions et statistiques académiques en temps réel.",
+  keywords: [
+    "administration institut",
+    "gestion académique", 
+    "tableau de bord",
+    "personnels",
+    "étudiants",
+    "inscriptions",
+    "statistiques",
+    "DRH",
+    "gestion établissement"
+  ],
+  authors: [{ name: "Institut Admin Team" }],
+  creator: "Institut Administration System",
+  publisher: "Institut Supérieur",
+  robots: {
+    index: false, // Pas d'indexation pour les pages admin
+    follow: false,
+  },
+  viewport: "width=device-width, initial-scale=1",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#1f2937" }
+  ],
 };
 
 export default function Ecommerce() {

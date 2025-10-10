@@ -1,0 +1,56 @@
+# Institut Admin - Système de Gestion Académique
+# Application privée - Accès restreint
+
+User-agent: *
+Disallow: /
+
+# Interdire l'indexation de toutes les pages
+# Cette application contient des données sensibles
+
+# Sitemap non disponible pour les applications privées
+# Sitemap: 
+
+# Crawl-delay pour tous les bots
+Crawl-delay: 86400
+
+# Interdiction spécifique pour les principaux bots
+User-agent: Googlebot
+Disallow: /
+
+User-agent: Bingbot
+Disallow: /
+
+User-agent: Slurp
+Disallow: /
+
+User-agent: DuckDuckBot
+Disallow: /
+
+User-agent: Baiduspider
+Disallow: /
+
+User-agent: YandexBot
+Disallow: /
+
+User-agent: facebookexternalhit
+Disallow: /
+
+User-agent: Twitterbot
+Disallow: /
+
+User-agent: LinkedInBot
+Disallow: /
+
+User-agent: WhatsApp
+Disallow: /
+
+# Interdire l'accès aux répertoires sensibles
+User-agent: *
+Disallow: /api/
+Disallow: /admin/
+Disallow: /_next/
+Disallow: /signin
+Disallow: /personnel/
+Disallow: /classe/
+Disallow: /etudiant/
+Disallow: /finance/
