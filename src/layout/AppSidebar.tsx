@@ -16,6 +16,11 @@ import {
   PlugInIcon,
   TableIcon,
   UserCircleIcon,
+  TaskIcon,
+  CloseLineIcon,
+  BoxIconLine,
+  HomeIcon,
+  UsersIcon
 } from "../icons/index";
 import SidebarWidget from "./SidebarWidget";
 import { useProvinceStore } from "@/stores/provinceStore";
@@ -32,6 +37,11 @@ const navItems: NavItem[] = [
     icon: <GridIcon />,
     name: "Dashboard",
     path: "/",
+  },
+  {
+    icon: <TaskIcon />,
+    name: "Système Educatif",
+    path:"/systemes"
   },
   // {
   //   icon: <CalenderIcon />,
@@ -229,56 +239,54 @@ const AppSidebar: React.FC = () => {
 
   const renderMenuPersonnels = () => {
     const menuAcad : NavItem = {
-      icon: <UserCircleIcon />,
-      name: "Académique",
+      icon: <HomeIcon />,
+      name: "Etablissement",
       subItems: [],
     };
 
-    const menuScien : NavItem = {
-      icon: <UserCircleIcon />,
-      name: "Scientifique",
+    const menuEtud : NavItem = {
+      icon: <UsersIcon />,
+      name: "Etudiant",
       subItems: [],
     };
 
-    const menuAdmin : NavItem = {
-      icon: <UserCircleIcon />,
-      name: "Administratif",
-      subItems: [],
-    };
+    // const menuAdmin : NavItem = {
+    //   icon: <UserCircleIcon />,
+    //   name: "Administratif",
+    //   subItems: [],
+    // };
 
-    const menuOuvrier : NavItem = {
-      icon: <UserCircleIcon />,
-      name: "Ouvrier",
-      subItems: [],
-    }
+    // const menuOuvrier : NavItem = {
+    //   icon: <UserCircleIcon />,
+    //   name: "Ouvrier",
+    //   subItems: [],
+    // }
 
     provinces.forEach((province) => {
       menuAcad.subItems?.push({
         name: province.designation,
-        path: `/pacad/${province._id}`,
+        path: `/etablissements/${province._id}`,
       });
 
-      menuScien.subItems?.push({
+      menuEtud.subItems?.push({
         name: province.designation,
-        path: `/pscien/${province._id}`,
+        path: `/etudiants/${province._id}`,
       });
 
-      menuAdmin.subItems?.push({
-        name: province.designation,
-        path: `/padmin/${province._id}`,
-      });
+      // menuAdmin.subItems?.push({
+      //   name: province.designation,
+      //   path: `/padmin/${province._id}`,
+      // });
 
-      menuOuvrier.subItems?.push({
-        name: province.designation,
-        path: `/pouv/${province._id}`,
-      });
+      // menuOuvrier.subItems?.push({
+      //   name: province.designation,
+      //   path: `/pouv/${province._id}`,
+      // });
     });
 
     const menuItems = [
       menuAcad,
-      menuScien,
-      menuAdmin,
-      menuOuvrier,
+      menuEtud,
     ];
     
     setNavPers(menuItems);
