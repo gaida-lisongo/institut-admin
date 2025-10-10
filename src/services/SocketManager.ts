@@ -3,14 +3,14 @@ import { io, Socket } from "socket.io-client";
 const ServerUrl = "http://localhost:4000";
 
 export interface Message {
-    _id: number;
+    _id: string; // Changé de number à string pour MongoDB ObjectId
     senderId: string;
     concerne: string;
     message: string;
     pieces: string[];
     status: "PENDING" | "READ" | "REJECTED";
     dateCreation: string;
-    createdAt: string;
+    createdAt?: string; // Optionnel car peut ne pas être présent
 }
 
 class SocketManager {
@@ -116,14 +116,15 @@ class SocketManager {
     }
 
     deleteMessage(data: {
-        roomId: number;
-        messageId: number;
+        roomId: string; // Changé de number à string
+        messageId: string; // Changé de number à string
     }) {
         console.log('Envoi delete message:', data);
         this.socket.emit("delete_message", data);
     }
 
     leaveRoom(){
+        console.log('Envoi leave room');
         this.socket.emit('leave_room');
     }
 
@@ -139,20 +140,21 @@ class SocketManager {
     }
 
     onRefreshRoom(data: {
-        id: number;
+        id: string; // Changé de number à string car MongoDB utilise des ObjectId
         name: string;
         userCount: number
     }[], callback: (any) => void) {
 
         if(!data.length){
-            this.socket.emit("create_room", {name: `DRH-${this.user?._id.toString()}`, userId: this.user?._id.toString()});
+            // Créer une room avec le matricule de l'utilisateur (comme attendu par le backend)
+            this.socket.emit("create_room", {name: `DRH-${this.user?.matricule}`, userId: this.user?.matricule});
             
             callback(data);
         } else {
-            const findRoom = data.find((room) => room.name === `DRH-${this.user?._id.toString()}`);
+            const findRoom = data.find((room) => room.name === `DRH-${this.user?.matricule}`);
             console.log('Room found:', findRoom);
             if(!findRoom) {
-                this.socket.emit("create_room", {name: `DRH-${this.user?._id.toString()}`, userId: this.user?._id.toString()});
+                this.socket.emit("create_room", {name: `DRH-${this.user?.matricule}`, userId: this.user?.matricule});
                 
                 callback(data);
             } else {
@@ -164,15 +166,17 @@ class SocketManager {
     }
 
     onRoomCreated(data: {
-        roomId: number;
+        roomId: string; // Changé de number à string
         name: string;
         users: string[]
     }, callback: (any) => void) {
+        // Après création de room, rejoindre automatiquement
+        this.socket.emit("join_room", {roomId: data.roomId});
         callback(data);
     }
 
     onJoinedRoom(data: {
-        roomId: number;
+        roomId: string; // Changé de number à string
         name: string;
         users: {
             _id: string;

@@ -1,7 +1,7 @@
 'use client';
 import SocketManager, { Message } from "@/services/SocketManager";
 import { useCurrentUser } from "@/stores/personnelStore";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import AttachmentModal from "@/components/chat/AttachmentModal";
 
 export default function ChatLayout() {
@@ -13,7 +13,7 @@ export default function ChatLayout() {
     const [isConnected, setIsConnected] = useState(false);
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [currentRoom, setCurrentRoom] = useState<{
-        roomId: number;
+        roomId: string; // Changé de number à string pour MongoDB ObjectId
         name: string;
         users: {
             _id: string;
@@ -30,26 +30,65 @@ export default function ChatLayout() {
     const [attachments, setAttachments] = useState<string[]>([]);
     const [showAttachmentModal, setShowAttachmentModal] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const isInitializedRef = useRef(false);
 
-    const handleAuth = (data : any) => {
+    // Mémoriser les callbacks pour éviter les re-renders
+    const handleAuth = useCallback((data: any) => {
         console.log('Auth response:', data);
         if (data.success) {
             setMessage("Authentification Ok");
         } else {
             setMessage(`Erreur auth: ${data.message}`);
         }
-    }
+    }, []);
 
-    const handleSubmitMessage = (data : {
+    const renderRoom = useCallback((data: {
+        roomId: string; // Changé de number à string
+        name: string;
+        users: {
+            _id: string;
+            nom: string;
+            post_nom: string;
+            prenom: string;
+            sexe: string;
+            photo: string;
+            matricule: string;
+        }[],
+        messages: Message[]
+    }) => {
+        console.log("Room : ", data);
+        setCurrentRoom(data);
+        setMessage("Chat prêt");
+    }, []);
+
+    const renderNewMessage = useCallback((data: Message) => {
+        console.log('New message:', data);
+        setCurrentRoom(prev => prev ? {
+            ...prev,
+            messages: [...prev.messages, {
+                ...data,
+                dateCreation: new Date().toISOString()
+            }]
+        } : null);
+    }, []);
+
+    const renderDeletedMessage = useCallback((data: Message) => {
+        console.log('Message deleted by server:', data);
+        setCurrentRoom(prev => prev ? {
+            ...prev,
+            messages: prev.messages.filter(msg => msg._id !== data._id)
+        } : null);
+    }, []);
+
+    const handleSubmitMessage = useCallback((data: {
         message: string,
         pieces: string[],
         concerne: string;
-    })=>{
-
+    }) => {
         socketManager.newMessage(data);
-    }
+    }, []);
 
-    const handleDeleteMessage = (message : Message) => {
+    const handleDeleteMessage = useCallback((message: Message) => {
         console.log('Delete message:', message);
         console.log('Current room:', currentRoom);
         
@@ -71,50 +110,43 @@ export default function ChatLayout() {
             roomId: currentRoom.roomId,
             messageId: message._id
         });
-    }
-
-    const renderDeletedMessage = (data: Message) => {
-        console.log('Message deleted by server:', data);
-        // Supprimer le message de la liste si ce n'est pas déjà fait
-        setCurrentRoom(prev => prev ? {
-            ...prev,
-            messages: prev.messages.filter(msg => msg._id !== data._id)
-        } : null);
-    }
-
-    const renderNewMessage = (data : Message) => {
-        console.log('New message:', data);
-        console.log('Current room:', currentRoom);
-        
-        setCurrentRoom(prev => prev ? {
-            ...prev,
-            messages: [...prev.messages, {
-                ...data,
-                dateCreation: new Date().toISOString()
-            }]
-        } : null);
-    }
+    }, [currentRoom]);
 
     // Faire défiler vers le bas quand de nouveaux messages arrivent
-    const scrollToBottom = () => {
+    const scrollToBottom = useCallback(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
+    }, []);
 
     useEffect(() => {
         if (currentRoom && currentRoom.messages.length > 0) {
             scrollToBottom();
         }
-    }, [currentRoom?.messages]);
+    }, [currentRoom?.messages, scrollToBottom]);
+
+    // Mémoriser les données utilisateur stables pour éviter les re-renders
+    const stableUser = useMemo(() => {
+        return currentUser ? {
+            _id: currentUser._id,
+            matricule: currentUser.matricule,
+            nomComplet: currentUser.nomComplet
+        } : null;
+    }, [currentUser?._id, currentUser?.matricule, currentUser?.nomComplet]);
 
     useEffect(() => {
         // Ne pas initialiser si currentUser n'est pas encore chargé
-        if (!currentUser) {
+        if (!stableUser) {
             setMessage('En attente de l\'utilisateur...');
             return;
         }
 
-        console.log('initialisation socket avec user:', currentUser);
+        // Éviter la double initialisation
+        if (isInitializedRef.current) {
+            return;
+        }
+
+        console.log('initialisation socket avec user:', stableUser);
         setMessage('Connexion au serveur...');
+        isInitializedRef.current = true;
 
         // Connecter et initialiser
         socketManager.connect();
@@ -140,7 +172,7 @@ export default function ChatLayout() {
         socketManager.on(
             'rooms_list',
             (data: {
-                id: number;
+                id: string; // Changé de number à string
                 name: string;
                 userCount: number
             }[]) => {
@@ -187,7 +219,15 @@ export default function ChatLayout() {
                 console.log('Event message_deleted reçu:', data);
                 socketManager.onDeleteMessage(data, renderDeletedMessage)
             }
-        )
+        );
+
+        socketManager.on(
+            'room_left',
+            (data) => {
+                console.log('Event leave_room reçu:', data);
+                socketManager.onRoomLeft(data, console.log)
+            }
+        );
         // Événement de connexion
         socketManager.on('connect', () => {
             console.log('Socket connecté');
@@ -204,50 +244,52 @@ export default function ChatLayout() {
         return () => {
             console.log('Nettoyage ChatLayout');
             // Nettoyer les événements pour éviter les doublons
-            socketManager.removeAllListeners();
+            socketManager.leaveRoom();
             
             if (isConnected) {
-                socketManager.leaveRoom();
                 socketManager.disconnect();
                 setIsConnected(false);
+                socketManager.removeAllListeners();
             }
+            
+            // Reset du flag d'initialisation
+            isInitializedRef.current = false;
         };
-    }, [currentUser]); // Ajouter currentUser comme dépendance
+    }, [stableUser, isConnected]); // Utiliser stableUser au lieu de currentUser
 
-    const renderRoom = (data: {
-        roomId: number;
-        name: string;
-        users: {
-            _id: string;
-            nom: string;
-            post_nom: string;
-            prenom: string;
-            sexe: string;
-            photo: string;
-            matricule: string;
-        }[],
-        messages: Message[]
-    }) => {
-        console.log("Room : ", data);
-        setCurrentRoom(data);
-        setMessage("Chat prêt");
-    }
-
-    const getUserInfo = (senderId: string) => {
+    const getUserInfo = useCallback((senderId: string) => {
         if (!currentRoom) return null;
         return currentRoom.users.find(user => user._id === senderId);
-    };
+    }, [currentRoom]);
 
-    const isMyMessage = (senderId: string) => {
+    const isMyMessage = useCallback((senderId: string) => {
         return senderId === currentUser?._id;
-    };
+    }, [currentUser?._id]);
 
-    const formatTime = (dateString: string) => {
+    const formatTime = useCallback((dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    };
+    }, []);
 
-    const handleSendMessage = () => {
+    // Déterminer le type de chat basé sur les autorisations de l'utilisateur
+    const getChatType = useCallback(() => {
+        if (!currentUser?.autorisations?.length) return 'DRH';
+        
+        // Prioriser selon la hiérarchie des autorisations
+        const autorisations = currentUser.autorisations.map(auth => auth.type);
+        
+        if (autorisations.includes('DG')) return 'DG';
+        if (autorisations.includes('SGACAD')) return 'SGACAD';
+        if (autorisations.includes('SGAD')) return 'SGAD';
+        if (autorisations.includes('SGR')) return 'SGR';
+        if (autorisations.includes('AB')) return 'AB';
+        if (autorisations.includes('FIN')) return 'FIN';
+        if (autorisations.includes('ADMIN')) return 'ADMIN';
+        
+        return 'DRH'; // Par défaut
+    }, [currentUser]);
+
+    const handleSendMessage = useCallback(() => {
         console.log("Send message : ", newMessage);
         console.log("User : ", currentUser);
 
@@ -255,37 +297,37 @@ export default function ChatLayout() {
             handleSubmitMessage({
                 message: newMessage.trim() || '',
                 pieces: attachments,
-                concerne: 'DRH'
+                concerne: getChatType()
             });
             setNewMessage('');
             setAttachments([]);
         }
-    };
+    }, [newMessage, attachments, currentUser, handleSubmitMessage, getChatType]);
 
-    const handleKeyPress = (e: React.KeyboardEvent) => {
+    const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             handleSendMessage();
         }
-    };
+    }, [handleSendMessage]);
 
-    const handleAttachmentsSelected = (newAttachments: string[]) => {
+    const handleAttachmentsSelected = useCallback((newAttachments: string[]) => {
         setAttachments(prev => [...prev, ...newAttachments]);
         setShowAttachmentModal(false);
-    };
+    }, []);
 
-    const removeAttachment = (index: number) => {
+    const removeAttachment = useCallback((index: number) => {
         setAttachments(prev => prev.filter((_, i) => i !== index));
-    };
+    }, []);
 
-    const getFileNameFromUrl = (url: string) => {
+    const getFileNameFromUrl = useCallback((url: string) => {
         const parts = url.split('/');
         return parts[parts.length - 1] || 'Fichier';
-    };
+    }, []);
 
-    const isImageUrl = (url: string) => {
+    const isImageUrl = useCallback((url: string) => {
         return /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
-    };
+    }, []);
 
     return (
         <>
@@ -313,10 +355,19 @@ export default function ChatLayout() {
                     <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
                         <div className="flex items-center space-x-3">
                             <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                                DRH
+                                {getChatType()}
                             </div>
                             <div>
-                                <h3 className="font-semibold text-sm text-gray-800 dark:text-white">Chat DRH</h3>
+                                <h3 className="font-semibold text-sm text-gray-800 dark:text-white">
+                                    Chat {getChatType() === 'DRH' ? 'Personnels' : 
+                                          getChatType() === 'ADMIN' ? 'Administration' :
+                                          getChatType() === 'FIN' ? 'Finance' :
+                                          getChatType() === 'DG' ? 'Direction' :
+                                          getChatType() === 'SGACAD' ? 'Académique' :
+                                          getChatType() === 'SGAD' ? 'Administratif' :
+                                          getChatType() === 'SGR' ? 'Recherche' :
+                                          getChatType() === 'AB' ? 'Budget' : 'Général'}
+                                </h3>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">
                                     {currentRoom ? `${currentRoom.users.length} utilisateur${currentRoom.users.length > 1 ? 's' : ''}` : message}
                                 </p>
