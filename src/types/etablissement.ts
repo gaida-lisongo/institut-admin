@@ -16,6 +16,7 @@ export interface Etablissement {
 
 export interface EtablissementFormData {
     designation: string;
+    
     sigle: string;
     logo: string;
     categorie: 'public' | 'privee';
