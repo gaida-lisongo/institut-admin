@@ -7,6 +7,22 @@ import Backdrop from "@/layout/Backdrop";
 import ChatLayout from "@/layout/ChatLayout";
 import ChatLayoutOptimized from "@/layout/ChatLayoutOptimized";
 import React from "react";
+import { useCurrentUser } from "@/stores/personnelStore";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
+const CheckingAuth = () => {
+    const { currentUser } = useCurrentUser();
+    const router = useRouter();
+    
+    useEffect(() => {
+        if (!currentUser) {
+            router.push('/signin');
+        }
+    }, [currentUser, router]);
+    
+    return null;
+}
 
 export default function AdminLayout({
   children,
@@ -24,6 +40,7 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen xl:flex">
+      <CheckingAuth />
       {/* Sidebar and Backdrop */}
       <AppSidebar />
       <Backdrop />
