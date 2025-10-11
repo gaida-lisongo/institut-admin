@@ -23,7 +23,7 @@ interface EtablissementStore {
     isLoading: boolean;
     error: string | null;
     searchTerm: string;
-    filterCategorie: 'all' | 'public' | 'privee';
+    filterCategorie: 'all' | 'public' | 'prive';
     filterProvince: string | null;
 
     // Actions CRUD
@@ -36,7 +36,7 @@ interface EtablissementStore {
     // Actions locales
     setSelectedEtablissement: (etablissement: Etablissement | null) => void;
     setSearchTerm: (term: string) => void;
-    setFilterCategorie: (categorie: 'all' | 'public' | 'privee') => void;
+    setFilterCategorie: (categorie: 'all' | 'public' | 'prive') => void;
     setFilterProvince: (provinceId: string | null) => void;
     clearError: () => void;
     clearFilters: () => void;
