@@ -3,7 +3,7 @@ import React from "react";
 import MonthlyTarget from "@/components/ecommerce/MonthlyTarget";
 import MonthlySalesChart from "@/components/ecommerce/MonthlySalesChart";
 import StatisticsChart from "@/components/ecommerce/StatisticsChart";
-import RecentOrders from "@/components/ecommerce/RecentOrders";
+import EtablissementsList from "@/components/etablissement/EtablissementsList";
 import DemographicCard from "@/components/ecommerce/DemographicCard";
 import { EcommerceMetricsEnhanced } from "@/components/ecommerce/EcommerceMetricsEnhanced";
 
@@ -52,7 +52,7 @@ export default function Ecommerce() {
       </div> */}
 
       <div className="col-span-12">
-        <RecentOrders />
+        <EtablissementsList />
       </div>
     </div>
   );
