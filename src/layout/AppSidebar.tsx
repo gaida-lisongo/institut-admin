@@ -24,6 +24,10 @@ import {
 } from "../icons/index";
 import SidebarWidget from "./SidebarWidget";
 import { useProvinceStore } from "@/stores/provinceStore";
+import { useEtablissementStore } from "@/stores/etablissementStore";
+import { Autorisation } from "@/types/personnel";
+import { EtablissementPopulated } from "@/types/etablissement";
+import { useAuth, usePersonnelStore } from "@/stores/personnelStore";
 
 type NavItem = {
   name: string;
@@ -37,11 +41,6 @@ const navItems: NavItem[] = [
     icon: <GridIcon />,
     name: "Dashboard",
     path: "/",
-  },
-  {
-    icon: <TaskIcon />,
-    name: "Système Educatif",
-    path:"/systemes"
   },
   // {
   //   icon: <CalenderIcon />,
@@ -108,16 +107,18 @@ const othersItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const { provinces, fetchProvinces } = useProvinceStore();
+  const { etablissements, fetchEtablissements } = useEtablissementStore();
+  const { currentUser } = useAuth();
   const [navPers, setNavPers] = useState<NavItem[]>();
   const pathname = usePathname();
 
   const renderMenuItems = (
     navItems: NavItem[],
-    menuType: "main" | "others" | "personnels"
+    menuType: "main" | "others" | "coge"
   ) => (
     <ul className="flex flex-col gap-4">
       {navItems.map((nav, index) => (
-        <li key={nav.name}>
+        <li key={index}>
           {nav.subItems ? (
             <button
               onClick={() => handleSubmenuToggle(index, menuType)}
@@ -237,69 +238,122 @@ const AppSidebar: React.FC = () => {
     </ul>
   );
 
-  const renderMenuPersonnels = () => {
-    const menuAcad : NavItem = {
+  const renderMenuEtablissements = () => {
+    const autorisations = localStorage.getItem('autorisations');
+    
+    const menuDG : NavItem = {
       icon: <HomeIcon />,
-      name: "Etablissement",
+      name: "DG",
       subItems: [],
     };
 
-    const menuEtud : NavItem = {
-      icon: <UsersIcon />,
-      name: "Finance",
-      subItems: [
-        {
-          name: "Frais d'Inscription",
-          path: `/f-inscriptions`,
-        },
-        {
-          name: "Frais Académiques",
-          path: `/f-academiques`,
-        },
-        {
-          name: "Frais des diplômés",
-          path: `/f-diplomes`,
-        },
-        {
-          name: "Frais Connexes",
-          path: `/f-connexes`,
-        }
-      ],
+    const menuAcad : NavItem = {
+      icon: <HomeIcon />,
+      name: "SGACAD",
+      subItems: [],
     };
 
-    // const menuAdmin : NavItem = {
-    //   icon: <UserCircleIcon />,
-    //   name: "Administratif",
-    //   subItems: [],
-    // };
+    const menuSGR : NavItem = {
+      icon: <HomeIcon />,
+      name: "SGR",
+      subItems: [],
+    };
 
-    // const menuOuvrier : NavItem = {
-    //   icon: <UserCircleIcon />,
-    //   name: "Ouvrier",
-    //   subItems: [],
-    // }
+    const menuAB : NavItem = {
+      icon: <HomeIcon />,
+      name: "AB",
+      subItems: [],
+    };
 
-    provinces.forEach((province) => {
-      menuAcad.subItems?.push({
-        name: province.designation,
-        path: `/etablissements/${province._id}`,
-      });
+    const menuFin : NavItem = {
+      icon: <HomeIcon />,
+      name: "SGR",
+      subItems: [],
+    };
 
-      // menuAdmin.subItems?.push({
-      //   name: province.designation,
-      //   path: `/padmin/${province._id}`,
-      // });
+    if (autorisations) {
+      const autorisationsList = JSON.parse(autorisations);
 
-      // menuOuvrier.subItems?.push({
-      //   name: province.designation,
-      //   path: `/pouv/${province._id}`,
-      // });
-    });
+      autorisationsList.forEach((autorisation: Autorisation) => {
+        switch (autorisation.type) {
+          case "DG":
+            etablissements.map((etablissement: EtablissementPopulated) => {
+              if(!etablissement.coge){
+                return;
+              }
+              const isMember = etablissement.coge.find((member : any) => member.membreId?._id === currentUser?._id);
+              if(isMember){
+                menuDG.subItems?.push({
+                  name: etablissement.sigle,
+                  path: `/direction/${etablissement._id}`,
+                });
+              }
+            });
+
+            break;
+          case 'SGACAD':
+            etablissements.map((etablissement: EtablissementPopulated) => {
+              const isMember = etablissement.coge.find((member : any) => member.membreId?._id === currentUser?._id);
+              if(isMember){
+                menuAcad.subItems?.push({
+                  name: etablissement.sigle,
+                  path: `/facultes/${etablissement._id}`,
+                });
+              }
+            });
+
+            break;
+          case 'SGR':
+            etablissements.map((etablissement: EtablissementPopulated) => {
+              const isMember = etablissement.coge.find((member : any) => member.membreId?._id === currentUser?._id);
+              if(isMember){
+                menuSGR.subItems?.push({
+                  name: etablissement.sigle,
+                  path: `/administratifs/${etablissement._id}`,
+                });
+              }
+            });
+
+            break;
+          case 'AB':
+            etablissements.map((etablissement: EtablissementPopulated) => {
+              const isMember = etablissement.coge.find((member : any) => member.membreId?._id === currentUser?._id);
+              if(isMember){
+                menuAB.subItems?.push({
+                  name: etablissement.sigle,
+                  path: `/paiements/${etablissement._id}`,
+                });
+              }
+            });
+
+            break;
+          default:
+            etablissements.map((etablissement: EtablissementPopulated) => {
+              const isMember = etablissement.coge.find((member : any) => member.membreId?._id === currentUser?._id);
+              if(isMember){
+                menuFin.subItems?.push({
+                  name: etablissement.sigle,
+                  path: `/recherches/${etablissement._id}`,
+                });
+              }
+            });
+            break;
+        }
+      })
+    }
 
     const menuItems = [
+      menuDG,
       menuAcad,
-      menuEtud,
-    ];
+      menuSGR,
+      menuAB,
+      menuFin,
+    ].filter((item): item is NavItem => 
+      item !== null && 
+      item !== undefined && 
+      item.subItems !== undefined && 
+      item.subItems.length > 0
+    );
     
     setNavPers(menuItems);
   }
@@ -317,12 +371,12 @@ const AppSidebar: React.FC = () => {
    const isActive = useCallback((path: string) => path === pathname, [pathname]);
 
   useEffect(() => {
-    fetchProvinces();
+    fetchEtablissements();
   }, []);
   
   useEffect(() => {
-    renderMenuPersonnels();
-  }, [provinces]);
+    renderMenuEtablissements();
+  }, [etablissements]);
   
   useEffect(() => {
     // Check if the current path matches any submenu item
@@ -363,11 +417,8 @@ const AppSidebar: React.FC = () => {
     }
   }, [openSubmenu]);
 
-  useEffect(() => {
-    // console.log("Navigation pers : ", navPers)
-  }, [navPers])
 
-  const handleSubmenuToggle = (index: number, menuType: "main" | "others" | "personnels") => {
+  const handleSubmenuToggle = (index: number, menuType: "main" | "others" | "coge") => {
     setOpenSubmenu((prevOpenSubmenu) => {
       if (
         prevOpenSubmenu &&
@@ -474,12 +525,12 @@ const AppSidebar: React.FC = () => {
                 }`}
               >
                 {isExpanded || isHovered || isMobileOpen ? (
-                  "Personnels"
+                  "Comité de Gestion"
                 ) : (
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(navPers, "personnels")}
+              {renderMenuItems(navPers, "coge")}
             </div>}
           </div>
         </nav>
