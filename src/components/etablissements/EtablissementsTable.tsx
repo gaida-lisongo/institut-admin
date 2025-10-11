@@ -15,7 +15,7 @@ const EtablissementsTable: React.FC<EtablissementsTableProps> = ({
     searchTerm,
     provinceId
 }) => {
-    const getCategorieColor = (categorie: 'public' | 'privee') => {
+    const getCategorieColor = (categorie: 'public' | 'prive') => {
         return categorie === 'public' 
             ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
             : 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200';

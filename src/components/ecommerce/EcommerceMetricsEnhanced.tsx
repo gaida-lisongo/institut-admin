@@ -93,7 +93,7 @@ export const EcommerceMetricsEnhanced = () => {
 
   useEffect(() => {
     setPublicCount(etablissements.filter(e => e.categorie === "public").length);
-    setPriveCount(etablissements.filter(e => e.categorie === "privee").length);
+    setPriveCount(etablissements.filter(e => e.categorie === "prive").length);
   }, [etablissements]);
 
   const totalEtablissements = etablissements.length;

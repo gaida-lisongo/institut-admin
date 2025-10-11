@@ -12,7 +12,7 @@ interface ApiResponse<T> {
 interface EtablissementStats {
     total: number;
     public: number;
-    privee: number;
+    prive: number;
     parProvince: Record<string, number>;
 }
 
@@ -50,7 +50,7 @@ interface EtablissementStore {
     getFilteredEtablissements: () => Etablissement[];
     getEtablissementStats: () => EtablissementStats;
     getEtablissementsByProvince: (provinceId: string) => Etablissement[];
-    getEtablissementsByCategorie: (categorie: 'public' | 'privee') => Etablissement[];
+    getEtablissementsByCategorie: (categorie: 'public' | 'prive') => Etablissement[];
 }
 
 // Configuration API
@@ -304,7 +304,7 @@ export const useEtablissementStore = create<EtablissementStore>()(
                 const stats: EtablissementStats = {
                     total: etablissements.length,
                     public: etablissements.filter(e => e.categorie === 'public').length,
-                    privee: etablissements.filter(e => e.categorie === 'privee').length,
+                    prive: etablissements.filter(e => e.categorie === 'prive').length,
                     parProvince: {}
                 };
 

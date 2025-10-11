@@ -250,11 +250,11 @@ const EtablissementModal: React.FC<EtablissementModalProps> = ({
                 </label>
                 <select
                     value={formData.categorie}
-                    onChange={(e) => setFormData(prev => ({ ...prev, categorie: e.target.value as 'public' | 'privee' }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, categorie: e.target.value as 'public' | 'prive' }))}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                     <option value="public">Public</option>
-                    <option value="privee">Privé</option>
+                    <option value="prive">Privé</option>
                 </select>
             </div>
 
@@ -318,7 +318,7 @@ const EtablissementModal: React.FC<EtablissementModalProps> = ({
             </div>
 
             <div className="space-y-4">
-                {formData.coge.map((membre, index) => (
+                {formData.coge.map((membre: any, index) => (
                     <div key={index} className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                         <div className="flex-1 relative">
                             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
@@ -343,7 +343,7 @@ const EtablissementModal: React.FC<EtablissementModalProps> = ({
                                 {/* Dropdown des résultats */}
                                 {showDropdowns[index] && (
                                     <div 
-                                        ref={el => dropdownRefs.current[index] = el}
+                                        ref={el => { dropdownRefs.current[index] = el; }}
                                         className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto"
                                     >
                                         {getFilteredPersonnels(searchTerms[index] || '').length > 0 ? (

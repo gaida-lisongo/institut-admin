@@ -4,7 +4,7 @@ export interface Etablissement {
     sigle: string;
     token?: string;
     logo: string;
-    categorie: 'public' | 'privee';
+    categorie: 'public' | 'prive';
     reference: string;
     description: string;
     coge: {
@@ -22,7 +22,7 @@ export interface EtablissementPopulated {
     designation: string;
     sigle: string;
     logo: string;
-    categorie: 'public' | 'privee';
+    categorie: 'public' | 'prive';
     reference: string;
     description: string;
     coge: {
@@ -50,7 +50,7 @@ export interface EtablissementFormData {
     designation: string;
     sigle: string;
     logo: string;
-    categorie: 'public' | 'privee';
+    categorie: 'public' | 'prive';
     reference: string;
     description: string;
     coge: {

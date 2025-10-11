@@ -5,7 +5,9 @@ import { ArrowDownIcon, ArrowUpIcon, GroupIcon, HomeIcon } from "@/icons";
 import { usePersonnelStats } from "@/stores/personnelStore";
 import { useEtablissementStore } from "@/stores/etablissementStore";
 
-const categories = [
+type BadgeColor = "primary" | "success" | "error" | "warning" | "info" | "light" | "dark";
+
+const categories: Array<{ label: string; value: string; color: BadgeColor }> = [
   {
     label: "Etablissement Public",
     value: "public",
@@ -13,7 +15,7 @@ const categories = [
   },
   {
     label: "Etablissement Privé",
-    value: "privee",
+    value: "prive",
     color: "error"
   }
 ];
@@ -30,7 +32,7 @@ export const EcommerceMetrics = () => {
 
   useEffect(() => {
     setPublicCount(etablissements.filter(e => e.categorie === "public").length);
-    setPriveCount(etablissements.filter(e => e.categorie === "privee").length);
+    setPriveCount(etablissements.filter(e => e.categorie === "prive").length);
   }, [etablissements]);
 
   
@@ -131,7 +133,7 @@ export const EcommerceMetrics = () => {
               <Badge color={category.color}>
                 <ArrowDownIcon className="text-error-500" />
                 {
-                 etablissements.length && (category.value === "public" ? publicCount * 100/(etablissements?.length || 0).toFixed(2) : priveCount * 100/(etablissements?.length || 0).toFixed(2))
+                 etablissements.length && (category.value === "public" ? (publicCount * 100/(etablissements?.length || 1)).toFixed(2) : (priveCount * 100/(etablissements?.length || 1)).toFixed(2))
                 }
               </Badge>
             </div>

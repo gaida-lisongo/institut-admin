@@ -313,11 +313,11 @@ const EtablissementDetail: React.FC<EtablissementDetailProps> = ({
                             {isEditing ? (
                                 <select
                                     value={formData.categorie}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, categorie: e.target.value as 'public' | 'privee' }))}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, categorie: e.target.value as 'public' | 'prive' }))}
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 >
                                     <option value="public">Public</option>
-                                    <option value="privee">Privé</option>
+                                    <option value="prive">Privé</option>
                                 </select>
                             ) : (
                                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
