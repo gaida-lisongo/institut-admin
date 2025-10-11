@@ -246,8 +246,25 @@ const AppSidebar: React.FC = () => {
 
     const menuEtud : NavItem = {
       icon: <UsersIcon />,
-      name: "Etudiant",
-      subItems: [],
+      name: "Finance",
+      subItems: [
+        {
+          name: "Frais d'Inscription",
+          path: `/f-inscriptions`,
+        },
+        {
+          name: "Frais Académiques",
+          path: `/f-academiques`,
+        },
+        {
+          name: "Frais des diplômés",
+          path: `/f-diplomes`,
+        },
+        {
+          name: "Frais Connexes",
+          path: `/f-connexes`,
+        }
+      ],
     };
 
     // const menuAdmin : NavItem = {
@@ -266,11 +283,6 @@ const AppSidebar: React.FC = () => {
       menuAcad.subItems?.push({
         name: province.designation,
         path: `/etablissements/${province._id}`,
-      });
-
-      menuEtud.subItems?.push({
-        name: province.designation,
-        path: `/etudiants/${province._id}`,
       });
 
       // menuAdmin.subItems?.push({
