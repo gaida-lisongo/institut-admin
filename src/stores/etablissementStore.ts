@@ -54,7 +54,7 @@ interface EtablissementStore {
 }
 
 // Configuration API
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_SERVER_API_URL || 'http://localhost:3001/api';
 
 const buildApiUrl = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
@@ -82,7 +82,7 @@ export const useEtablissementStore = create<EtablissementStore>()(
             fetchEtablissements: async () => {
                 set({ isLoading: true, error: null });
                 try {
-                    const response = await fetch(buildApiUrl('/etablissement'), {
+                    const response = await fetch(buildApiUrl('/etablissements'), {
                         headers: getAuthHeaders()
                     });
 
@@ -107,7 +107,7 @@ export const useEtablissementStore = create<EtablissementStore>()(
             fetchEtablissementById: async (id: string) => {
                 set({ isLoading: true, error: null });
                 try {
-                    const response = await fetch(buildApiUrl(`/etablissement/${id}`), {
+                    const response = await fetch(buildApiUrl(`/etablissements/${id}`), {
                         headers: getAuthHeaders()
                     });
 
@@ -134,7 +134,7 @@ export const useEtablissementStore = create<EtablissementStore>()(
             createEtablissement: async (data: EtablissementFormData) => {
                 set({ isLoading: true, error: null });
                 try {
-                    const response = await fetch(buildApiUrl('/etablissement'), {
+                    const response = await fetch(buildApiUrl('/etablissements'), {
                         method: 'POST',
                         headers: getAuthHeaders(),
                         body: JSON.stringify(data)
@@ -165,7 +165,7 @@ export const useEtablissementStore = create<EtablissementStore>()(
             updateEtablissement: async (id: string, data: Partial<EtablissementFormData>) => {
                 set({ isLoading: true, error: null });
                 try {
-                    const response = await fetch(buildApiUrl(`/etablissement/${id}`), {
+                    const response = await fetch(buildApiUrl(`/etablissements/${id}`), {
                         method: 'PUT',
                         headers: getAuthHeaders(),
                         body: JSON.stringify(data)
@@ -196,7 +196,7 @@ export const useEtablissementStore = create<EtablissementStore>()(
             deleteEtablissement: async (id: string) => {
                 set({ isLoading: true, error: null });
                 try {
-                    const response = await fetch(buildApiUrl(`/etablissement/${id}`), {
+                    const response = await fetch(buildApiUrl(`/etablissements/${id}`), {
                         method: 'DELETE',
                         headers: getAuthHeaders()
                     });

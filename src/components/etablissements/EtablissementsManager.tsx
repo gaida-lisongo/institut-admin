@@ -32,9 +32,22 @@ const EtablissementsManager: React.FC<EtablissementsManagerProps> = ({
     }, [fetchEtablissements]);
 
     // Filtrer les établissements pour cette province uniquement
-    const etablissementsProvince = etablissements.filter(
-        etablissement => etablissement.provinceId === provinceId
-    );
+    const etablissementsProvince = etablissements.filter(etablissement => {
+        // Gérer le cas où provinceId peut être un string (ID) ou un objet (données populées)
+        if (typeof etablissement.provinceId === 'string') {
+            return etablissement.provinceId === provinceId;
+        } else if (typeof etablissement.provinceId === 'object' && etablissement.provinceId) {
+            return (etablissement.provinceId as any)._id === provinceId;
+        }
+        return false;
+    });
+
+    // Debug : Afficher les données récupérées
+    useEffect(() => {
+        console.log('🏢 Établissements récupérés:', etablissements);
+        console.log('🌍 Province ID recherchée:', provinceId);
+        console.log('📋 Établissements filtrés pour cette province:', etablissementsProvince);
+    }, [etablissements, provinceId, etablissementsProvince]);
 
     // Filtrer par terme de recherche
     const filteredEtablissements = etablissementsProvince.filter(etablissement =>
@@ -97,12 +110,42 @@ const EtablissementsManager: React.FC<EtablissementsManagerProps> = ({
 
             {/* Contenu principal */}
             {viewMode === 'table' ? (
-                <EtablissementsTable
-                    etablissements={filteredEtablissements}
-                    onSelectEtablissement={handleSelectEtablissement}
-                    searchTerm={searchTerm}
-                    provinceId={provinceId}
-                />
+                filteredEtablissements.length > 0 ? (
+                    <EtablissementsTable
+                        etablissements={filteredEtablissements}
+                        onSelectEtablissement={handleSelectEtablissement}
+                        searchTerm={searchTerm}
+                        provinceId={provinceId}
+                    />
+                ) : (
+                    <div className="text-center py-12">
+                        <div className="mx-auto w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+                            <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H5m0 0h2M7 7h10M7 11h10M7 15h10" />
+                            </svg>
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                            Aucun établissement trouvé
+                        </h3>
+                        <p className="text-gray-500 dark:text-gray-400 mb-4">
+                            {etablissements.length === 0 
+                                ? "Aucun établissement n'a été créé pour le moment."
+                                : searchTerm 
+                                    ? `Aucun établissement ne correspond à "${searchTerm}".`
+                                    : "Aucun établissement trouvé pour cette province."
+                            }
+                        </p>
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                        >
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Créer le premier établissement
+                        </button>
+                    </div>
+                )
             ) : (
                 selectedEtablissement && (
                     <EtablissementDetail

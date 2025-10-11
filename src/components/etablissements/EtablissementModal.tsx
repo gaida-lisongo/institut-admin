@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Etablissement, EtablissementFormData } from '@/types/etablissement';
 import { useEtablissementStore } from '@/stores/etablissementStore';
 import { usePersonnelStore } from '@/stores/personnelStore';
@@ -28,10 +28,16 @@ const EtablissementModal: React.FC<EtablissementModalProps> = ({
         sigle: '',
         logo: '',
         categorie: 'public',
+        reference: '',
         description: '',
         coge: [],
         provinceId: provinceId
     });
+
+    // États pour la recherche de personnel
+    const [searchTerms, setSearchTerms] = useState<Record<number, string>>({});
+    const [showDropdowns, setShowDropdowns] = useState<Record<number, boolean>>({});
+    const dropdownRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
     // Charger les personnels au montage du modal
     useEffect(() => {
@@ -39,6 +45,31 @@ const EtablissementModal: React.FC<EtablissementModalProps> = ({
             loadPersonnels();
         }
     }, [isOpen, loadPersonnels]);
+
+    // Initialiser les termes de recherche pour les membres existants
+    useEffect(() => {
+        if (personnels.length > 0 && formData.coge.length > 0) {
+            const newSearchTerms: Record<number, string> = {};
+            formData.coge.forEach((membre, index) => {
+                if (membre.membreId) {
+                    // Gérer le cas où membreId peut être un string (ID) ou un objet (données populées)
+                    let personnel;
+                    if (typeof membre.membreId === 'string') {
+                        personnel = personnels.find(p => p._id === membre.membreId);
+                    } else if (typeof membre.membreId === 'object' && membre.membreId) {
+                        // Si membreId est un objet (données populées du backend)
+                        personnel = membre.membreId as any;
+                    }
+                    
+                    if (personnel) {
+                        const matricule = personnel.matricule || personnel._id;
+                        newSearchTerms[index] = `${personnel.nom} ${personnel.prenom} - ${matricule}`;
+                    }
+                }
+            });
+            setSearchTerms(prev => ({ ...prev, ...newSearchTerms }));
+        }
+    }, [personnels, formData.coge]);
 
     // Réinitialiser le formulaire quand le modal se ferme
     useEffect(() => {
@@ -49,10 +80,14 @@ const EtablissementModal: React.FC<EtablissementModalProps> = ({
                 sigle: '',
                 logo: '',
                 categorie: 'public',
+                reference: '',
                 description: '',
                 coge: [],
                 provinceId: provinceId
             });
+            // Nettoyer les états de recherche
+            setSearchTerms({});
+            setShowDropdowns({});
         }
     }, [isOpen, provinceId]);
 
@@ -69,10 +104,13 @@ const EtablissementModal: React.FC<EtablissementModalProps> = ({
     };
 
     const addCogeMembre = () => {
+        const newIndex = formData.coge.length;
         setFormData(prev => ({
             ...prev,
             coge: [...prev.coge, { membreId: '', role: 'AB' }]
         }));
+        // Initialiser le terme de recherche pour le nouveau membre
+        setSearchTerms(prev => ({ ...prev, [newIndex]: '' }));
     };
 
     const updateCogeMembre = (index: number, field: 'membreId' | 'role', value: string) => {
@@ -89,9 +127,64 @@ const EtablissementModal: React.FC<EtablissementModalProps> = ({
             ...prev,
             coge: prev.coge.filter((_, i) => i !== index)
         }));
+        // Nettoyer les états de recherche
+        setSearchTerms(prev => {
+            const newTerms = { ...prev };
+            delete newTerms[index];
+            return newTerms;
+        });
+        setShowDropdowns(prev => {
+            const newDropdowns = { ...prev };
+            delete newDropdowns[index];
+            return newDropdowns;
+        });
     };
 
-    const canProceedStep1 = formData.designation.trim() !== '' && formData.sigle.trim() !== '';
+    // Filtrer les personnels selon le terme de recherche
+    const getFilteredPersonnels = (searchTerm: string) => {
+        if (!searchTerm.trim()) return personnels.slice(0, 50); // Limiter à 50 résultats par défaut
+        
+        return personnels.filter(personnel => {
+            const fullName = `${personnel.nom} ${personnel.prenom}`.toLowerCase();
+            const matricule = personnel.matricule?.toLowerCase() || '';
+            const grade = personnel.grade?.toLowerCase() || '';
+            const categorie = personnel.categorie?.toLowerCase() || '';
+            const search = searchTerm.toLowerCase();
+            
+            return fullName.includes(search) || 
+                   matricule.includes(search) || 
+                   grade.includes(search) || 
+                   categorie.includes(search);
+        }).slice(0, 20); // Limiter à 20 résultats de recherche
+    };
+
+    // Sélectionner un personnel
+    const selectPersonnel = (index: number, personnelId: string) => {
+        updateCogeMembre(index, 'membreId', personnelId);
+        const personnel = personnels.find(p => p._id === personnelId);
+        if (personnel) {
+            const matricule = personnel.matricule || personnelId;
+            setSearchTerms(prev => ({
+                ...prev,
+                [index]: `${personnel.nom} ${personnel.prenom} - ${matricule}`
+            }));
+        }
+        setShowDropdowns(prev => ({ ...prev, [index]: false }));
+    };
+
+    // Gérer le focus et blur du champ de recherche
+    const handleSearchFocus = (index: number) => {
+        setShowDropdowns(prev => ({ ...prev, [index]: true }));
+    };
+
+    const handleSearchBlur = (index: number) => {
+        // Délai pour permettre le clic sur les options
+        setTimeout(() => {
+            setShowDropdowns(prev => ({ ...prev, [index]: false }));
+        }, 150);
+    };
+
+    const canProceedStep1 = formData.designation.trim() !== '' && formData.sigle.trim() !== '' && formData.reference.trim() !== '';
     const canProceedStep2 = formData.description.trim() !== '';
 
     if (!isOpen) return null;
@@ -133,6 +226,22 @@ const EtablissementModal: React.FC<EtablissementModalProps> = ({
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                 </div>
+            </div>
+
+            <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Référence (N° d'arrêté) *
+                </label>
+                <input
+                    type="text"
+                    value={formData.reference}
+                    onChange={(e) => setFormData(prev => ({ ...prev, reference: e.target.value }))}
+                    placeholder="Ex: 001/MINESU/CABMIN/2024"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Numéro de l'arrêté ministériel instituant l'établissement
+                </p>
             </div>
 
             <div>
@@ -211,22 +320,68 @@ const EtablissementModal: React.FC<EtablissementModalProps> = ({
             <div className="space-y-4">
                 {formData.coge.map((membre, index) => (
                     <div key={index} className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <div className="flex-1">
+                        <div className="flex-1 relative">
                             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                                 Personnel
                             </label>
-                            <select
-                                value={membre.membreId}
-                                onChange={(e) => updateCogeMembre(index, 'membreId', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
-                            >
-                                <option value="">Sélectionner un personnel</option>
-                                {personnels.map((personnel) => (
-                                    <option key={personnel._id} value={personnel._id}>
-                                        {personnel.nom} {personnel.prenom} - {personnel.categorie} {personnel.grade ? `(${personnel.grade})` : ''}
-                                    </option>
-                                ))}
-                            </select>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={searchTerms[index] || ''}
+                                    onChange={(e) => setSearchTerms(prev => ({ ...prev, [index]: e.target.value }))}
+                                    onFocus={() => handleSearchFocus(index)}
+                                    onBlur={() => handleSearchBlur(index)}
+                                    placeholder="Rechercher un personnel (nom, matricule, grade...)"
+                                    className="w-full px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </div>
+                                
+                                {/* Dropdown des résultats */}
+                                {showDropdowns[index] && (
+                                    <div 
+                                        ref={el => dropdownRefs.current[index] = el}
+                                        className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                                    >
+                                        {getFilteredPersonnels(searchTerms[index] || '').length > 0 ? (
+                                            getFilteredPersonnels(searchTerms[index] || '').map((personnel) => (
+                                                <button
+                                                    key={personnel._id}
+                                                    type="button"
+                                                    onClick={() => selectPersonnel(index, personnel._id!)}
+                                                    className="w-full px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 focus:outline-none border-b border-gray-200 dark:border-gray-600 last:border-b-0"
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                                                {personnel.nom} {personnel.prenom}
+                                                            </div>
+                                                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                                {personnel.matricule} • {personnel.categorie} {personnel.grade ? `• ${personnel.grade}` : ''}
+                                                            </div>
+                                                        </div>
+                                                        {((typeof membre.membreId === 'string' && membre.membreId === personnel._id) || 
+                                                          (typeof membre.membreId === 'object' && membre.membreId && membre.membreId._id === personnel._id)) && (
+                                                            <div className="text-blue-500">
+                                                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                </svg>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </button>
+                                            ))
+                                        ) : (
+                                            <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                                                {searchTerms[index] ? 'Aucun personnel trouvé' : 'Tapez pour rechercher...'}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         
                         <div className="w-32">

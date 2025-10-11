@@ -2,8 +2,10 @@ export interface Etablissement {
     _id?: string;
     designation: string;
     sigle: string;
+    token?: string;
     logo: string;
     categorie: 'public' | 'privee';
+    reference: string;
     description: string;
     coge: {
         membreId: string;
@@ -14,12 +16,42 @@ export interface Etablissement {
     updatedAt?: Date;
 }
 
-export interface EtablissementFormData {
+// Interface pour les données populées (récupérées du backend)
+export interface EtablissementPopulated {
+    _id?: string;
     designation: string;
-    
     sigle: string;
     logo: string;
     categorie: 'public' | 'privee';
+    reference: string;
+    description: string;
+    coge: {
+        membreId: {
+            _id: string;
+            nom: string;
+            prenom: string;
+            email: string;
+            matricule?: string;
+        } | string;
+        role: 'DG' | 'SGACAD' | 'SGAD' | 'SGR' | 'AB';
+        _id?: string;
+    }[];
+    provinceId: {
+        _id: string;
+        nom?: string;
+    } | string;
+    createdAt?: Date;
+    updatedAt?: Date;
+    token?: string;
+    __v?: number;
+}
+
+export interface EtablissementFormData {
+    designation: string;
+    sigle: string;
+    logo: string;
+    categorie: 'public' | 'privee';
+    reference: string;
     description: string;
     coge: {
         membreId: string;
