@@ -5,18 +5,34 @@ import { MoreDotIcon } from "@/icons";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { useEffect, useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
-import { useProvinceStore } from "@/stores/provinceStore";
 import { Loader } from "lucide-react";
-import { usePersonnelStore } from "@/stores/personnelStore";
+import { useFraisStore } from "@/stores/fraisStore";
 
 // Dynamically import the ReactApexChart component
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
+const variables = [
+  {
+    label: "Frais d'inscription",
+    value: "inscription"
+  },
+  {
+    label: "Frais académique",
+    value: "academique"
+  },
+  {
+    label: "Frais des diplômes",
+    value: "diplome"
+  },
+  {
+    label: "Frais connexe",
+    value: "connexe"
+  }
+]
 export default function MonthlySalesChart() {
-  const { provinces, loading, fetchProvinces } = useProvinceStore();
-  const { personnels, loadPersonnels } = usePersonnelStore();
+  const { frais, loadFrais, isLoading } = useFraisStore();
 
   const options: ApexOptions = {
     colors: ["#465fff"],
@@ -65,6 +81,13 @@ export default function MonthlySalesChart() {
       axisTicks: {
         show: false,
       },
+      labels: {
+        rotate: -45,
+        rotateAlways: true,
+        style: {
+          fontSize: '11px'
+        }
+      },
     },
     legend: {
       show: true,
@@ -90,17 +113,17 @@ export default function MonthlySalesChart() {
 
     tooltip: {
       x: {
-        show: false,
+        show: true,
       },
       y: {
-        formatter: (val: number) => `${val}`,
+        formatter: (val: number) => `${val.toLocaleString('fr-FR')} FC`,
       },
     },
   };
   const [config, setConfig] = useState(options);
   const [data, setData] = useState({
     data: [],
-    name: "Personnel"
+    name: "Frais"
   });
 
   const series = [
@@ -110,7 +133,7 @@ export default function MonthlySalesChart() {
     },
   ];
   const [isOpen, setIsOpen] = useState(false);
-  const [graphique, setGraphique] = useState("Personnel Académique et Scientifique");
+  const [graphique, setGraphique] = useState("Frais d'inscription");
 
   function toggleDropdown() {
     setIsOpen(!isOpen);
@@ -120,56 +143,81 @@ export default function MonthlySalesChart() {
     setIsOpen(false);
   }
 
-  const handleSelect = (value: string, categories: string[]) => {
+  const handleSelect = (value: string, categrie: string) => {
     setGraphique(value);
-    const seriesData = [];
+    const seriesData: number[] = [];
+    const categories: string[] = [];
 
-    provinces.map((province) => {
-      const allPersonnels =personnels.filter((p: any) => p.province._id === province._id);
-      let totalProvince = 0;
-
-      categories.map(function(categorie){
-        allPersonnels.forEach(p => {
-          totalProvince += p.categorie.toLowerCase() === categorie.toLowerCase() ? 1 : 0;
-        });
-      })
-      seriesData.push(personnels.length > 0 ? Math.round(totalProvince * 100 / personnels.length) : 0);
+    // Filtrer les frais par catégorie et extraire les données
+    const fraisFiltres = frais.filter((f) => f.categorie === categrie);
+    
+    fraisFiltres.forEach((f) => {
+      seriesData.push(f.montant);
+      // Tronquer la désignation si trop longue
+      const designation = f.designation.length > 20 
+        ? f.designation.substring(0, 17) + '...'
+        : f.designation;
+      categories.push(designation);
     });
+
+    // Mettre à jour les catégories de l'axe X
+    setConfig({
+      ...options,
+      xaxis: {
+        ...options.xaxis,
+        categories: categories,
+        labels: {
+          rotate: -45,
+          rotateAlways: true,
+          style: {
+            fontSize: '11px'
+          }
+        }
+      },
+      tooltip: {
+        ...options.tooltip,
+        y: {
+          formatter: (val: number) => `${val.toLocaleString('fr-FR')} FC`
+        }
+      }
+    });
+
     setData({
       data: seriesData,
-      name: "Personnel"
+      name: "Montant"
     });
     setIsOpen(false);
   };
 
   useEffect(() => {
-    fetchProvinces();
-    loadPersonnels();
+    loadFrais();
   }, []);
 
   useEffect(() => {
-    if (provinces.length > 0) {
-      const categories = provinces.map((province) => province.code);
-      setConfig({
-        ...options,
-        xaxis: {
-          categories,
-        },
-      });
-      handleSelect("Personnel Académique et Scientifique", ["academique", "scientifique"]);
+    if (frais.length > 0) {
+      handleSelect("Frais d'inscription", "inscription");
     }
-  }, [provinces]);
+  }, [frais]);
 
-  if (loading) {
-    return <Loader />;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <Loader className="w-8 h-8 animate-spin text-blue-500" />
+      </div>
+    );
   }
 
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-          {graphique}
-        </h3>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+            {graphique}
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Distribution des montants par désignation
+          </p>
+        </div>
 
         <div className="relative inline-block">
           <button onClick={toggleDropdown} className="dropdown-toggle">
@@ -178,24 +226,13 @@ export default function MonthlySalesChart() {
           <Dropdown
             isOpen={isOpen}
             onClose={closeDropdown}
-            className="w-40 p-2"
+            className="w-48 p-2"
           >
           {
-            [
-              {
-                label: "PAS",
-                value: "Personnel Académique et Scientifique",
-                onClick: () => handleSelect("Personnel Académique et Scientifique", ["academique", "scientifique"])
-              },
-              {
-                label: "PATO",
-                value: "Personnel Administratif, Technique et Ouvrier",
-                onClick: () => handleSelect("Personnel Administratif, Technique et Ouvrier", ["administratif", "technique", "ouvrier"])
-              }
-            ].map((item, index) => (
+            variables.map((item, index) => (
               <DropdownItem
                 key={index}
-                onItemClick={item.onClick}
+                onItemClick={() => handleSelect(item.label, item.value)}
                 className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
               >
                 {item.label}
@@ -206,16 +243,25 @@ export default function MonthlySalesChart() {
         </div>
       </div>
 
-      <div className="max-w-full overflow-x-auto custom-scrollbar">
-        <div className="-ml-5 min-w-[650px] xl:min-w-full pl-2">
-          <ReactApexChart
-            options={config}
-            series={series}
-            type="bar"
-            height={180}
-          />
+      {data.data.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-48 text-gray-500 dark:text-gray-400">
+          <svg className="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <p className="text-center">Aucun frais trouvé pour cette catégorie</p>
         </div>
-      </div>
+      ) : (
+        <div className="max-w-full overflow-x-auto custom-scrollbar">
+          <div className="-ml-5 min-w-[650px] xl:min-w-full pl-2">
+            <ReactApexChart
+              options={config}
+              series={series}
+              type="bar"
+              height={220}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
