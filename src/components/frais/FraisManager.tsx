@@ -171,7 +171,7 @@ const FraisManager = ({ categorie }: Props) => {
                         </div>
                         <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
                             <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                                {fraisFilter.reduce((sum, f) => sum + f.montant, 0).toLocaleString()} FC
+                                {fraisFilter.reduce((sum, f) => sum + f.montant, 0).toLocaleString()} $
                             </div>
                             <div className="text-sm text-orange-600 dark:text-orange-400">
                                 Montant total

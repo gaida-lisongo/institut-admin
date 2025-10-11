@@ -215,7 +215,7 @@ const FraisRepartitionManager = ({ fraisId }: FraisRepartitionManagerProps) => {
                             <span className="font-medium">Catégorie:</span> {frais.categorie}
                         </div>
                         <div>
-                            <span className="font-medium">Montant:</span> {frais.montant.toLocaleString()} FC
+                            <span className="font-medium">Montant:</span> {frais.montant.toLocaleString()} $
                         </div>
                         <div>
                             <span className="font-medium">Établissements:</span> {frais.etabs.join(', ')}
@@ -374,7 +374,7 @@ const FraisRepartitionManager = ({ fraisId }: FraisRepartitionManagerProps) => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-gray-900">
-                                            {((frais.montant * repartition.quotite) / 100).toLocaleString()} FC
+                                            {((frais.montant * repartition.quotite) / 100).toLocaleString()} $
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-center">
                                             <div className="flex items-center justify-center space-x-2">

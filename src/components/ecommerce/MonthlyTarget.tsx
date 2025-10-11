@@ -267,7 +267,7 @@ export default function MonthlyTarget() {
                 {metrique.label}
               </p>
               <p className={`flex items-center justify-center gap-2 text-lg font-bold ${metrique.color} dark:text-white/90`}>
-                {metrique.value.toLocaleString('fr-FR')} FC
+                {metrique.value.toLocaleString('fr-FR')} $
                 {metrique.icon}
               </p>
             </div>

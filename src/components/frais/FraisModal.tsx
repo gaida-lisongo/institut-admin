@@ -139,7 +139,7 @@ const FraisModal = ({ isOpen, onClose, frais, mode, defaultCategorie }: FraisMod
     const formatMontant = (montant: number) => {
         return new Intl.NumberFormat('fr-FR', {
             style: 'currency',
-            currency: 'CDF',
+            currency: 'USD',
             minimumFractionDigits: 0,
         }).format(montant);
     };
@@ -231,7 +231,7 @@ const FraisModal = ({ isOpen, onClose, frais, mode, defaultCategorie }: FraisMod
 
                                 <div>
                                     <label className="block text-sm font-medium mb-1" htmlFor="montant">
-                                        Montant (CDF) *
+                                        Montant (USD) *
                                     </label>
                                     <input
                                         id="montant"

@@ -131,7 +131,7 @@ export const FraisStatsCard = () => {
     {
       icon: <DollarSign className="w-6 h-6" />,
       label: "Montant Total",
-      value: `${stats.montantTotal.toLocaleString('fr-FR')} FC`,
+      value: `${stats.montantTotal.toLocaleString('fr-FR')} $`,
       color: "text-emerald-600 dark:text-emerald-400",
       bgColor: "bg-gradient-to-br from-emerald-500 to-emerald-600",
       iconBgColor: "bg-emerald-50 dark:bg-emerald-950/30",

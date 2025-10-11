@@ -83,7 +83,7 @@ const FraisTables = ({ frais, onEdit, onView, isLoading }: FraisTablesProps) => 
     const formatMontant = (montant: number) => {
         return new Intl.NumberFormat('fr-FR', {
             style: 'currency',
-            currency: 'CDF',
+            currency: 'USD',
             minimumFractionDigits: 0,
         }).format(montant);
     };

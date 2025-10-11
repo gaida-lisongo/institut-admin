@@ -116,7 +116,7 @@ export default function MonthlySalesChart() {
         show: true,
       },
       y: {
-        formatter: (val: number) => `${val.toLocaleString('fr-FR')} FC`,
+        formatter: (val: number) => `${val.toLocaleString('fr-FR')} $`,
       },
     },
   };
@@ -177,7 +177,7 @@ export default function MonthlySalesChart() {
       tooltip: {
         ...options.tooltip,
         y: {
-          formatter: (val: number) => `${val.toLocaleString('fr-FR')} FC`
+          formatter: (val: number) => `${val.toLocaleString('fr-FR')} $`
         }
       }
     });

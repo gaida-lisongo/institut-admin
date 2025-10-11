@@ -148,7 +148,7 @@ export default function AnneeDetailPage() {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-CD', {
       style: 'currency',
-      currency: 'CDF'
+      currency: 'USD'
     }).format(amount);
   };
 
