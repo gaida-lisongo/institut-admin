@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/stores/personnelStore";
+import CheckAutorisations from "./CheckAutorisations";
 
 export default function SignInForm() {
   const router = useRouter();
@@ -27,7 +28,7 @@ export default function SignInForm() {
   // Rediriger si déjà authentifié
   useEffect(() => {
     if (isAuthenticated) {
-      router.push("/");
+      setIsChecked(true);
     }
   }, [isAuthenticated, router]);
 
@@ -44,7 +45,7 @@ export default function SignInForm() {
       const result = await login(matricule, password, "DRH");
       
       if (result.success) {
-        router.push("/");
+        setIsChecked(true);
       } else {
         setError(result.message || "Erreur de connexion");
       }
@@ -213,6 +214,7 @@ export default function SignInForm() {
           </div>
         </div>
       </div>
+      {isChecked && <CheckAutorisations />}
     </div>
   );
 }
