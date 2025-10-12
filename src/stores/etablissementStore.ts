@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Etablissement, EtablissementFormData } from '@/types/etablissement';
+import { 
+    Etablissement, 
+    EtablissementFormData, 
+    FaculteFormData, 
+    PatrimoineFormData, 
+    AdministratifFormData,
+    Faculte,
+    Patrimoine,
+    Administratif
+} from '@/types/etablissement';
 
 // Types pour les réponses API
 interface ApiResponse<T> {
@@ -26,12 +35,23 @@ interface EtablissementStore {
     filterCategorie: 'all' | 'public' | 'prive';
     filterProvince: string | null;
 
-    // Actions CRUD
+    // Actions CRUD Etablissement
     fetchEtablissements: () => Promise<void>;
     fetchEtablissementById: (id: string) => Promise<Etablissement | null>;
     createEtablissement: (data: EtablissementFormData) => Promise<Etablissement | null>;
     updateEtablissement: (id: string, data: Partial<EtablissementFormData>) => Promise<Etablissement | null>;
     deleteEtablissement: (id: string) => Promise<boolean>;
+
+    // Actions CRUD Facultés
+    updateFacultes: (etabId: string, facultes: FaculteFormData[]) => Promise<Etablissement | null>;
+    saveFaculte: (etabId: string, faculte: FaculteFormData & { _id?: string }) => Promise<Etablissement | null>;
+    deleteFaculte: (etabId: string, faculteId: string) => Promise<Etablissement | null>;
+    
+    // Actions CRUD Patrimoines
+    updatePatrimoines: (etabId: string, patrimoines: PatrimoineFormData[]) => Promise<Etablissement | null>;
+    
+    // Actions CRUD Administratifs
+    updateAdministratifs: (etabId: string, administratifs: AdministratifFormData[]) => Promise<Etablissement | null>;
 
     // Actions locales
     setSelectedEtablissement: (etablissement: Etablissement | null) => void;
@@ -54,7 +74,7 @@ interface EtablissementStore {
 }
 
 // Configuration API
-const API_BASE_URL = process.env.NEXT_PUBLIC_SERVER_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_SERVER_API_URL || 'http://localhost:4003/api/v1';
 
 const buildApiUrl = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
@@ -325,6 +345,171 @@ export const useEtablissementStore = create<EtablissementStore>()(
             getEtablissementsByCategorie: (categorie) => {
                 const { etablissements } = get();
                 return etablissements.filter(etablissement => etablissement.categorie === categorie);
+            },
+
+            // Actions CRUD Facultés
+            updateFacultes: async (etabId: string, facultes: FaculteFormData[]) => {
+                set({ isLoading: true, error: null });
+                try {
+                    const response = await fetch(buildApiUrl(`/etablissements/${etabId}/faculte`), {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...getAuthHeaders()
+                        },
+                        body: JSON.stringify(facultes)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+                    }
+
+                    const result: ApiResponse<Etablissement> = await response.json();
+                    
+                    if (result.success && result.data) {
+                        const { updateEtablissementLocal } = get();
+                        updateEtablissementLocal(etabId, result.data);
+                        set({ isLoading: false });
+                        return result.data;
+                    } else {
+                        throw new Error(result.message);
+                    }
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la mise à jour des facultés';
+                    set({ error: errorMessage, isLoading: false });
+                    console.error('Erreur updateFacultes:', error);
+                    return null;
+                }
+            },
+
+            // Sauvegarder une seule faculté (création ou modification)
+            saveFaculte: async (etabId: string, faculte: FaculteFormData & { _id?: string }) => {
+                set({ isLoading: true, error: null });
+                try {
+                    const response = await fetch(buildApiUrl(`/etablissements/${etabId}/faculte`), {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...getAuthHeaders()
+                        },
+                        body: JSON.stringify(faculte)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+                    }
+
+                    const result: ApiResponse<Etablissement> = await response.json();
+                    
+                    if (result.success && result.data) {
+                        const { updateEtablissementLocal } = get();
+                        updateEtablissementLocal(etabId, result.data);
+                        set({ isLoading: false });
+                        return result.data;
+                    } else {
+                        throw new Error(result.message);
+                    }
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la sauvegarde de la faculté';
+                    set({ error: errorMessage, isLoading: false });
+                    console.error('Erreur saveFaculte:', error);
+                    return null;
+                }
+            },
+
+            // Supprimer une faculté
+            deleteFaculte: async (etabId: string, faculteId: string) => {
+                set({ isLoading: true, error: null });
+                try {
+                    const response = await fetch(buildApiUrl(`/etablissements/${etabId}/faculte/${faculteId}`), {
+                        method: 'DELETE',
+                        headers: getAuthHeaders()
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+                    }
+
+                    const result: ApiResponse<Etablissement> = await response.json();
+                    
+                    if (result.success && result.data) {
+                        const { updateEtablissementLocal } = get();
+                        updateEtablissementLocal(etabId, result.data);
+                        set({ isLoading: false });
+                        return result.data;
+                    } else {
+                        throw new Error(result.message);
+                    }
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la suppression de la faculté';
+                    set({ error: errorMessage, isLoading: false });
+                    console.error('Erreur deleteFaculte:', error);
+                    return null;
+                }
+            },
+
+            // Actions CRUD Patrimoines
+            updatePatrimoines: async (etabId: string, patrimoines: PatrimoineFormData[]) => {
+                set({ isLoading: true, error: null });
+                try {
+                    const response = await fetch(buildApiUrl(`/etablissements/${etabId}/patrimoine`), {
+                        method: 'PUT',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify(patrimoines)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+                    }
+
+                    const result: ApiResponse<Etablissement> = await response.json();
+                    
+                    if (result.success) {
+                        const { updateEtablissementLocal } = get();
+                        updateEtablissementLocal(etabId, result.data);
+                        set({ isLoading: false });
+                        return result.data;
+                    } else {
+                        throw new Error(result.message);
+                    }
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la mise à jour du patrimoine';
+                    set({ error: errorMessage, isLoading: false });
+                    console.error('Erreur updatePatrimoines:', error);
+                    return null;
+                }
+            },
+
+            // Actions CRUD Administratifs
+            updateAdministratifs: async (etabId: string, administratifs: AdministratifFormData[]) => {
+                set({ isLoading: true, error: null });
+                try {
+                    const response = await fetch(buildApiUrl(`/etablissements/${etabId}/administratif`), {
+                        method: 'PUT',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify(administratifs)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+                    }
+
+                    const result: ApiResponse<Etablissement> = await response.json();
+                    
+                    if (result.success) {
+                        const { updateEtablissementLocal } = get();
+                        updateEtablissementLocal(etabId, result.data);
+                        set({ isLoading: false });
+                        return result.data;
+                    } else {
+                        throw new Error(result.message);
+                    }
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la mise à jour des administratifs';
+                    set({ error: errorMessage, isLoading: false });
+                    console.error('Erreur updateAdministratifs:', error);
+                    return null;
+                }
             }
         }),
         {
@@ -347,7 +532,11 @@ export const useEtablissements = () => {
         fetchEtablissements: store.fetchEtablissements,
         createEtablissement: store.createEtablissement,
         updateEtablissement: store.updateEtablissement,
-        deleteEtablissement: store.deleteEtablissement
+        deleteEtablissement: store.deleteEtablissement,
+        // Nouvelles actions
+        updateFacultes: store.updateFacultes,
+        updatePatrimoines: store.updatePatrimoines,
+        updateAdministratifs: store.updateAdministratifs
     };
 };
 
@@ -378,6 +567,50 @@ export const useSelectedEtablissement = () => {
     return {
         selectedEtablissement: store.selectedEtablissement,
         setSelectedEtablissement: store.setSelectedEtablissement,
-        fetchEtablissementById: store.fetchEtablissementById
+        fetchEtablissementById: store.fetchEtablissementById,
+        // Actions spécialisées pour l'établissement sélectionné
+        updateFacultes: (facultes: FaculteFormData[]) => 
+            store.selectedEtablissement?._id ? store.updateFacultes(store.selectedEtablissement._id, facultes) : Promise.resolve(null),
+        saveFaculte: (faculte: FaculteFormData & { _id?: string }) => 
+            store.selectedEtablissement?._id ? store.saveFaculte(store.selectedEtablissement._id, faculte) : Promise.resolve(null),
+        deleteFaculte: (faculteId: string) => 
+            store.selectedEtablissement?._id ? store.deleteFaculte(store.selectedEtablissement._id, faculteId) : Promise.resolve(null),
+        updatePatrimoines: (patrimoines: PatrimoineFormData[]) => 
+            store.selectedEtablissement?._id ? store.updatePatrimoines(store.selectedEtablissement._id, patrimoines) : Promise.resolve(null),
+        updateAdministratifs: (administratifs: AdministratifFormData[]) => 
+            store.selectedEtablissement?._id ? store.updateAdministratifs(store.selectedEtablissement._id, administratifs) : Promise.resolve(null)
+    };
+};
+
+// Hooks spécialisés pour les nouvelles fonctionnalités
+export const useFaculteActions = () => {
+    const store = useEtablissementStore();
+    return {
+        updateFacultes: store.updateFacultes,
+        saveFaculte: store.saveFaculte,
+        deleteFaculte: store.deleteFaculte,
+        isLoading: store.isLoading,
+        error: store.error,
+        clearError: store.clearError
+    };
+};
+
+export const usePatrimoineActions = () => {
+    const store = useEtablissementStore();
+    return {
+        updatePatrimoines: store.updatePatrimoines,
+        isLoading: store.isLoading,
+        error: store.error,
+        clearError: store.clearError
+    };
+};
+
+export const useAdministratifActions = () => {
+    const store = useEtablissementStore();
+    return {
+        updateAdministratifs: store.updateAdministratifs,
+        isLoading: store.isLoading,
+        error: store.error,
+        clearError: store.clearError
     };
 };

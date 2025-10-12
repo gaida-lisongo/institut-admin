@@ -32,7 +32,7 @@ export default function DirectionPage() {
     useEffect(() => {
         const etablissement = etablissements.find((e) => e._id === etablissementId);
         if (etablissement) {
-            setSelectedEtablissement(etablissement);
+            setSelectedEtablissement(etablissement as EtablissementPopulated);
             setDesignation(etablissement.designation);
             setSigle(etablissement.sigle);
             setDescription(etablissement.description);
