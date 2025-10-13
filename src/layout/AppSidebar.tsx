@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import {
   ChevronDownIcon,
+  DocsIcon,
   GridIcon,
   HorizontaLDots,
   ListIcon,
@@ -17,6 +18,7 @@ import { Privilge } from "@/types/agent";
 import { useSectionStore } from "@/stores/sectionStore";
 import { useAnneeStore } from "@/stores/anneeStore";
 import { Annee } from "@/services/AnneeService";
+import { FileIcon } from "lucide-react";
 
 type NavItem = {
   name: string;
@@ -146,7 +148,15 @@ const AppSidebar: React.FC = () => {
 
 
   const makeMenuSection = React.useCallback((sectionsId: string[], anneesOrdered: Annee[]): NavItem[] => {
-    
+    let clssesSection: { name: string; path: string }[] = [];
+
+    anneesOrdered.forEach((annee) => {
+      const findSections = sectionsId.map(id => sections.find(sec => sec._id === id)).filter(Boolean);
+      clssesSection = [...clssesSection, ...findSections.map(section => ({
+        name: `Classe ${section?.description.sigle} (${annee.debut}-${annee.fin})`,
+        path: `/classes/${annee._id}-${section?._id || 'inconnu'}`,
+      }))];
+    });
 
     let relevesSection: { name: string; path: string }[] = [];
     anneesOrdered.forEach((annee) => {
@@ -165,7 +175,13 @@ const AppSidebar: React.FC = () => {
         path: `/validations/${annee._id}-${section?._id || 'inconnu'}`,
       }))];
     });
+    
     return [
+      {
+        icon: <PageIcon />, 
+        name: "Classes",
+        subItems: clssesSection,
+      },
       {
         icon: <PageIcon />, 
         name: "Relevés de notes",

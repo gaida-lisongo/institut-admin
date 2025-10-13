@@ -2,18 +2,21 @@
 
 import React from 'react';
 import { Edit2, Trash2, Book, Users, GraduationCap, ExternalLink } from 'lucide-react';
-import { Cycle } from '@/services/CycleService';
+import { Classe, Cycle } from '@/services/CycleService';
 import { useCycleStore } from '@/stores/cycleStore';
 import { useRouter } from 'next/navigation';
+import { Annee } from '@/services/AnneeService';
 
 interface CycleListProps {
   cycles: Cycle[];
   loading: boolean;
   onEdit: (cycle: Cycle) => void;
   sectionId: string;
+  annee: Annee;
+  onClasseClick: (classe: Classe, cycle: Cycle) => void;
 }
 
-const CycleList: React.FC<CycleListProps> = ({ cycles, loading, onEdit, sectionId }) => {
+const CycleList: React.FC<CycleListProps> = ({ cycles, loading, onEdit, sectionId, annee, onClasseClick }) => {
   const { deleteCycle } = useCycleStore();
   const router = useRouter();
 
@@ -110,20 +113,9 @@ const CycleList: React.FC<CycleListProps> = ({ cycles, loading, onEdit, sectionI
                 </div>
               </div>
               <div className="flex space-x-2">
-                <button
-                  onClick={() => onEdit(cycle)}
-                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                  title="Modifier le cycle"
-                >
-                  <Edit2 className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => handleDelete(cycle._id!)}
-                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                  title="Supprimer le cycle"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
+                <p>
+                 {annee?.debut} - {annee?.fin}
+                </p>
               </div>
             </div>
           </div>
@@ -143,7 +135,7 @@ const CycleList: React.FC<CycleListProps> = ({ cycles, loading, onEdit, sectionI
                   <div
                     key={classeIndex}
                     className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-all cursor-pointer bg-gray-50 dark:bg-gray-700/50 hover:border-blue-300 group"
-                    onClick={() => handleClasseClick(cycle._id!, classeIndex)}
+                    onClick={() => onClasseClick(classe, cycle)}
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
