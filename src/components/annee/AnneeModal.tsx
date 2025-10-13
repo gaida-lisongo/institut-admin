@@ -5,6 +5,20 @@ import { X, Calendar, FileText, Loader2 } from 'lucide-react';
 import { Annee, AnneeFormData } from '@/types/annee';
 import { useAnneeStore } from '@/stores/anneeStore';
 
+// Hook pour gérer l'échappement
+const useEscapeKey = (callback: () => void) => {
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        callback();
+      }
+    };
+    
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [callback]);
+};
+
 interface AnneeModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -23,29 +37,49 @@ export default function AnneeModal({ isOpen, onClose, annee, mode }: AnneeModalP
   });
 
   const { createAnnee, updateAnnee, loading } = useAnneeStore();
+  
+  // Fermer le modal avec la touche Échap
+  useEscapeKey(onClose);
+  
+  // Empêcher le scroll du body quand le modal est ouvert
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    // Nettoyage
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   // Initialiser le formulaire avec les données de l'année si en mode édition
   useEffect(() => {
-    if (annee && (mode === 'edit' || mode === 'view')) {
-      setFormData({
-        debut: annee.debut,
-        fin: annee.fin,
-        description: annee.description,
-        statut: annee.statut,
-        calendrier: annee.calendrier || [],
-        fraisAcademiques: annee.fraisAcademiques || []
-      });
-    } else if (mode === 'create') {
-      // Réinitialiser pour une nouvelle année
-      const currentYear = new Date().getFullYear();
-      setFormData({
-        debut: currentYear,
-        fin: currentYear + 1,
-        description: `Année académique ${currentYear}-${currentYear + 1}`,
-        statut: 'planifiee',
-        calendrier: [],
-        fraisAcademiques: []
-      });
+    if (isOpen) {
+      if (mode === 'edit' || mode === 'view') {
+        if (annee) {
+          setFormData({
+            debut: annee.debut || new Date().getFullYear(),
+            fin: annee.fin || new Date().getFullYear() + 1,
+            description: annee.description || '',
+            statut: annee.statut || 'planifiee',
+            calendrier: annee.calendrier || [],
+            fraisAcademiques: annee.fraisAcademiques || []
+          });
+        }
+      } else if (mode === 'create') {
+        const currentYear = new Date().getFullYear();
+        setFormData({
+          debut: currentYear,
+          fin: currentYear + 1,
+          description: `Année académique ${currentYear}-${currentYear + 1}`,
+          statut: 'planifiee',
+          calendrier: [],
+          fraisAcademiques: []
+        });
+      }
     }
   }, [annee, mode, isOpen]);
 
@@ -66,6 +100,16 @@ export default function AnneeModal({ isOpen, onClose, annee, mode }: AnneeModalP
       if (mode === 'create') {
         const newAnnee = await createAnnee(formData);
         if (newAnnee) {
+          // Réinitialiser le formulaire
+          const currentYear = new Date().getFullYear();
+          setFormData({
+            debut: currentYear,
+            fin: currentYear + 1,
+            description: `Année académique ${currentYear}-${currentYear + 1}`,
+            statut: 'planifiee',
+            calendrier: [],
+            fraisAcademiques: []
+          });
           onClose();
         }
       } else if (mode === 'edit' && annee) {
@@ -101,16 +145,24 @@ export default function AnneeModal({ isOpen, onClose, annee, mode }: AnneeModalP
                 'Détails de l\'Année Académique';
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        {/* Overlay */}
-        <div 
-          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-75"
-          onClick={onClose}
-        />
-
-        {/* Modal */}
-        <div className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-gray-800 shadow-xl rounded-2xl">
+    <>
+      {/* Overlay */}
+      <div 
+        className="fixed inset-0 z-40 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-75 transition-opacity"
+        onClick={onClose}
+      />
+      
+      {/* Modal Container */}
+      <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+          {/* Spacer element to center modal */}
+          <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+          
+          {/* Modal */}
+          <div 
+            className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-gray-800 shadow-xl rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">
@@ -268,8 +320,9 @@ export default function AnneeModal({ isOpen, onClose, annee, mode }: AnneeModalP
               )}
             </div>
           </form>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

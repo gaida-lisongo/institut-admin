@@ -7,6 +7,7 @@ import { Annee } from '@/types/annee';
 import { useAnneeStore } from '@/stores/anneeStore';
 import AnneeModal from '@/components/annee/AnneeModal';
 import DeleteConfirmModal from '@/components/annee/DeleteConfirmModal';
+import TestModal from '@/components/annee/TestModal';
 
 export default function AnneesPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -369,6 +370,9 @@ export default function AnneesPage() {
           </div>
         )}
       </div>
+
+      {/* Composant de test temporaire */}
+      {/* <TestModal /> */}
 
       {/* Modal pour créer/modifier une année */}
       <AnneeModal
