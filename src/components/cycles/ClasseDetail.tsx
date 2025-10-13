@@ -24,6 +24,7 @@ interface Inscription {
     createdAt: Date;
 }
 
+
 const ClasseDetail = ({ cycle, classe, annee, onBack }: ClasseProps) => {
   const [inscriptions, setInscriptions] = useState<Inscription[]>([]);
   const [search, setSearch] = useState("");
