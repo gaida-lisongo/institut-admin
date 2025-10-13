@@ -157,6 +157,7 @@ const AppSidebar: React.FC = () => {
         path: `/classes/${annee._id}-${section?._id || 'inconnu'}`,
       }))];
     });
+    
 
     let relevesSection: { name: string; path: string }[] = [];
     anneesOrdered.forEach((annee) => {
