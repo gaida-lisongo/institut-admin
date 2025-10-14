@@ -199,6 +199,9 @@ export default function DirectionPage() {
                             <p className="mt-1 text-xl text-blue-100">
                                 {sigle}
                             </p>
+                            <span className="mt-1 text-xl text-blue-100">
+                                Token : {selectedEtablissement?.token}
+                            </span>
                         </div>
                     </div>
                 </div>

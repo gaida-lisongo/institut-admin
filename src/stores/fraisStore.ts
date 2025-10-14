@@ -76,7 +76,7 @@ export const useFraisStore = create<FraisStore>((set, get) => ({
   error: null,
 
   // Récupération de tous les frais avec pagination
-  loadFrais: async (page = 1, limit = 10) => {
+  loadFrais: async (page = 1, limit = 500) => {
     set({ isLoading: true, error: null });
     try {
       const response = await fetch(
@@ -144,7 +144,7 @@ export const useFraisStore = create<FraisStore>((set, get) => ({
   },
 
   // Récupération des frais par catégorie
-  loadFraisByCategorie: async (categorie: string, page = 1, limit = 10) => {
+  loadFraisByCategorie: async (categorie: string, page = 1, limit = 500) => {
     set({ isLoading: true, error: null });
     try {
       const response = await fetch(
@@ -181,7 +181,7 @@ export const useFraisStore = create<FraisStore>((set, get) => ({
   },
 
   // Récupération des frais par type d'établissement
-  loadFraisByEtab: async (type: 'public' | 'prive' | 'tous', page = 1, limit = 10) => {
+  loadFraisByEtab: async (type: 'public' | 'prive' | 'tous', page = 1, limit = 500) => {
     set({ isLoading: true, error: null });
     try {
       const response = await fetch(
