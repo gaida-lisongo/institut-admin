@@ -5,10 +5,11 @@ import { useSystemeStore } from "@/stores/systemeStore";
 import { Annee } from "@/types/annee";
 import { Frais } from "@/types/frais";
 import { Classe, Systeme } from "@/types/systemes";
-import { Building2, CreditCard, Calendar, Users, DollarSign, Plus } from "lucide-react";
+import { Building2, CreditCard, Calendar, Users, DollarSign, Plus, FileSpreadsheet } from "lucide-react";
 import { useEffect, useState } from "react";
 import ProductModal from "@/components/paiements/ProductModal";
 import ProductDataTable from "@/components/paiements/ProductDataTable";
+import { PaiementsListModern } from "@/components/paiements";
 
 const API_URL = process.env.NEXT_PUBLIC_SERVER_API_URL;
 
@@ -22,10 +23,10 @@ export interface Payment {
 
 export interface Product {
     _id: string;
-    fraisId: string;
-    etabId: string;
-    anneeId: string;
-    classeId: string;
+    fraisId: any;
+    etabId: any;
+    anneeId: any;
+    classeId: any;
     payments: Payment[];
     tranche: string;
     montant: number;
@@ -122,7 +123,8 @@ const PaiementsPage = () => {
                         status: payment.status || '',
                         amount: Number(payment.amount) || 0,
                         orderNumber: payment.orderNumber || '',
-                        currency: payment.currency || 'USD'
+                        currency: 'CDF',
+                        etudiant: payment.etudiant || null,
                     })) : [],
                     totalPayments: Number(product.totalPayments) || 0,
                     totalPaymentsAmount: Number(product.totalPaymentsAmount) || 0,
@@ -193,6 +195,254 @@ const PaiementsPage = () => {
     const handleModalSuccess = () => {
         // Recharger la liste des produits après création/modification
         loadProducts();
+    };
+
+    const printReport = async () => {
+        try {
+            // Import ExcelJS dynamiquement
+            const ExcelJS = await import('exceljs');
+            
+            // Créer un nouveau workbook
+            const workbook = new ExcelJS.Workbook();
+            
+            // Préparer les données
+            const transactionsOK: any[] = [];
+            let soldeOK = 0;
+            const transactionsPENDING: any[] = [];
+            let soldePENDING = 0;
+            const transactionsNO: any[] = [];
+            let soldeNO = 0;
+            const allTransactions: any[] = [];
+            
+            // Résumé par produit
+            const productSummary: any[] = [];
+
+            products.forEach((product: any) => {
+                let productOK = 0;
+                let productPENDING = 0;
+                let productNO = 0;
+                let productTotal = 0;
+
+                product.payments.forEach((payment: any) => {
+                    const enrichedPayment = {
+                        ...payment,
+                        productId: product._id,
+                        productTranche: product.tranche,
+                        productMontant: product.montant,
+                        fraisId: product.fraisId,
+                        classeId: product.classeId
+                    };
+
+                    allTransactions.push(enrichedPayment);
+                    productTotal += payment.amount;
+
+                    if (payment.status === 'OK') {
+                        transactionsOK.push(enrichedPayment);
+                        soldeOK += payment.amount;
+                        productOK += payment.amount;
+                    } else if (payment.status === 'PENDING') {
+                        transactionsPENDING.push(enrichedPayment);
+                        soldePENDING += payment.amount;
+                        productPENDING += payment.amount;
+                    } else if (payment.status === 'NO') {
+                        transactionsNO.push(enrichedPayment);
+                        soldeNO += payment.amount;
+                        productNO += payment.amount;
+                    }
+                });
+
+                productSummary.push({
+                    productId: product._id,
+                    tranche: product.tranche,
+                    montantUnitaire: product.montant,
+                    totalPaiements: product.payments.length,
+                    montantTotal: productTotal,
+                    montantOK: productOK,
+                    montantPENDING: productPENDING,
+                    montantNO: productNO,
+                    tauxRecouvrement: productTotal > 0 ? ((productOK / productTotal) * 100).toFixed(2) + '%' : '0%'
+                });
+            });
+
+            // FEUILLE 1: SYNTHÈSE
+            const syntheseSheet = workbook.addWorksheet('Synthèse');
+            
+            // En-tête de la synthèse
+            syntheseSheet.mergeCells('A1:F1');
+            syntheseSheet.getCell('A1').value = 'RAPPORT FINANCIER - SYNTHÈSE';
+            syntheseSheet.getCell('A1').font = { bold: true, size: 16 };
+            syntheseSheet.getCell('A1').alignment = { horizontal: 'center' };
+            
+            // Informations contextuelles
+            syntheseSheet.getCell('A3').value = 'Établissement:';
+            syntheseSheet.getCell('B3').value = etablissement?.designation || 'N/A';
+            syntheseSheet.getCell('A4').value = 'Année Académique:';
+            syntheseSheet.getCell('B4').value = selectedAnnee ? `${selectedAnnee.debut}-${selectedAnnee.fin}` : 'N/A';
+            syntheseSheet.getCell('A5').value = 'Classe:';
+            syntheseSheet.getCell('B5').value = selectedClasse?.niveau || 'N/A';
+            syntheseSheet.getCell('A6').value = 'Frais:';
+            syntheseSheet.getCell('B6').value = selectedFrais?.designation || 'Tous les frais';
+            syntheseSheet.getCell('A7').value = 'Date du rapport:';
+            syntheseSheet.getCell('B7').value = new Date().toLocaleDateString('fr-FR');
+
+            // Résumé global
+            syntheseSheet.getCell('A9').value = 'RÉSUMÉ GLOBAL';
+            syntheseSheet.getCell('A9').font = { bold: true, size: 14 };
+            
+            syntheseSheet.getCell('A11').value = 'Statut';
+            syntheseSheet.getCell('B11').value = 'Nombre de transactions';
+            syntheseSheet.getCell('C11').value = 'Montant total';
+            syntheseSheet.getCell('D11').value = 'Pourcentage';
+            
+            // Style de l'en-tête
+            ['A11', 'B11', 'C11', 'D11'].forEach(cell => {
+                syntheseSheet.getCell(cell).font = { bold: true };
+                syntheseSheet.getCell(cell).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6E6FA' } };
+            });
+
+            const totalTransactions = allTransactions.length;
+            const totalMontant = soldeOK + soldePENDING + soldeNO;
+
+            // Données du résumé
+            syntheseSheet.getCell('A12').value = 'PAYÉ (OK)';
+            syntheseSheet.getCell('B12').value = transactionsOK.length;
+            syntheseSheet.getCell('C12').value = soldeOK;
+            syntheseSheet.getCell('D12').value = totalMontant > 0 ? ((soldeOK / totalMontant) * 100).toFixed(2) + '%' : '0%';
+            syntheseSheet.getCell('A12').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF90EE90' } };
+
+            syntheseSheet.getCell('A13').value = 'EN ATTENTE (PENDING)';
+            syntheseSheet.getCell('B13').value = transactionsPENDING.length;
+            syntheseSheet.getCell('C13').value = soldePENDING;
+            syntheseSheet.getCell('D13').value = totalMontant > 0 ? ((soldePENDING / totalMontant) * 100).toFixed(2) + '%' : '0%';
+            syntheseSheet.getCell('A13').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFD700' } };
+
+            syntheseSheet.getCell('A14').value = 'NON PAYÉ (NO)';
+            syntheseSheet.getCell('B14').value = transactionsNO.length;
+            syntheseSheet.getCell('C14').value = soldeNO;
+            syntheseSheet.getCell('D14').value = totalMontant > 0 ? ((soldeNO / totalMontant) * 100).toFixed(2) + '%' : '0%';
+            syntheseSheet.getCell('A14').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF6B6B' } };
+
+            syntheseSheet.getCell('A15').value = 'TOTAL';
+            syntheseSheet.getCell('B15').value = totalTransactions;
+            syntheseSheet.getCell('C15').value = totalMontant;
+            syntheseSheet.getCell('D15').value = '100%';
+            syntheseSheet.getCell('A15').font = { bold: true };
+
+            // Ajuster les largeurs des colonnes
+            syntheseSheet.getColumn('A').width = 20;
+            syntheseSheet.getColumn('B').width = 20;
+            syntheseSheet.getColumn('C').width = 15;
+            syntheseSheet.getColumn('D').width = 15;
+
+            // FEUILLE 2: RÉSUMÉ PAR PRODUIT
+            const produitSheet = workbook.addWorksheet('Résumé par Produit');
+            
+            // En-tête
+            produitSheet.mergeCells('A1:I1');
+            produitSheet.getCell('A1').value = 'RÉSUMÉ PAR PRODUIT';
+            produitSheet.getCell('A1').font = { bold: true, size: 16 };
+            produitSheet.getCell('A1').alignment = { horizontal: 'center' };
+
+            // Headers du tableau
+            const productHeaders = ['ID Produit', 'Tranche', 'Montant Unitaire', 'Total Paiements', 'Montant Total', 'Montant OK', 'Montant PENDING', 'Montant NO', 'Taux Recouvrement'];
+            productHeaders.forEach((header, index) => {
+                const cell = produitSheet.getCell(3, index + 1);
+                cell.value = header;
+                cell.font = { bold: true };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6E6FA' } };
+            });
+
+            // Données des produits
+            productSummary.forEach((product, index) => {
+                const row = index + 4;
+                produitSheet.getCell(row, 1).value = product.productId;
+                produitSheet.getCell(row, 2).value = product.tranche;
+                produitSheet.getCell(row, 3).value = product.montantUnitaire;
+                produitSheet.getCell(row, 4).value = product.totalPaiements;
+                produitSheet.getCell(row, 5).value = product.montantTotal;
+                produitSheet.getCell(row, 6).value = product.montantOK;
+                produitSheet.getCell(row, 7).value = product.montantPENDING;
+                produitSheet.getCell(row, 8).value = product.montantNO;
+                produitSheet.getCell(row, 9).value = product.tauxRecouvrement;
+            });
+
+            // Ajuster les largeurs
+            for (let i = 1; i <= 9; i++) {
+                produitSheet.getColumn(i).width = 15;
+            }
+
+            // FEUILLE 3: TOUS LES PAIEMENTS
+            const paiementsSheet = workbook.addWorksheet('Tous les Paiements');
+            
+            // En-tête
+            paiementsSheet.mergeCells('A1:H1');
+            paiementsSheet.getCell('A1').value = 'LISTE COMPLÈTE DES PAIEMENTS';
+            paiementsSheet.getCell('A1').font = { bold: true, size: 16 };
+            paiementsSheet.getCell('A1').alignment = { horizontal: 'center' };
+
+            // Headers du tableau
+            const paymentHeaders = ['ID Étudiant', 'Statut', 'Montant', 'Numéro Commande', 'Devise', 'ID Produit', 'Tranche', 'Montant Produit'];
+            paymentHeaders.forEach((header, index) => {
+                const cell = paiementsSheet.getCell(3, index + 1);
+                cell.value = header;
+                cell.font = { bold: true };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6E6FA' } };
+            });
+
+            // Données des paiements
+            allTransactions.forEach((payment, index) => {
+                console.log("Current payment : ", payment);
+                const row = index + 4;
+                paiementsSheet.getCell(row, 1).value = payment.etudiant?.nomComplet;
+                //Taille de la cellule au contenu
+                paiementsSheet.getCell(row, 1).alignment = { 
+                    wrapText: true,
+                    horizontal: 'center',
+                };
+                paiementsSheet.getCell(row, 2).value = payment.status;
+                paiementsSheet.getCell(row, 3).value = payment.amount;
+                paiementsSheet.getCell(row, 4).value = payment.orderNumber || '';
+                paiementsSheet.getCell(row, 5).value = 'CDF';
+                paiementsSheet.getCell(row, 6).value = payment.productId;
+                paiementsSheet.getCell(row, 7).value = payment.productTranche;
+                paiementsSheet.getCell(row, 8).value = payment.productMontant;
+
+                // Colorier selon le statut
+                const statusCell = paiementsSheet.getCell(row, 2);
+                if (payment.status === 'OK') {
+                    statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF90EE90' } };
+                } else if (payment.status === 'PENDING') {
+                    statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFD700' } };
+                } else if (payment.status === 'NO') {
+                    statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF6B6B' } };
+                }
+            });
+
+            // Ajuster les largeurs
+            for (let i = 1; i <= 8; i++) {
+                paiementsSheet.getColumn(i).width = 15;
+            }
+
+            // Générer le nom du fichier
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            const filename = `Rapport_Financier_${selectedClasse?.niveau || 'Classe'}_${timestamp}.xlsx`;
+
+            // Télécharger le fichier
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
+            window.URL.revokeObjectURL(url);
+
+            alert('Rapport généré avec succès !');
+
+        } catch (error) {
+            console.error('Erreur lors de la génération du rapport:', error);
+            alert('Erreur lors de la génération du rapport. Veuillez réessayer.');
+        }
     };
 
     const closeModal = () => {
@@ -376,13 +626,22 @@ const PaiementsPage = () => {
                         </div>
                         
                         {selectedClasse && selectedFrais && selectedAnnee && (
-                            <button 
-                                onClick={handleCreateProduct}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
-                            >
-                                <Plus className="w-4 h-4" />
-                                Nouveau Produit
-                            </button>
+                            <div className="flex gap-3">
+                                <button 
+                                    onClick={handleCreateProduct}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Nouveau Produit
+                                </button>
+                                <button 
+                                    onClick={printReport}
+                                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center gap-2"
+                                >
+                                    <FileSpreadsheet className="w-4 h-4" />
+                                    Rapport Excel
+                                </button>
+                            </div>
                         )}
                     </div>
 

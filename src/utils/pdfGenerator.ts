@@ -7,12 +7,15 @@ import { Etablissement } from '@/types/etablissement';
 import { Frais } from '@/types/frais';
 import { Annee } from '@/types/annee';
 import { Classe } from '@/types/systemes';
+import { Etudiant } from '@/types/etudiant';
+import { text } from 'stream/consumers';
 
 // Initialiser les polices
 pdfMake.vfs = pdfFonts.vfs;
 
 // Taux de conversion USD vers CDF
 const USD_TO_CDF_RATE = 2800;
+const hostname = window.location.hostname;
 
 interface PaymentPDFOptions {
   product: Product;
@@ -40,8 +43,9 @@ export const formatCurrency = (amount: number, currency: 'USD' | 'CDF' = 'CDF'):
   }).format(amount);
 };
 
-export const generatePaymentQRCode = async (productId: string): Promise<string> => {
-  const paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL}/finance/produit/${productId}`;
+export const generatePaymentQRCode = async (productId: string): Promise<{base64 :string; url: string}> => {
+  const paymentUrl = `http://${hostname}:3000/payment/${productId}`;
+  console.log("URL de paiement : ", paymentUrl);
   try {
     const qrCodeDataUrl = await QRCode.toDataURL(paymentUrl, {
       width: 200,
@@ -51,7 +55,7 @@ export const generatePaymentQRCode = async (productId: string): Promise<string> 
         light: '#FFFFFF'
       }
     });
-    return qrCodeDataUrl;
+    return {base64: qrCodeDataUrl, url: paymentUrl };
   } catch (error) {
     console.error('Erreur lors de la génération du QR Code:', error);
     throw error;
@@ -147,7 +151,7 @@ export const generatePaymentPDF = async (options: PaymentPDFOptions): Promise<vo
         margin: [0, 0, 0, 15]
       },
       {
-        image: qrCodeDataUrl,
+        image: qrCodeDataUrl.base64,
         width: 200,
         alignment: 'center',
         margin: [0, 0, 0, 15]
@@ -159,7 +163,7 @@ export const generatePaymentPDF = async (options: PaymentPDFOptions): Promise<vo
         margin: [0, 0, 0, 10]
       },
       {
-        text: `ID de transaction: ${product._id}`,
+        text: `${qrCodeDataUrl.url}`,
         style: 'transactionId',
         alignment: 'center',
         margin: [0, 0, 0, 30]
@@ -291,3 +295,166 @@ export const generateBulkPaymentPDFs = async (
     await new Promise(resolve => setTimeout(resolve, 500));
   }
 };
+
+
+export const generateCommandePdf = async ({etudiant, produit} : { etudiant: any; produit: any}) => {
+  const { nom, post_nom, prenom, matricule, nomComplet, nationalite, date_naissance } = etudiant;
+  const parcours = etudiant?.dernierParcours;
+  const etablissement = produit.etabId;
+  const frais = produit.fraisId;
+  const classe = produit.classeId;
+  const annee = produit.anneeId;
+
+  const docDefinition : any = {
+    content: [
+      // Logo + titre
+      {
+        columns: [
+          {
+            text: "ok",
+            width:'*',
+          },
+          {
+            width: '*',
+            text: etablissement.designation.toUpperCase(),
+            alignment: 'center',
+            bold: true,
+            fontSize: 14,
+            margin: [0, 10, 0, 0]
+          }
+        ]
+      },
+    ],
+    styles: {
+      header: {
+        fontSize: 16,
+        bold: true,
+        alignment: 'center',
+        margin: [0, 10, 0, 20]
+      },
+      subheader: {
+        fontSize: 13,
+        bold: true,
+        margin: [0, 10, 0, 5]
+      },
+      tableExample: {
+        margin: [0, 5, 0, 15],
+        fontSize: 10
+      }
+    }
+  };
+
+  const fileName = `Commande_${etudiant?.id}_${Date.now()}.pdf`;
+  pdfMake.createPdf(docDefinition).download(fileName);
+};
+
+export const generateInvoicePdf = (etudiant, produit, orderNumber) => {
+  const docDefinition: any = generateInvoice(etudiant, produit, orderNumber);
+  const fileName = `Facture_${etudiant?.id}_${Date.now()}.pdf`;
+  pdfMake.createPdf(docDefinition).download(fileName);
+}
+
+export const generateInvoice = (etudiant, produit, orderNumber) => {
+  const { nomComplet, matricule, nationalite, date_naissance } = etudiant;
+  const parcours = etudiant?.dernierParcours;
+  const etablissement = produit.etabId;
+  const frais = produit.fraisId;
+  const classe = produit.classeId;
+  const annee = produit.anneeId;
+
+  const today = new Date();
+  const formattedDate = today.toLocaleDateString('fr-FR');
+
+  return {
+    content: [
+      // 🔷 SECTION 1 : EN-TÊTE + INFOS FACTURE
+      {
+        columns: [
+          {
+            width: '50%',
+            stack: [
+              { text: 'République Démocratique du Congo', bold: true },
+              { text: "Ministère de l’Enseignement Supérieur Universitaire,\nRecherche Scientifique et Innovation" },
+              { text: etablissement.designation, bold: true, margin: [0, 5, 0, 0] },
+              { text: `Sigle: ${etablissement.sigle}` }
+            ]
+          },
+          {
+            width: '50%',
+            stack: [
+              { text: `Facture N°: ${orderNumber}`, alignment: 'right', bold: true },
+              { text: `Date: ${formattedDate}`, alignment: 'right' }
+            ]
+          }
+        ],
+        margin: [0, 0, 0, 20]
+      },
+
+      // 🔷 SECTION 2 : INFOS ÉTUDIANT
+      { text: 'Informations de l\'étudiant', style: 'sectionHeader' },
+      {
+        style: 'table',
+        table: {
+          widths: ['40%', '*'],
+          body: [
+            ['Nom complet', nomComplet],
+            ['Matricule', matricule],
+            ['Nationalité', nationalite],
+            ['Date de naissance', new Date(date_naissance).toLocaleDateString('fr-FR')],
+            ['Classe / Niveau', classe.niveau],
+            ['Année académique', `${annee.debut} - ${annee.fin}`],
+          ]
+        },
+        margin: [0, 10, 0, 20]
+      },
+
+      // 🔷 SECTION 3 : DÉTAIL DU PAIEMENT
+      { text: 'Détails du paiement', style: 'sectionHeader' },
+      {
+        style: 'table',
+        table: {
+          widths: ['*', 'auto'],
+          body: [
+            [
+              { text: 'Désignation', bold: true },
+              { text: 'Montant (USD)', bold: true, alignment: 'right' }
+            ],
+            [
+              frais.designation,
+              { text: frais.montant.toFixed(2), alignment: 'right' }
+            ],
+            [
+              { text: 'TOTAL À PAYER', bold: true, colSpan: 2, alignment: 'right', fillColor: '#eeeeee' }, ''
+            ],
+            [
+              '',
+              { text: `${frais.montant.toFixed(2)} USD`, bold: true, alignment: 'right' }
+            ]
+          ]
+        },
+        margin: [0, 10, 0, 30]
+      },
+
+      // 🔷 SECTION 4 : SIGNATURE
+      {
+        columns: [
+          { text: `Fait à Kinshasa\nLe : ${formattedDate}`, alignment: 'left' },
+          { text: 'Signature\n\n____________________', alignment: 'right' }
+        ]
+      }
+    ],
+    styles: {
+      sectionHeader: {
+        fontSize: 13,
+        bold: true,
+        margin: [0, 10, 0, 5],
+        decoration: 'underline'
+      },
+      table: {
+        margin: [0, 5, 0, 15],
+        fontSize: 10
+      }
+    }
+  };
+};
+

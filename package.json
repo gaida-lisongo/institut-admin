@@ -25,6 +25,7 @@
     "@vercel/blob": "^2.0.0",
     "apexcharts": "^4.3.0",
     "autoprefixer": "^10.4.21",
+    "exceljs": "^4.4.0",
     "flatpickr": "^4.6.13",
     "jose": "^6.1.0",
     "jsonwebtoken": "^9.0.2",

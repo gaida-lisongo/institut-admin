@@ -165,9 +165,6 @@ const ProductDataTable = ({
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                 Collecté
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Statut
-                            </th>
                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                 Actions
                             </th>
@@ -229,24 +226,11 @@ const ProductDataTable = ({
 
                                     {/* Collecté */}
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-green-600 dark:text-green-400">
-                                            {formatCurrency(safeProduct.totalPaymentsAmount)}
+                                        <div className="text-sm font-medium text-green-600 dark:text-green-400">                                            
+                                            {
+                                                product.payments.reduce((total, p) => total + (p.status == 'OK' ? p.amount : 0.0), 0)
+                                            } CDF
                                         </div>
-                                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                                            {safeProduct.totalPayments > 0 
-                                                ? `${((safeProduct.totalPaymentsOk / safeProduct.totalPayments) * 100).toFixed(1)}% validé`
-                                                : 'Aucun paiement'
-                                            }
-                                        </div>
-                                    </td>
-
-                                    {/* Statut */}
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(safeProduct.totalPayments, safeProduct.totalPaymentsOk)}`}>
-                                            {safeProduct.totalPayments === 0 ? 'Nouveau' :
-                                             ((safeProduct.totalPaymentsOk / safeProduct.totalPayments) * 100) >= 80 ? 'Excellent' :
-                                             ((safeProduct.totalPaymentsOk / safeProduct.totalPayments) * 100) >= 50 ? 'Moyen' : 'Faible'}
-                                        </span>
                                     </td>
 
                                     {/* Actions */}
@@ -310,10 +294,10 @@ const ProductDataTable = ({
                     </div>
                     <div className="flex items-center gap-4">
                         <span>
-                            Montant total: {formatCurrency(filteredProducts.reduce((sum, p) => sum + (p.montant || 0), 0))}
+                            Montant total: {filteredProducts.reduce((sum, p) => sum + (p.montant || 0), 0)} CDF
                         </span>
                         <span>
-                            Collecté: {formatCurrency(filteredProducts.reduce((sum, p) => sum + (p.totalPaymentsAmount || 0), 0))}
+                            Collecté: {filteredProducts.reduce((sum, p) => sum + (p.payments.reduce((t, pay) => t + (pay.status == 'OK' ? pay.amount : 0), 0) || 0), 0)} CDF
                         </span>
                     </div>
                 </div>
