@@ -37,7 +37,7 @@ export interface Personnel {
   lieu_naissance: string;
   date_naissance: Date | string;
   province: string | Province; // ObjectId ou objet Province populé
-  categorie: 'SCIENTIFIQUE' | 'ADMINISTRATIF' | 'ACADEMIQUE' | 'OUVRIER';
+  categorie: 'SCIENTIFIQUE' | 'ADMINISTRATIF' | 'ACADÉMIQUE' | 'OUVRIER';
   grade?: GradePersonnel;
   niveau?: string;
   photo?: string;

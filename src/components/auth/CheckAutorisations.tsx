@@ -21,8 +21,6 @@ const CheckAutorisations = () => {
     useEffect(() => {
         // Éviter les redirections multiples
         if (hasRedirected || !currentUser) return;
-
-        console.log("Utilisateur connecté:", currentUser);
         
         // Filtrer les autorisations valides
         const autorisationsValides = currentUser.autorisations?.filter(
@@ -30,12 +28,9 @@ const CheckAutorisations = () => {
                 typesAut.includes(autorisation.type) && autorisation.action === true
         ) || [];
 
-        console.log("Autorisations valides trouvées:", autorisationsValides);
-
         if (autorisationsValides.length > 0) {
             // Stocker les autorisations dans localStorage
             localStorage.setItem("autorisations", JSON.stringify(autorisationsValides));
-            console.log("✅ Autorisations stockées dans localStorage");
             
             // Marquer comme redirigé
             setHasRedirected(true);

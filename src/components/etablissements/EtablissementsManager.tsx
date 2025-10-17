@@ -44,9 +44,7 @@ const EtablissementsManager: React.FC<EtablissementsManagerProps> = ({
 
     // Debug : Afficher les données récupérées
     useEffect(() => {
-        console.log('🏢 Établissements récupérés:', etablissements);
-        console.log('🌍 Province ID recherchée:', provinceId);
-        console.log('📋 Établissements filtrés pour cette province:', etablissementsProvince);
+        
     }, [etablissements, provinceId, etablissementsProvince]);
 
     // Filtrer par terme de recherche

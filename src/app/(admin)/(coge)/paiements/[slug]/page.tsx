@@ -11,7 +11,7 @@ import ProductModal from "@/components/paiements/ProductModal";
 import ProductDataTable from "@/components/paiements/ProductDataTable";
 import { PaiementsListModern } from "@/components/paiements";
 
-const API_URL = process.env.NEXT_PUBLIC_SERVER_API_URL;
+export const API_URL = process.env.NEXT_PUBLIC_SERVER_API_URL;
 
 export interface Payment {
     etudiantId: any;
@@ -391,7 +391,7 @@ const PaiementsPage = () => {
 
             // Données des paiements
             allTransactions.forEach((payment, index) => {
-                console.log("Current payment : ", payment);
+                
                 const row = index + 4;
                 paiementsSheet.getCell(row, 1).value = payment.etudiant?.nomComplet;
                 //Taille de la cellule au contenu

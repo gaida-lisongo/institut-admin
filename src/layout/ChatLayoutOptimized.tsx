@@ -30,7 +30,6 @@ export default function ChatLayoutOptimized() {
 
     // Callbacks stables pour le socket
     const handleAuth = useCallback((data: any) => {
-        console.log('Auth response:', data);
         if (data.success) {
             setMessage("Authentification Ok");
         } else {
@@ -52,13 +51,11 @@ export default function ChatLayoutOptimized() {
         }[],
         messages: Message[]
     }) => {
-        console.log("Room : ", data);
         setCurrentRoom(data);
         setMessage("Chat prêt");
     }, []);
 
     const renderNewMessage = useCallback((data: Message) => {
-        console.log('New message:', data);
         setCurrentRoom(prev => prev ? {
             ...prev,
             messages: [...prev.messages, {
@@ -69,7 +66,6 @@ export default function ChatLayoutOptimized() {
     }, []);
 
     const renderDeletedMessage = useCallback((data: Message) => {
-        console.log('Message deleted by server:', data);
         setCurrentRoom(prev => prev ? {
             ...prev,
             messages: prev.messages.filter(msg => msg._id !== data._id)
@@ -95,7 +91,6 @@ export default function ChatLayoutOptimized() {
     }, [socketManager]);
 
     const handleDeleteMessage = useCallback((message: Message) => {
-        console.log('Delete message:', message);
         
         if (!currentRoom) return;
 

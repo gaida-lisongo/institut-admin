@@ -62,8 +62,6 @@ export default function MonthlyTarget() {
   // Calculer les établissements de la province sélectionnée
   useEffect(() => {
     if (selectedProvince && etablissements.length > 0) {
-      console.log("Current province : ", selectedProvince);
-      console.log("Etablissements : ", etablissements);
       const etabsProvince = etablissements.filter(
         (etab: any) => etab.provinceId && typeof etab.provinceId === 'object' 
           ? etab.provinceId._id === selectedProvince.id 
@@ -71,7 +69,7 @@ export default function MonthlyTarget() {
       );
       
       const count = etabsProvince.length;
-      const percentage = etablissements.length > 0 
+      const percentage = etablissements.length > 0  
         ? Number(((count * 100) / etablissements.length).toFixed(2))
         : 0;
 

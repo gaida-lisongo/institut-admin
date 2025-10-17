@@ -34,7 +34,6 @@ export default function ChatLayout() {
 
     // Mémoriser les callbacks pour éviter les re-renders
     const handleAuth = useCallback((data: any) => {
-        console.log('Auth response:', data);
         if (data.success) {
             setMessage("Authentification Ok");
         } else {
@@ -56,13 +55,11 @@ export default function ChatLayout() {
         }[],
         messages: Message[]
     }) => {
-        console.log("Room : ", data);
         setCurrentRoom(data);
         setMessage("Chat prêt");
     }, []);
 
     const renderNewMessage = useCallback((data: Message) => {
-        console.log('New message:', data);
         setCurrentRoom(prev => prev ? {
             ...prev,
             messages: [...prev.messages, {
@@ -73,7 +70,6 @@ export default function ChatLayout() {
     }, []);
 
     const renderDeletedMessage = useCallback((data: Message) => {
-        console.log('Message deleted by server:', data);
         setCurrentRoom(prev => prev ? {
             ...prev,
             messages: prev.messages.filter(msg => msg._id !== data._id)
@@ -89,8 +85,6 @@ export default function ChatLayout() {
     }, []);
 
     const handleDeleteMessage = useCallback((message: Message) => {
-        console.log('Delete message:', message);
-        console.log('Current room:', currentRoom);
         
         if (!currentRoom) return;
 
@@ -144,7 +138,6 @@ export default function ChatLayout() {
             return;
         }
 
-        console.log('initialisation socket avec user:', stableUser);
         setMessage('Connexion au serveur...');
         isInitializedRef.current = true;
 
@@ -160,7 +153,6 @@ export default function ChatLayout() {
                 success: boolean,
                 message: string
             }) => {
-                console.log('Event authenticated reçu:', data);
                 socketManager.onAuthenticated(
                     data,
                     handleAuth
@@ -176,7 +168,6 @@ export default function ChatLayout() {
                 name: string;
                 userCount: number
             }[]) => {
-                console.log('Event list_rooms reçu:', data);
                 socketManager.onRefreshRoom(
                     data,
                     console.log
@@ -201,7 +192,6 @@ export default function ChatLayout() {
         socketManager.on(
             'user_joined',
             function(data){
-                console.log("User joined : ", data);
                 socketManager.onUserJoined(data, console.log)
             }
         )
@@ -216,7 +206,6 @@ export default function ChatLayout() {
         socketManager.on(
             'message_deleted',
             (data) => {
-                console.log('Event message_deleted reçu:', data);
                 socketManager.onDeleteMessage(data, renderDeletedMessage)
             }
         );
@@ -224,25 +213,21 @@ export default function ChatLayout() {
         socketManager.on(
             'room_left',
             (data) => {
-                console.log('Event leave_room reçu:', data);
                 socketManager.onRoomLeft(data, console.log)
             }
         );
         // Événement de connexion
         socketManager.on('connect', () => {
-            console.log('Socket connecté');
             setMessage('Connecté, authentification...');
         });
 
         // Événement de déconnexion
         socketManager.on('disconnect', () => {
-            console.log('Socket déconnecté');
             setMessage('Déconnecté');
             setIsConnected(false);
         });
 
         return () => {
-            console.log('Nettoyage ChatLayout');
             // Nettoyer les événements pour éviter les doublons
             socketManager.leaveRoom();
             
@@ -290,9 +275,6 @@ export default function ChatLayout() {
     }, [currentUser]);
 
     const handleSendMessage = useCallback(() => {
-        console.log("Send message : ", newMessage);
-        console.log("User : ", currentUser);
-
         if ((newMessage.trim() || attachments.length > 0) && currentUser) {
             handleSubmitMessage({
                 message: newMessage.trim() || '',

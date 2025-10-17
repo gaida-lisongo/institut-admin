@@ -34,8 +34,6 @@ const LayoutPaiements = ({children}: {children: React.ReactNode}) => {
 
     useEffect(() => {
         if (selectedEtablissement) {
-            console.log("Current selectedEtablissement: ", selectedEtablissement);
-            
             const loadFraisSequentially = async () => {
                 try {
                     // Charger d'abord les frais spécifiques à la catégorie de l'établissement
@@ -62,8 +60,6 @@ const LayoutPaiements = ({children}: {children: React.ReactNode}) => {
                 currentAnnee = annees[0];
             }
             
-            console.log('Années disponibles:', annees);
-            console.log('Année sélectionnée automatiquement:', currentAnnee);
             setSelectedAnnee(currentAnnee);
         }
     }, [annees, selectedAnnee]);
@@ -71,8 +67,6 @@ const LayoutPaiements = ({children}: {children: React.ReactNode}) => {
     // Filtrage des frais selon la catégorie de l'établissement
     const filteredFrais = useMemo(() => {
         if (!selectedEtablissement || !frais) return [];
-        console.log(selectedEtablissement.categorie);
-        console.log(frais);
         return frais.filter(f => 
             f.etabs.includes(selectedEtablissement.categorie) || f.etabs.includes('tous')
         );

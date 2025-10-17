@@ -128,7 +128,7 @@ export const GRADES_ACADEMIQUE: Record<GradeAcademique, {
 };
 
 // Fonction pour obtenir les grades disponibles selon la catégorie
-export const getGradesByCategorie = (categorie: Personnel['categorie']): Array<{
+export const getGradesByCategorie = (categorie: string): Array<{
   value: GradePersonnel;
   label: string;
   description: string;
@@ -143,7 +143,7 @@ export const getGradesByCategorie = (categorie: Personnel['categorie']): Array<{
         ...info
       })).sort((a, b) => a.ordre - b.ordre);
     
-    case 'ACADEMIQUE':
+    case 'ACADÉMIQUE':
       return Object.entries(GRADES_ACADEMIQUE).map(([value, info]) => ({
         value: value as GradeAcademique,
         ...info

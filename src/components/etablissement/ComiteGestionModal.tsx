@@ -47,7 +47,6 @@ export const ComiteGestionModal: React.FC<ComiteGestionModalProps> = ({
   const { personnels, loadPersonnels } = usePersonnelStore();
   const [membresDetails, setMembresDetails] = useState<(Personnel & { role: string })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  console.log("Current Coge : ", comite);
   useEffect(() => {
     if (isOpen && personnels.length === 0) {
       loadPersonnels();

@@ -255,7 +255,7 @@ const AppSidebar: React.FC = () => {
 
     const menuSGR : NavItem = {
       icon: <HomeIcon />,
-      name: "SGR",
+      name: "SGAD",
       subItems: [],
     };
 
@@ -303,7 +303,7 @@ const AppSidebar: React.FC = () => {
             });
 
             break;
-          case 'SGR':
+          case 'SGAD':
             etablissements.map((etablissement: EtablissementPopulated) => {
               const isMember = etablissement.coge.find((member : any) => member.membreId?._id === currentUser?._id);
               if(isMember){

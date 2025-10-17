@@ -61,20 +61,15 @@ const ReportEtab = ({ etablissementId }: ReportEtabProps) => {
         try {
             const request = await fetch(`${API_URL}/reports/chats/${id}`);
             const response = await request.json();
-            console.log('📩 Réponse fetchReports:', response);
             
             if(response.success) {
                 const data: Message[] = response.data;
-                console.log('📦 Rooms reçues:', data);
                 
                 // Extraire tous les messages de toutes les rooms
                 const allMessages: Message[] = data;
                 
-                console.log('✅ Total messages extraits:', allMessages.length);
                 setMessages(allMessages);
                 return data;
-            } else {
-                console.log('❌ Réponse non réussie:', response);
             }
         } catch (error) {
             console.error('❌ Error fetching report:', error);
@@ -130,12 +125,9 @@ const ReportEtab = ({ etablissementId }: ReportEtabProps) => {
                 }),
             });
             const response = await request.json();
-            console.log(response);
 
             if(response.success) {
                 const data : Message = response.data;
-
-                console.log("Response : ", data);
                 return data;
             }
         } catch (error) {
