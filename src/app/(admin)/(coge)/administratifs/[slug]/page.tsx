@@ -161,89 +161,100 @@ const AdministratifsPage = () => {
     const params = useParams();
     const slug = params.slug;
     const [etablissement, setEtablissement] = useState<Etablissement | null>(null);
-    const { etablissements, isLoading } = useEtablissementStore();
+    const { etablissements, isLoading, fetchEtablissements } = useEtablissementStore();
     const [currentPersonnel, setCurrentPersonnel] = useState<string | null>(null);
     const [currentCategorie, setCurrentCategorie] = useState<string | null>(null);
     const [activeCategories, setActiveCategories] = useState<string[]>([]);
-    const [personnel, setPersonnel] = useState<Personnel[]>([]);
+    const [data, setData] = useState<Personnel[]>([]);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    // Déplacer useEffect au niveau du composant principal
+    useEffect(() => {
+        const fetchAllData = async () => {
+            const administratifs = etablissement?.administratifs || [];
+            if (!administratifs.length || !currentCategorie) return;
+
+            const allAgents = await Promise.all(administratifs.map(async (agent : any) => {
+                try {
+                    const result = await fetchPersonnel(agent?.userId?._id as string);
+                    
+                    if(result){
+                        console.log("Agent : ", result);
+                        return result;
+                    } else {
+                        return null;
+                    }
+                } catch (error) {
+                    console.error('Erreur lors du chargement des données:', error);
+                    return null;
+                }
+            }));
+            console.log("All agents : ", allAgents);
+            const filterAgants = allAgents.filter((agent : Personnel) => 
+                agent !== null && 
+                agent && 
+                typeof agent === 'object' && 
+                agent.categorie && 
+                agent.nom && 
+                agent.categorie.toUpperCase() === currentCategorie.toUpperCase()
+            );
+            console.log("Filter agents : ", filterAgants);
+            setData(filterAgants);
+        };
+
+        if(etablissement?.administratifs && currentCategorie){
+            fetchAllData();
+        }
+    }, [etablissement?.administratifs, currentCategorie, isLoading, refreshTrigger]);
 
     const renderAdministratifs = () => {
-        const administratifs = etablissement?.administratifs || [];
-        const [data, setData] = useState<Personnel[]>([]);
-
-        useEffect(() => {
-            const fetchAllData = async () => {
-                    const allAgents = administratifs.map(async (agent : any) => {
-                        try {
-                            const response = await fetchPersonnel(agent?.userId?._id as string);
-                            const result = await response.json();
-                            
-                            if(result.success){
-                                return result.data;
-                            } else {
-                                return null;
-                            }
-                        } catch (error) {
-                            console.error('Erreur lors du chargement des données:', error);
-                            return null;
-                        }
-                    });
-                    setData((await Promise.all(allAgents)).filter((agent) => agent !== null));
-            };
-            fetchAllData();
-        }, [isLoading]);
 
         return (
             <>
-            { data.length === 0 ? (
-                <div className="mt-6 p-8 text-center bg-gray-50 dark:bg-gray-700 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
-                    <Settings className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                        Aucun administratif trouvé
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400">
-                        Aucun administratif n'est configuré pour cet établissement
-                    </p>
-                </div>
-            ) : (
                 <AgentsList 
                     data={data} 
                     personnel={currentPersonnel} 
                     categorie={currentCategorie} 
                     onBack={() => setCurrentCategorie(null)}
                     onRefresh={() => {
-                        // Forcer le rechargement des données
-                        const fetchAllData = async () => {
-                            const allAgents = administratifs.map(async (agent : any) => {
-                                try {
-                                    const response = await fetch(`${API_URL}/users/${agent?.userId?._id as string}`);
-                                    const result = await response.json();
-                                    
-                                    if(result.success){
-                                        return result.data;
-                                    } else {
-                                        return null;
-                                    }
-                                } catch (error) {
-                                    console.error('Erreur lors du chargement des données:', error);
-                                    return null;
-                                }
-                            });
-                            setData((await Promise.all(allAgents)).filter((agent) => agent !== null));
-                        };
-                        fetchAllData();
+                        // Déclencher le rechargement via useEffect
+                        setRefreshTrigger(prev => prev + 1);
                     }}
                     addAction={(data: CreatePersonnelData) => {
                         console.log("Current etabId :", etablissement?._id);
                         console.log("Current personnel :", currentPersonnel);
                         console.log("Current categorie :", currentCategorie);
                         console.log("Created agent :", data);
+
+                        fetch(`${API_URL}/users/administratif/${etablissement?._id}/${currentPersonnel}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            },
+                            body: JSON.stringify(data)
+                        })
+                        .then(response => response.json())
+                        .then(result => {
+                            console.log('Agent créé avec succès:', result);
+                            setData(prev => [...prev, result?.data]);
+                            fetchEtablissements()
+                                .then(() => {
+                                    setRefreshTrigger(prev => prev + 1);
+                                })
+                                .catch(error => {
+                                    console.error('Erreur lors du chargement des établissements:', error);
+                                });
+                        })
+                        .catch(error => {
+                            console.error('Erreur lors de la création de l\'agent:', error);
+                        });
+
                     }}
                     updateAction={(data: UpdatePersonnelData) => {
                         console.log("Updated agent :", data);
                     }}
                 />
-            )}
             </>
         );
     }
@@ -288,20 +299,7 @@ const AdministratifsPage = () => {
         case "Administratif":
         case "Technique":
         case "Ouvrier":
-            renderPage = (
-                <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-                    <div className="max-w-7xl mx-auto space-y-6">
-                        <button 
-                            onClick={() => setCurrentCategorie(null)}
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                        >
-                            <ChevronRight className="w-4 h-4 rotate-180" />
-                            Retour
-                        </button>
-                        {renderAdministratifs()}
-                    </div>
-                </div>
-            );
+            renderPage = renderAdministratifs();
             break;
         default:
             renderPage = (

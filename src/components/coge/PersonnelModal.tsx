@@ -231,17 +231,16 @@ const PersonnelModal: React.FC<PersonnelModalProps> = ({
           .then((result) => {
             console.log("Result : ", result);
             // Vérifier si c'est une erreur retournée par l'API
-            // if (typeof result === 'string' || (result && typeof result === 'object' && ('message' in result || 'error' in result))) {
-            //   const errorMessage = typeof result === 'string' ? result : 
-            //                        (result.message || result.error || 'Une erreur est survenue');
-            //   setError(errorMessage);
-            // }
-            
-            setSuccess(result);
-            // setTimeout(() => {
-            //   onClose();
-            //   setSuccess(null);
-            // }, 2000);
+            if (typeof result === 'string' || (result && typeof result === 'object' && ('message' in result || 'error' in result))) {
+              const errorMessage = typeof result === 'string' ? result : 
+                                   (result.message || result.error || 'Une erreur est survenue');
+              setError(errorMessage);
+            }
+          
+            setTimeout(() => {
+              onClose();
+              setSuccess(null);
+            }, 2000);
           })
           .catch((error) => {
             console.error('Erreur lors de la soumission:', error);
