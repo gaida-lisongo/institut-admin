@@ -46,7 +46,14 @@ const FacultesList = ({
                     }
                 }));
                 console.log("All agents : ", allAgents);
-                const filterAgants = allAgents.filter((agent : Personnel) => agent !== null && agent?.categorie.toUpperCase() == categorie.toUpperCase());
+                const filterAgants = allAgents.filter((agent : Personnel) => 
+                    agent !== null && 
+                    agent && 
+                    typeof agent === 'object' && 
+                    agent.categorie && 
+                    agent.nom && 
+                    agent.categorie.toUpperCase() === categorie.toUpperCase()
+                );
                 console.log("Filter agents : ", filterAgants);
                 setData(filterAgants);
         };
@@ -85,7 +92,14 @@ const FacultesList = ({
                         return null;
                     }
                 }));
-                const filterAgants = allAgents.filter((agent : Personnel) => agent !== null && agent?.categorie.toUpperCase() === categorie.toUpperCase());
+                const filterAgants = allAgents.filter((agent : Personnel) => 
+                    agent !== null && 
+                    agent && 
+                    typeof agent === 'object' && 
+                    agent.categorie && 
+                    agent.nom && 
+                    agent.categorie.toUpperCase() === categorie.toUpperCase()
+                );
                 setData(filterAgants);
             }
         } catch (error) {
@@ -237,12 +251,15 @@ const FacultesList = ({
                                 
                                 return newAgent;
                             } else {
-                                console.error("Erreur lors de la création:", result.message);
-                                return null;
+                                console.error("Data error lors de la création:", result);
+                                const errorMessage = result.message;
+                                console.log("Erreur lors de la création:", errorMessage);
+                                return errorMessage;
                             }
                         } catch (error) {
-                            console.error('Erreur lors de la création de l\'agent:', error);
-                            return null;
+                            const errorMessage = error instanceof Error ? error.message : 'Erreur de connexion ou problème serveur';
+                            console.error('Erreur lors de la création de l\'agent:', errorMessage);
+                            return errorMessage;
                         }
                     }}
                     updateAction={async (data: UpdatePersonnelData) => {
@@ -272,7 +289,7 @@ const FacultesList = ({
                                 
                                 return updatedAgent;
                             } else {
-                                console.error("Erreur lors de la modification:", result.message);
+                                console.log("Erreur lors de la modification:", result.message);
                                 return null;
                             }
                         } catch (error) {

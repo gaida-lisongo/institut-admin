@@ -33,16 +33,23 @@ const AgentsList = ({ data, personnel, categorie, onBack, onRefresh, addAction, 
     }, [data]);
 
     // Filtrage des données selon le terme de recherche
-    const filteredData = localData.filter(agent => 
-        agent.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        agent.post_nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        agent.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        agent.matricule.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        agent.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredData = localData.filter(agent => {
+        // Vérifier que l'agent existe et a les propriétés requises
+        if (!agent || typeof agent !== 'object') return false;
+        
+        const searchLower = searchTerm.toLowerCase();
+        return (
+            (agent.nom && agent.nom.toLowerCase().includes(searchLower)) ||
+            (agent.post_nom && agent.post_nom.toLowerCase().includes(searchLower)) ||
+            (agent.prenom && agent.prenom.toLowerCase().includes(searchLower)) ||
+            (agent.matricule && agent.matricule.toLowerCase().includes(searchLower)) ||
+            (agent.email && agent.email.toLowerCase().includes(searchLower))
+        );
+    });
 
     const handleDelete = async (agent: Personnel) => {
-        if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${agent.nom} ${agent.post_nom} ?`)) {
+        const agentName = `${agent.nom || ''} ${agent.post_nom || ''}`.trim() || 'cet agent';
+        if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${agentName} ?`)) {
             setIsDeleting(agent._id!);
             try {
                 await deletePersonnel(agent._id!);
@@ -78,17 +85,19 @@ const AgentsList = ({ data, personnel, categorie, onBack, onRefresh, addAction, 
             if (editingAgent) { 
                 const updatedAgent = await updateAction(data as UpdatePersonnelData);
                 handleModalSuccess(true, updatedAgent); // true = modification
+                return updatedAgent;
             } else {
                 const newAgent = await addAction(data as CreatePersonnelData);
                 handleModalSuccess(false, newAgent); // false = ajout, newAgent = données retournées
+                return newAgent;
             }
         } catch (error) {
             console.error('Erreur lors de la soumission:', error);
+            return error.message;
         }
     };
 
     const handleModalSuccess = async (isUpdate: boolean = false, agentData?: any) => {
-        handleModalClose();
         
         if (agentData) {
             if (isUpdate) {
@@ -99,10 +108,12 @@ const AgentsList = ({ data, personnel, categorie, onBack, onRefresh, addAction, 
                     )
                 );
                 console.log('Agent modifié localement:', agentData);
+                return agentData;
             } else {
                 // Ajouter le nouvel agent à l'état local
                 setLocalData(prevData => [...prevData, agentData]);
                 console.log('Nouvel agent ajouté localement:', agentData);
+                return agentData;
             }
         }
     };

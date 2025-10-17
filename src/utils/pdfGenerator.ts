@@ -15,7 +15,7 @@ pdfMake.vfs = pdfFonts.vfs;
 
 // Taux de conversion USD vers CDF
 const USD_TO_CDF_RATE = 2800;
-const hostname = window.location.hostname;
+const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
 
 interface PaymentPDFOptions {
   product: Product;
