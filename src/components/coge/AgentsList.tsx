@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from "react";
 import { Personnel, CreatePersonnelData, UpdatePersonnelData } from "@/types/personnel";
 import { usePersonnelStore } from "@/stores/personnelStore";
-import { Settings, Plus, Edit, Trash2, Search, User } from "lucide-react";
+import { Settings, Plus, Edit, Trash2, Search, User, Download, FileText } from "lucide-react";
 import PersonnelModal from "./PersonnelModal";
+import DocumentsModal from "./DocumentsModal";
+import AgentsExcelExport from "@/utils/AgentsExcelExport";
 
 interface AgentsListProps {
     data: Personnel[];
@@ -23,6 +25,9 @@ const AgentsList = ({ data, personnel, categorie, onBack, onRefresh, addAction, 
     const [showModal, setShowModal] = useState(false);
     const [editingAgent, setEditingAgent] = useState<Personnel | null>(null);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    const [isExporting, setIsExporting] = useState(false);
+    const [showDocumentsModal, setShowDocumentsModal] = useState(false);
+    const [selectedAgentForDocuments, setSelectedAgentForDocuments] = useState<Personnel | null>(null);
     
     // État local pour gérer les données avec les ajouts dynamiques
     const [localData, setLocalData] = useState<Personnel[]>(data);
@@ -75,6 +80,26 @@ const AgentsList = ({ data, personnel, categorie, onBack, onRefresh, addAction, 
         setShowModal(true);
     };
 
+    const handleDocuments = (agent: Personnel) => {
+        setSelectedAgentForDocuments(agent);
+        setShowDocumentsModal(true);
+    };
+
+    const handleDocumentsModalClose = () => {
+        setShowDocumentsModal(false);
+        setSelectedAgentForDocuments(null);
+    };
+
+    const handleAgentUpdatedFromDocuments = (updatedAgent: Personnel) => {
+        // Mettre à jour l'agent dans l'état local
+        setLocalData(prevData => 
+            prevData.map(agent => 
+                agent._id === updatedAgent._id ? updatedAgent : agent
+            )
+        );
+        setSelectedAgentForDocuments(updatedAgent);
+    };
+
     const handleModalClose = () => {
         setShowModal(false);
         setEditingAgent(null);
@@ -118,6 +143,21 @@ const AgentsList = ({ data, personnel, categorie, onBack, onRefresh, addAction, 
         }
     };
 
+    const handleExportExcel = async () => {
+        setIsExporting(true);
+        try {
+            await AgentsExcelExport.downloadAgentsExport(
+                filteredData,
+                categorie,
+                personnel
+            );
+        } catch (error) {
+            console.error('Erreur lors de l\'export Excel:', error);
+            alert('Erreur lors de l\'export Excel. Veuillez réessayer.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     return (
         <div className="mt-6 space-y-6">
@@ -136,6 +176,18 @@ const AgentsList = ({ data, personnel, categorie, onBack, onRefresh, addAction, 
                     </h3>
                 </div>
                 <div className="flex items-center gap-3">
+                    <button 
+                        className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
+                        onClick={handleExportExcel}
+                        disabled={isExporting || filteredData.length === 0}
+                    >
+                        {isExporting ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                            <Download className="w-4 h-4" />
+                        )}
+                        {isExporting ? 'Export...' : 'Export Excel'}
+                    </button>
                     <button 
                         className="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg flex items-center gap-2 transition-colors"
                         onClick={() => {
@@ -247,6 +299,13 @@ const AgentsList = ({ data, personnel, categorie, onBack, onRefresh, addAction, 
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div className="flex items-center justify-end gap-2">
                                                 <button
+                                                    onClick={() => handleDocuments(agent)}
+                                                    className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 p-1 rounded transition-colors"
+                                                    title="Documents"
+                                                >
+                                                    <FileText className="w-4 h-4" />
+                                                </button>
+                                                <button
                                                     onClick={() => handleEdit(agent)}
                                                     className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded transition-colors"
                                                     title="Modifier"
@@ -282,6 +341,15 @@ const AgentsList = ({ data, personnel, categorie, onBack, onRefresh, addAction, 
                     onSuccess={handleModalSubmit}
                     editingPersonnel={editingAgent}
                     defaultCategorie={categorie.toString().toUpperCase() as Personnel['categorie']}
+                />
+            )}
+
+            {showDocumentsModal && selectedAgentForDocuments && (
+                <DocumentsModal
+                    isOpen={showDocumentsModal}
+                    onClose={handleDocumentsModalClose}
+                    agent={selectedAgentForDocuments}
+                    onAgentUpdated={handleAgentUpdatedFromDocuments}
                 />
             )}
             
