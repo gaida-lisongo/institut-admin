@@ -17,8 +17,9 @@ export interface IResolution {
 
 export class Resolution {
     notes: IResolution[];
+    serieInfo?: SerieDetail;
 
-    constructor(data: IResolution[] | any) {
+    constructor(data: IResolution[] | any, serieInfo?: SerieDetail) {
         // Adapter différents formats de données
         if (Array.isArray(data)) {
             this.notes = data;
@@ -33,7 +34,11 @@ export class Resolution {
             this.notes = [];
         }
         
+        this.serieInfo = serieInfo;
         console.log('Résolutions chargées:', this.notes.length);
+        if (serieInfo) {
+            console.log('Informations série:', serieInfo.coursId.designation);
+        }
     }
 
     /**
@@ -82,10 +87,41 @@ export class Resolution {
 
         const worksheet = workbook.addWorksheet('Métriques');
 
-        // Configuration des colonnes
+        // Ajouter les informations de la série et du cours en en-tête
+        if (this.serieInfo) {
+            worksheet.mergeCells('A1:G1');
+            worksheet.getCell('A1').value = `RAPPORT DE RÉSULTATS - ${this.serieInfo.coursId.designation}`;
+            worksheet.getCell('A1').font = { bold: true, size: 16 };
+            worksheet.getCell('A1').alignment = { horizontal: 'center' };
+            worksheet.getCell('A1').fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF2E86AB' }
+            };
+            worksheet.getCell('A1').font = { color: { argb: 'FFFFFFFF' }, bold: true, size: 16 };
+
+            // Informations détaillées de la série
+            worksheet.mergeCells('A2:G2');
+            const serieDetails = `Série: ${this.serieInfo._id.slice(-8)} | Cours: ${this.serieInfo.coursId.designation} | Unité: ${this.serieInfo.coursId.unite} | Semestre: ${this.serieInfo.coursId.semestre} | Crédits: ${this.serieInfo.coursId.credit}`;
+            worksheet.getCell('A2').value = serieDetails;
+            worksheet.getCell('A2').font = { italic: true, size: 12 };
+            worksheet.getCell('A2').alignment = { horizontal: 'center' };
+            worksheet.getCell('A2').fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFE8F4F8' }
+            };
+
+            // Ligne vide
+            worksheet.addRow([]);
+        }
+
+        // Configuration des colonnes (décalées si on a des infos de série)
+        const startRow = this.serieInfo ? 4 : 1;
         worksheet.columns = [
             { header: 'Étudiant', key: 'etudiant', width: 25 },
             { header: 'Matricule', key: 'matricule', width: 15 },
+            { header: 'Cours', key: 'cours', width: 25 },
             { header: 'Série', key: 'serie', width: 20 },
             { header: 'Score Total', key: 'scoreTotal', width: 12 },
             { header: 'Score Maximum', key: 'scoreMax', width: 12 },
@@ -93,14 +129,15 @@ export class Resolution {
             { header: 'Rang', key: 'rang', width: 8 }
         ];
 
-        // Style de l'en-tête
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).fill = {
+        // Style de l'en-tête des colonnes
+        const headerRow = this.serieInfo ? 4 : 1;
+        worksheet.getRow(headerRow).font = { bold: true };
+        worksheet.getRow(headerRow).fill = {
             type: 'pattern',
             pattern: 'solid',
             fgColor: { argb: 'FF4472C4' }
         };
-        worksheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+        worksheet.getRow(headerRow).font = { color: { argb: 'FFFFFFFF' }, bold: true };
 
         // Calcul des données avec classement
         const dataWithScores = this.notes.map(resolution => {
@@ -112,7 +149,8 @@ export class Resolution {
                 resolution,
                 etudiant: `${resolution.etudiantId.nom} ${resolution.etudiantId.prenom}`,
                 matricule: resolution.etudiantId.matricule,
-                serie: `Série ${resolution.serieId._id}`,
+                cours: this.serieInfo ? this.serieInfo.coursId.designation : 'N/A',
+                serie: `Série ${resolution.serieId._id.slice(-8)}`,
                 scoreTotal,
                 scoreMax,
                 pourcentage: Math.round(pourcentage * 100) / 100
@@ -127,6 +165,7 @@ export class Resolution {
             worksheet.addRow({
                 etudiant: data.etudiant,
                 matricule: data.matricule,
+                cours: data.cours,
                 serie: data.serie,
                 scoreTotal: data.scoreTotal,
                 scoreMax: data.scoreMax,
@@ -174,8 +213,37 @@ export class Resolution {
 
         const worksheet = workbook.addWorksheet('Notes Détaillées');
 
+        // Ajouter les informations de la série et du cours en en-tête
+        if (this.serieInfo) {
+            worksheet.mergeCells('A1:H1');
+            worksheet.getCell('A1').value = `NOTES DÉTAILLÉES - ${this.serieInfo.coursId.designation}`;
+            worksheet.getCell('A1').font = { bold: true, size: 16 };
+            worksheet.getCell('A1').alignment = { horizontal: 'center' };
+            worksheet.getCell('A1').fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF70AD47' }
+            };
+            worksheet.getCell('A1').font = { color: { argb: 'FFFFFFFF' }, bold: true, size: 16 };
+
+            // Informations détaillées de la série
+            worksheet.mergeCells('A2:H2');
+            const serieDetails = `Série: ${this.serieInfo._id.slice(-8)} | Questions: ${this.serieInfo.questions.length} | Score Maximum: ${this.serieInfo.questions.reduce((total, q) => total + q.pts, 0)} pts`;
+            worksheet.getCell('A2').value = serieDetails;
+            worksheet.getCell('A2').font = { italic: true, size: 12 };
+            worksheet.getCell('A2').alignment = { horizontal: 'center' };
+            worksheet.getCell('A2').fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFE8F4E8' }
+            };
+
+            // Ligne vide
+            worksheet.addRow([]);
+        }
+
         // En-têtes dynamiques basés sur les questions
-        const headers = ['Étudiant', 'Matricule', 'Série'];
+        const headers = ['Étudiant', 'Matricule', 'Cours', 'Série'];
         const questionHeaders: string[] = [];
         
         // Récupération des questions de la première série pour les en-têtes
@@ -196,14 +264,15 @@ export class Resolution {
             width: index < 3 ? 20 : 12
         }));
 
-        // Style de l'en-tête
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).fill = {
+        // Style de l'en-tête des colonnes
+        const headerRowDetails = this.serieInfo ? 4 : 1;
+        worksheet.getRow(headerRowDetails).font = { bold: true };
+        worksheet.getRow(headerRowDetails).fill = {
             type: 'pattern',
             pattern: 'solid',
             fgColor: { argb: 'FF70AD47' }
         };
-        worksheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+        worksheet.getRow(headerRowDetails).font = { color: { argb: 'FFFFFFFF' }, bold: true };
 
         // Ajout des données
         this.notes.forEach(resolution => {
@@ -214,13 +283,14 @@ export class Resolution {
             const rowData: any = {
                 col0: `${resolution.etudiantId.nom} ${resolution.etudiantId.prenom}`,
                 col1: resolution.etudiantId.matricule,
-                col2: `Série ${resolution.serieId._id}`
+                col2: this.serieInfo ? this.serieInfo.coursId.designation : 'N/A',
+                col3: `Série ${resolution.serieId._id.slice(-8)}`
             };
 
             // Ajout des notes par question
             resolution.serieId.questions.forEach((question, index) => {
                 const reponse = resolution.reponses.find(r => r.questionId === question._id);
-                rowData[`col${index + 3}`] = reponse ? reponse.pts : 0;
+                rowData[`col${index + 4}`] = reponse ? reponse.pts : 0;
             });
 
             // Ajout des totaux
@@ -363,9 +433,9 @@ export class Resolution {
     /**
      * Méthode statique pour créer et exporter directement depuis des données API
      */
-    static async exportFromApiData(apiData: any, filename?: string): Promise<void> {
+    static async exportFromApiData(apiData: any, filename?: string, serieInfo?: SerieDetail): Promise<void> {
         try {
-            const resolution = new Resolution(apiData);
+            const resolution = new Resolution(apiData, serieInfo);
             
             if (resolution.notes.length === 0) {
                 throw new Error('Aucune résolution trouvée dans les données');
@@ -382,9 +452,9 @@ export class Resolution {
     /**
      * Méthode statique pour obtenir des informations sur les données sans export
      */
-    static getDataInfo(apiData: any, info: SerieDetail): { count: number; isValid: boolean; error?: string } {
+    static getDataInfo(apiData: any, serieInfo: SerieDetail): { count: number; isValid: boolean; error?: string } {
         try {
-            const resolution = new Resolution(apiData);
+            const resolution = new Resolution(apiData, serieInfo);
             return {
                 count: resolution.notes.length,
                 isValid: resolution.notes.length > 0,

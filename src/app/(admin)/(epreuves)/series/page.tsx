@@ -195,7 +195,7 @@ const SeriesCard: React.FC<SeriesCardProps> = ({ cours, onBack }) => {
       }
       
       // Export avec la méthode statique
-      await Resolution.exportFromApiData(data, `serie_${serie._id}.xlsx`);
+      await Resolution.exportFromApiData(data, `serie_${serie._id}.xlsx`, serie);
       alert(`Export réussi ! ${dataInfo.count} résolution(s) exportée(s).`);
       
     } catch (error) {
