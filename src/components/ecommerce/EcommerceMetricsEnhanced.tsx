@@ -82,37 +82,25 @@ const MetricCard: React.FC<MetricCardProps> = ({
   );
 };
 
-export const EcommerceMetricsEnhanced = () => {
-  const { etablissements, fetchEtablissements } = useEtablissementStore();
-  const [publicCount, setPublicCount] = useState(0);
-  const [priveCount, setPriveCount] = useState(0);
+export const EcommerceMetricsEnhanced = ({ agents }: { agents: { enseignants: number; administratifs: number } }) => {
 
-  useEffect(() => {
-    fetchEtablissements();
-  }, [fetchEtablissements]);
-
-  useEffect(() => {
-    setPublicCount(etablissements.filter(e => e.categorie === "public").length);
-    setPriveCount(etablissements.filter(e => e.categorie === "prive").length);
-  }, [etablissements]);
-
-  const totalEtablissements = etablissements.length;
+  const totalAgents = agents.enseignants + agents.administratifs;
 
   const metrics = [
     {
       icon: <Building2 className="w-7 h-7" />,
-      label: "Établissements Publics",
-      value: publicCount,
-      total: totalEtablissements,
+      label: "PAS",
+      value: agents.enseignants,
+      total: totalAgents ?? 0,
       color: "text-green-600 dark:text-green-400",
       bgColor: "bg-gradient-to-br from-green-500 to-green-600",
       iconBgColor: "bg-green-50 dark:bg-green-950/30",
     },
     {
       icon: <Award className="w-7 h-7" />,
-      label: "Établissements Privés",
-      value: priveCount,
-      total: totalEtablissements,
+      label: "PATO",
+      value: agents.administratifs,
+      total: totalAgents ?? 0,
       color: "text-orange-600 dark:text-orange-400",
       bgColor: "bg-gradient-to-br from-orange-500 to-orange-600",
       iconBgColor: "bg-orange-50 dark:bg-orange-950/30",
