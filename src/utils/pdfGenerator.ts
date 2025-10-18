@@ -74,6 +74,10 @@ class PdfGroupe {
                 { text: etudiant.nom.toUpperCase(), style: 'valueStyle', bold: true }
               ],
               [
+                { text: 'Pot-nom:', style: 'labelStyle'},
+                { text: etudiant.post_nom.toUpperCase(), style: 'valueStyle', bold: true }
+              ],
+              [
                 { text: 'Prénom:', style: 'labelStyle' },
                 { text: etudiant.prenom, style: 'valueStyle' }
               ],

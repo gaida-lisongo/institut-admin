@@ -21,6 +21,7 @@ export interface GroupeDetail {
   etudiantIds: {
     _id: string;
     nom: string;
+    post_nom:string;
     prenom: string;
     matricule: string;
   }[];
