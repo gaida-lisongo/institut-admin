@@ -74,6 +74,7 @@ interface EtudiantStore {
   addMultipleEtudiantsLocal: (etudiants: Etudiant[]) => void;
   updateEtudiantLocal: (etudiant: Etudiant) => void;
   deleteEtudiantLocal: (id: string) => void;
+  
 }
 
 // Store Zustand avec persistance

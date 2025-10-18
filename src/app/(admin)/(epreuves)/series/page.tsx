@@ -1,7 +1,9 @@
 'use client';
 
+import { API_BASE_URL } from '@/config/api';
 import { useMatieres, type Matiere } from '@/stores/matiereStore';
 import { useSeries, useSerieActions, useSerieStats, type Serie, type SerieDetail, type CreateSerieData } from '@/stores/serieStore';
+import { Resolution } from '@/utils/resolutions';
 import React, { useState, useEffect } from 'react';
 
 const SeriesPage = () => {
@@ -177,6 +179,30 @@ const SeriesCard: React.FC<SeriesCardProps> = ({ cours, onBack }) => {
     }
   };
 
+  const handleGetNotes = async (serie: SerieDetail) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/resolution/serie/${serie._id}`);
+      const data = await response.json();
+      console.log("Notes de la série :", data);
+      
+      // Vérifier les données avant export
+      const dataInfo = Resolution.getDataInfo(data, serie);
+      console.log("Info données:", dataInfo);
+      
+      if (!dataInfo.isValid) {
+        alert(`Impossible d'exporter: ${dataInfo.error}`);
+        return;
+      }
+      
+      // Export avec la méthode statique
+      await Resolution.exportFromApiData(data, `serie_${serie._id}.xlsx`);
+      alert(`Export réussi ! ${dataInfo.count} résolution(s) exportée(s).`);
+      
+    } catch (error) {
+      console.error("Erreur lors de la récupération des notes :", error);
+      alert("Erreur lors de l'export: " + (error instanceof Error ? error.message : 'Erreur inconnue'));
+    }
+  }
   return (
     <div className="p-6">
       {/* Header avec bouton retour */}
@@ -338,6 +364,20 @@ const SeriesCard: React.FC<SeriesCardProps> = ({ cours, onBack }) => {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
+                    <button 
+                      onClick = {
+                        (e) => {
+                          e.preventDefault();
+                          
+                          handleGetNotes(serie);
+                        }
+                      }
+                      className="inline-flex items-center p-2 border border-transparent rounded-full shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.394 12.354A9 9 0 018.653 3.653 9.003 9.003 0 0012 21a9.003 9.003 0 005.653-5.654m-2.828-.001A5 5 0 0012 6.5 5.001 5.001 0 0112 2.756m0 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>                      
+                    </button>
                     <button
                       onClick={() => setEditingSerie(serie)}
                       className="inline-flex items-center p-2 border border-transparent rounded-full shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
