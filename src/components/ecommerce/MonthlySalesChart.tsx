@@ -152,63 +152,69 @@ export default function MonthlySalesChart({ etablissement, onCurrent }: MonthlyS
       setDescription(annees[0].description);
       setGraphique(annees[0].debut + " - " + annees[0].fin);
       setAnneeId(annees[0]._id);
+      // Fetch automatiquement les données de la première année
+      fetchDataForYear(annees[0]._id);
     }
   }, [annees]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const req = await fetch(`${API_BASE_URL}/finance/frais/${etablissement}/annee/${anneeId}`);
-        const res = await req.json();
-        console.log("Frais : ", res);
-        if (res.success) {
-          const fraisDetail : ProduitDetail[] = res.data;
-          const categories : string[] = [];
-          const seriesData : number[] = [];
-          onCurrent(fraisDetail);
-          fraisDetail.forEach((f : any) => {
-            const currentCategorie = f.fraisId.categorie;
+  // Fonction pour fetch les données d'une année spécifique
+  const fetchDataForYear = async (yearId: string) => {
+    if (!yearId || !etablissement) return;
+    
+    try {
+      const req = await fetch(`${API_BASE_URL}/finance/frais/${etablissement}/annee/${yearId}`);
+      const res = await req.json();
+      console.log("Frais : ", res);
+      if (res.success) {
+        const fraisDetail : ProduitDetail[] = res.data;
+        const categories : string[] = [];
+        const seriesData : number[] = [];
+        onCurrent(fraisDetail);
+        fraisDetail.forEach((f : any) => {
+          const currentCategorie = f.fraisId.categorie;
 
-            const index = categories.indexOf(currentCategorie);
-            if (index === -1) {
-              categories.push(currentCategorie);
-              seriesData.push(f.montant * f.totalPayments);
-            } else {
-              seriesData[index] += f.montant * f.totalPayments;
-            }
-          });
-          setData({
-            data: seriesData,
-            name: "Frais"
-          });
-          setConfig({
-            ...options,
-            xaxis: {
-              ...options.xaxis,
-              categories: categories,
-              labels: {
-                rotate: -45,
-                rotateAlways: true,
-                style: {
-                  fontSize: '11px'
-                }
-              }
-            },
-            tooltip: {
-              ...options.tooltip,
-              y: {
-                formatter: (val: number) => `${val.toLocaleString('fr-FR')} $`
+          const index = categories.indexOf(currentCategorie);
+          if (index === -1) {
+            categories.push(currentCategorie);
+            seriesData.push(f.montant * f.totalPayments);
+          } else {
+            seriesData[index] += f.montant * f.totalPayments;
+          }
+        });
+        setData({
+          data: seriesData,
+          name: "Frais"
+        });
+        setConfig({
+          ...options,
+          xaxis: {
+            ...options.xaxis,
+            categories: categories,
+            labels: {
+              rotate: -45,
+              rotateAlways: true,
+              style: {
+                fontSize: '11px'
               }
             }
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching frais:", error);
+          },
+          tooltip: {
+            ...options.tooltip,
+            y: {
+              formatter: (val: number) => `${val.toLocaleString('fr-FR')} $`
+            }
+          }
+        });
       }
+    } catch (error) {
+      console.error("Error fetching frais:", error);
     }
+  };
+
+  useEffect(() => {
     if (anneeId) {
       console.log("Annee : ", anneeId);
-      fetchData();
+      fetchDataForYear(anneeId);
     }
   }, [anneeId])
 
@@ -230,59 +236,14 @@ export default function MonthlySalesChart({ etablissement, onCurrent }: MonthlyS
     setGraphique(value);
     setDescription(annees.find((a) => a._id === categrie)?.description || "");
     setAnneeId(categrie);
-    const seriesData: number[] = [];
-    const categories: string[] = [];
-
-    // Filtrer les frais par catégorie et extraire les données
-    const fraisFiltres = frais.filter((f) => f.categorie === categrie);
-    
-    fraisFiltres.forEach((f) => {
-      seriesData.push(f.montant);
-      // Tronquer la désignation si trop longue
-      const designation = f.designation.length > 20 
-        ? f.designation.substring(0, 17) + '...'
-        : f.designation;
-      categories.push(designation);
-    });
-
-    // Mettre à jour les catégories de l'axe X
-    setConfig({
-      ...options,
-      xaxis: {
-        ...options.xaxis,
-        categories: categories,
-        labels: {
-          rotate: -45,
-          rotateAlways: true,
-          style: {
-            fontSize: '11px'
-          }
-        }
-      },
-      tooltip: {
-        ...options.tooltip,
-        y: {
-          formatter: (val: number) => `${val.toLocaleString('fr-FR')} $`
-        }
-      }
-    });
-
-    setData({
-      data: seriesData,
-      name: "Montant"
-    });
     setIsOpen(false);
+    // Les données seront fetchées automatiquement par le useEffect qui écoute anneeId
   };
 
   useEffect(() => {
     loadFrais();
   }, []);
 
-  useEffect(() => {
-    if (frais.length > 0) {
-      handleSelect(`${annees[annees.length - 1].debut} - ${annees[annees.length - 1].fin}`, annees[annees.length - 1]._id);
-    }
-  }, [annees]);
 
   if (isLoading || !etablissement) {
     return (
