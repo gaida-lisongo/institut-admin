@@ -130,6 +130,9 @@ function createRedirectResponse(request: NextRequest, redirectTo: string) {
   response.cookies.delete('ls-auth-token');
   response.cookies.delete('user-data');
   
+  // Ajouter un header pour indiquer au client de nettoyer le localStorage
+  response.headers.set('X-Clear-Storage', 'true');
+  
   // Ajouter des headers de sécurité
   response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   response.headers.set('Pragma', 'no-cache');
