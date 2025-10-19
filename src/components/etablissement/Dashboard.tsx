@@ -3,7 +3,8 @@ import React, { useEffect, useState } from "react";
 import ProduitMetrics from "@/components/ecommerce/ProduitMetrics";
 import MonthlySalesChart from "@/components/ecommerce/MonthlySalesChart";
 import StatisticsChart from "@/components/ecommerce/StatisticsChart";
-import EtablissementsList from "@/components/etablissement/EtablissementsList";
+import EtudiantsList from "@/components/etudiants/EtudiantsList";
+import { ParcoursModal } from "@/components/etudiants/ParcoursModal";
 import DemographicCard from "@/components/ecommerce/DemographicCard";
 import { EcommerceMetricsEnhanced } from "@/components/ecommerce/EcommerceMetricsEnhanced";
 import EtablissementNavBar from "@/components/etablissement/EtablissementNavBar";
@@ -12,6 +13,7 @@ import { Frais, FraisDetailResponse } from "@/types/frais";
 import { Annee } from "@/types/annee";
 import { Classe } from "@/types/systemes";
 import { Payment } from "@/app/(admin)/(coge)/paiements/[slug]/page";
+import { Parcour } from "@/types/etudiant";
 
 export interface ProduitDetail {
     _id: string;
@@ -35,6 +37,9 @@ export default function Dashboard() {
     administratifs: 0
   });
   const [frais, setFrais] = useState<ProduitDetail[]>([]);
+  const [isParcoursModalOpen, setIsParcoursModalOpen] = useState(false);
+  const [selectedParcours, setSelectedParcours] = useState<Parcour[]>([]);
+  const [selectedEtudiantName, setSelectedEtudiantName] = useState("");
 
 
   useEffect(() => {
@@ -44,6 +49,12 @@ export default function Dashboard() {
         setAgents({ enseignants, administratifs });
     }
   }, [etablissement]);
+
+  const handleParcoursView = (parcours: Parcour[], etudiantName: string) => {
+    setSelectedParcours(parcours);
+    setSelectedEtudiantName(etudiantName);
+    setIsParcoursModalOpen(true);
+  };
   
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -76,9 +87,22 @@ export default function Dashboard() {
           </div> */}
 
           <div className="col-span-12">
-            <EtablissementsList />
+            {etablissement && (
+              <EtudiantsList 
+                etablissement={etablissement} 
+                onParcoursView={handleParcoursView}
+              />
+            )}
           </div>
         </div>
+
+        {/* Modal des parcours */}
+        <ParcoursModal
+          isOpen={isParcoursModalOpen}
+          onClose={() => setIsParcoursModalOpen(false)}
+          parcours={selectedParcours}
+          etudiantName={selectedEtudiantName}
+        />
     </div>
   );
 }

@@ -61,6 +61,42 @@ interface PaymentResponse {
     etudiant: EtudiantWithPayments;
 }
 
+export const fetchEtudiants = async (
+    classeId: string, 
+    anneeId: string, 
+    page?: number, 
+    limit?: number, 
+    search?: string
+) => {
+    try {
+        // Construire l'URL avec les paramètres
+        let url = `${API_URL}/etudiants/inscrits/classe/${classeId}/${anneeId}`;
+        const params = new URLSearchParams();
+        
+        if (page) params.append('page', page.toString());
+        if (limit) params.append('limit', limit.toString());
+        if (search && search.trim()) params.append('search', search.trim());
+        
+        const queryString = params.toString();
+        if (queryString) {
+            url += `?${queryString}`;
+        }
+        
+        const request = await fetch(url);
+        const response = await request.json();
+        
+        if (response.success) {
+            return response.data;
+        } else {
+            console.error('Error fetching students:', response.error);
+            return [];
+        }
+    } catch (error) {
+        console.error('Error fetching students:', error);
+        return [];
+    }
+};
+
 const PaiementsListModern = ({ product, view = 'paiement', stats, isModal = false, onClose }: PaiementsListModernProps) => {
     const [etudiants, setEtudiants] = useState<Etudiant[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -68,21 +104,6 @@ const PaiementsListModern = ({ product, view = 'paiement', stats, isModal = fals
     const [refreshing, setRefreshing] = useState<boolean>(false);
     const [selectedPayment, setSelectedPayment] = useState<EtudiantWithPayments | null>(null);
 
-    const fetchEtudiants = async (classeId: string, anneeId: string) => {
-        try {
-            const request = await fetch(`${API_URL}/etudiants/inscrits/classe/${classeId}/${anneeId}`);
-            const response = await request.json();
-            if (response.success) {
-                return response.data;
-            } else {
-                console.error('Error fetching students:', response.error);
-                return [];
-            }
-        } catch (error) {
-            console.error('Error fetching students:', error);
-            return [];
-        }
-    };
 
     const generateOrderNumber = () => {
         const timestamp = new Date().getTime();

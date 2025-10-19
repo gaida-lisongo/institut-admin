@@ -1,4 +1,5 @@
 export interface Etudiant {
+    _id?: string;
     nom: string;
     post_nom: string;
     prenom: string;
@@ -16,4 +17,20 @@ export interface Etudiant {
     // Propriétés virtuelles
     nomComplet?: string;
     age?: number;
+    parcours?: Parcour[];
+    dernierParcours: Parcour
+}
+
+export interface Parcour {
+    anneeId: any;
+    cycleId: any;
+    dateInscription: string;
+    decision: string;
+    etablissementId: any;
+    faculteDetails: any;
+    faculteId: string;
+    id: string;
+    niveau: any;
+    pourcentage: number;
+    _id: string;
 }

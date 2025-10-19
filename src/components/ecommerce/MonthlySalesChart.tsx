@@ -224,6 +224,7 @@ export default function MonthlySalesChart({ etablissement, onCurrent }: MonthlyS
       data: data.data,
     },
   ];
+  
   function toggleDropdown() {
     setIsOpen(!isOpen);
   }
