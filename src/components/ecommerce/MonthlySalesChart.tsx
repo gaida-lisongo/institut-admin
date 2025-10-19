@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { Loader } from "lucide-react";
 import { useFraisStore } from "@/stores/fraisStore";
+import { useAnneeStore } from "@/stores/anneeStore";
+import { ProduitDetail } from "../etablissement/Dashboard";
 
 // Dynamically import the ReactApexChart component
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
@@ -31,8 +33,15 @@ const variables = [
     value: "connexe"
   }
 ]
-export default function MonthlySalesChart() {
-  const { frais, loadFrais, isLoading } = useFraisStore();
+// Configuration de l'API
+const API_BASE_URL = process.env.NEXT_PUBLIC_SERVER_API_URL || 'http://localhost:4000/api/v1';
+
+interface MonthlySalesChartProps {
+  etablissement: string;
+  onCurrent: (data: ProduitDetail[]) => void;
+}
+
+export default function MonthlySalesChart({ etablissement, onCurrent }: MonthlySalesChartProps) {
 
   const options: ApexOptions = {
     colors: ["#465fff"],
@@ -120,11 +129,88 @@ export default function MonthlySalesChart() {
       },
     },
   };
+  const { frais, loadFrais, isLoading } = useFraisStore();
+  const { annees, fetchAnnees } = useAnneeStore();
+  const [ description, setDescription ] = useState("");
   const [config, setConfig] = useState(options);
   const [data, setData] = useState({
     data: [],
     name: "Frais"
   });
+  const [isOpen, setIsOpen] = useState(false);
+  const [graphique, setGraphique] = useState("Frais d'inscription");
+  const [anneeId, setAnneeId] = useState("");
+
+
+  useEffect(() => {
+    fetchAnnees();
+  }, []);
+
+  useEffect(() => {
+    if (annees.length > 0) {
+      console.log("All années : ", annees);
+      setDescription(annees[0].description);
+      setGraphique(annees[0].debut + " - " + annees[0].fin);
+      setAnneeId(annees[0]._id);
+    }
+  }, [annees]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const req = await fetch(`${API_BASE_URL}/finance/frais/${etablissement}/annee/${anneeId}`);
+        const res = await req.json();
+        console.log("Frais : ", res);
+        if (res.success) {
+          const fraisDetail : ProduitDetail[] = res.data;
+          const categories : string[] = [];
+          const seriesData : number[] = [];
+          onCurrent(fraisDetail);
+          fraisDetail.forEach((f : any) => {
+            const currentCategorie = f.fraisId.categorie;
+
+            const index = categories.indexOf(currentCategorie);
+            if (index === -1) {
+              categories.push(currentCategorie);
+              seriesData.push(f.montant * f.totalPayments);
+            } else {
+              seriesData[index] += f.montant * f.totalPayments;
+            }
+          });
+          setData({
+            data: seriesData,
+            name: "Frais"
+          });
+          setConfig({
+            ...options,
+            xaxis: {
+              ...options.xaxis,
+              categories: categories,
+              labels: {
+                rotate: -45,
+                rotateAlways: true,
+                style: {
+                  fontSize: '11px'
+                }
+              }
+            },
+            tooltip: {
+              ...options.tooltip,
+              y: {
+                formatter: (val: number) => `${val.toLocaleString('fr-FR')} $`
+              }
+            }
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching frais:", error);
+      }
+    }
+    if (anneeId) {
+      console.log("Annee : ", anneeId);
+      fetchData();
+    }
+  }, [anneeId])
 
   const series = [
     {
@@ -132,9 +218,6 @@ export default function MonthlySalesChart() {
       data: data.data,
     },
   ];
-  const [isOpen, setIsOpen] = useState(false);
-  const [graphique, setGraphique] = useState("Frais d'inscription");
-
   function toggleDropdown() {
     setIsOpen(!isOpen);
   }
@@ -145,6 +228,8 @@ export default function MonthlySalesChart() {
 
   const handleSelect = (value: string, categrie: string) => {
     setGraphique(value);
+    setDescription(annees.find((a) => a._id === categrie)?.description || "");
+    setAnneeId(categrie);
     const seriesData: number[] = [];
     const categories: string[] = [];
 
@@ -195,11 +280,11 @@ export default function MonthlySalesChart() {
 
   useEffect(() => {
     if (frais.length > 0) {
-      handleSelect("Frais d'inscription", "inscription");
+      handleSelect(`${annees[annees.length - 1].debut} - ${annees[annees.length - 1].fin}`, annees[annees.length - 1]._id);
     }
-  }, [frais]);
+  }, [annees]);
 
-  if (isLoading) {
+  if (isLoading || !etablissement) {
     return (
       <div className="flex items-center justify-center h-64 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <Loader className="w-8 h-8 animate-spin text-blue-500" />
@@ -215,7 +300,7 @@ export default function MonthlySalesChart() {
             {graphique}
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Distribution des montants par désignation
+            {description}
           </p>
         </div>
 
@@ -229,13 +314,13 @@ export default function MonthlySalesChart() {
             className="w-48 p-2"
           >
           {
-            variables.map((item, index) => (
+            annees && annees.map((item, index) => (
               <DropdownItem
                 key={index}
-                onItemClick={() => handleSelect(item.label, item.value)}
+                onItemClick={() => handleSelect(`${item.debut} - ${item.fin}`, item._id)}
                 className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
               >
-                {item.label}
+                {item.debut} - {item.fin}
               </DropdownItem>
             ))
           }

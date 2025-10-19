@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import { Dropdown } from "../ui/dropdown/Dropdown";
@@ -14,51 +14,57 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
+interface ProduitMetricsProps {
+  produitsFrais: ProduitDetail[];
+}
 
-export default function MonthlyTarget({ produitsFrais }: { produitsFrais: ProduitDetail[] }) {
+export default function ProduitMetrics({ produitsFrais }: ProduitMetricsProps) {
   const [selectedProduit, setSelectedProduit] = useState<ProduitDetail | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [metriques, setMetriques] = useState({
+    pourcentage: 0,
+    totalMontant: 0,
+    nombrePaiements: 0,
+    totalPaiements: 0
+  });
 
-  // Calculs réactifs avec useMemo pour forcer la mise à jour
-  const metriques = useMemo(() => {
-    if (!selectedProduit) {
-      return {
-        pourcentage: 0,
-        totalMontant: 0,
-        nombrePaiements: 0,
-        totalPaiements: 0
-      };
-    }
-
-    const paiementsOK = selectedProduit.payments?.filter((p: Payment) => p.status === 'OK') || [];
-    const totalPaiements = selectedProduit.payments?.length || 0;
-    const montantTotal = paiementsOK.length * selectedProduit.montant;
-    const pourcentageCalcule = totalPaiements > 0 
-      ? Number(((paiementsOK.length * 100) / totalPaiements).toFixed(2))
-      : 0;
-
-    console.log("Métriques recalculées:", {
-      produitId: selectedProduit._id,
-      paiementsOK: paiementsOK.length,
-      totalPaiements,
-      montantTotal,
-      pourcentageCalcule
-    });
-
-    return {
-      pourcentage: pourcentageCalcule,
-      totalMontant: montantTotal,
-      nombrePaiements: paiementsOK.length,
-      totalPaiements
-    };
-  }, [selectedProduit?._id, selectedProduit?.payments, selectedProduit?.montant]);
   // Initialiser le premier produit
   useEffect(() => {
     if (produitsFrais.length > 0 && !selectedProduit) {
       setSelectedProduit(produitsFrais[0]);
     }
-  }, [produitsFrais]);
+  }, [produitsFrais, selectedProduit]);
 
+  // Recalculer les métriques quand le produit change
+  useEffect(() => {
+    if (selectedProduit) {
+      console.log("Recalcul pour produit:", selectedProduit._id);
+      
+      const paiementsOK = selectedProduit.payments?.filter((p: Payment) => p.status === 'OK') || [];
+      const totalPaiements = selectedProduit.payments?.length || 0;
+      const montantTotal = paiementsOK.length * selectedProduit.montant;
+      const pourcentageCalcule = totalPaiements > 0 
+        ? Math.round((paiementsOK.length * 100) / totalPaiements)
+        : 0;
+
+      const nouvellesMetriques = {
+        pourcentage: pourcentageCalcule,
+        totalMontant: montantTotal,
+        nombrePaiements: paiementsOK.length,
+        totalPaiements
+      };
+
+      console.log("Nouvelles métriques:", nouvellesMetriques);
+      setMetriques(nouvellesMetriques);
+    } else {
+      setMetriques({
+        pourcentage: 0,
+        totalMontant: 0,
+        nombrePaiements: 0,
+        totalPaiements: 0
+      });
+    }
+  }, [selectedProduit]);
 
   const options: ApexOptions = {
     colors: ["#465FFF"],
@@ -80,7 +86,7 @@ export default function MonthlyTarget({ produitsFrais }: { produitsFrais: Produi
         track: {
           background: "#E4E7EC",
           strokeWidth: "100%",
-          margin: 5, // margin is in pixels
+          margin: 5,
         },
         dataLabels: {
           name: {
@@ -108,13 +114,10 @@ export default function MonthlyTarget({ produitsFrais }: { produitsFrais: Produi
     labels: ["Progress"],
   };
 
-  const toggleDropdown = () => setIsOpen(!isOpen);
-  const closeDropdown = () => setIsOpen(false);
-
-
   const handleProduitSelect = (produit: ProduitDetail) => {
+    console.log("Sélection du produit:", produit._id);
     setSelectedProduit(produit);
-    closeDropdown();
+    setIsOpen(false);
   };
 
   if (!selectedProduit) {
@@ -124,7 +127,6 @@ export default function MonthlyTarget({ produitsFrais }: { produitsFrais: Produi
       </div>
     );
   }
-
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-gray-100 dark:border-gray-800 dark:bg-white/[0.03]">
@@ -140,14 +142,14 @@ export default function MonthlyTarget({ produitsFrais }: { produitsFrais: Produi
           </div>
           <div className="relative inline-block">
             <button 
-              onClick={toggleDropdown} 
+              onClick={() => setIsOpen(!isOpen)} 
               className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               <MoreDotIcon className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300" />
             </button>
             <Dropdown
               isOpen={isOpen}
-              onClose={closeDropdown}
+              onClose={() => setIsOpen(false)}
               className="w-56 p-2 max-h-80 overflow-y-auto"
             >
               {produitsFrais.map((p) => (
@@ -169,6 +171,7 @@ export default function MonthlyTarget({ produitsFrais }: { produitsFrais: Produi
         <div className="relative">
           <div className="max-h-[330px]">
             <ReactApexChart
+              key={`chart-${selectedProduit._id}-${metriques.pourcentage}`}
               options={options}
               series={[metriques.pourcentage]}
               type="radialBar"
@@ -177,7 +180,7 @@ export default function MonthlyTarget({ produitsFrais }: { produitsFrais: Produi
           </div>
 
           <span className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-[95%] rounded-full bg-success-50 px-3 py-1 text-xs font-medium text-success-600 dark:bg-success-500/15 dark:text-success-500">
-            {metriques.totalMontant.toLocaleString('fr-FR')} CDF
+            {metriques.nombrePaiements} Transaction
           </span>
         </div>
         
@@ -198,7 +201,6 @@ export default function MonthlyTarget({ produitsFrais }: { produitsFrais: Produi
         </div>
 
         <div className="w-px bg-gray-200 h-12 dark:bg-gray-800"></div>
-
         {/* Nombre de paiements */}
         <div className="text-center">
           <p className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">

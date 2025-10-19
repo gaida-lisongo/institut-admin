@@ -19,6 +19,7 @@ export interface Payment {
     amount: number;
     orderNumber?: string;
     currency?: string;
+    id?: string;
 }
 
 export interface Product {
