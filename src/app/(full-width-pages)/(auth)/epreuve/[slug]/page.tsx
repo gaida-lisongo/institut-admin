@@ -271,7 +271,7 @@ export default function EpreuvePage() {
         const request = await fetch(`${API_URL}/resolution/etudiant/${etudiantId}`);
         const response = await request.json();
         console.log("Response", response.length);
-        if(response.length === 0){
+        if(response.data.length === 0){
             if (groupDetail?.questions && groupDetail.questions.length > 0) {
               const shuffled = shuffleArray(groupDetail.questions);
               setShuffledQuestions(shuffled);
