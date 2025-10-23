@@ -93,9 +93,9 @@ class CycleService {
     }
   }
 
-  async fetchInscrits(classeId: string, anneeId: string): Promise<any[]> {
+  async fetchInscrits(classeId: string, anneeId: string, page: string = '1'): Promise<any[]> {
     try {
-      const response = await fetch(`https://server-gr.he-section.site/api/v1/etudiant/parcours/classe/${classeId}/annee/${anneeId}`, {
+      const response = await fetch(`https://server-gr.he-section.site/api/v1/etudiant/parcours/classe/${classeId}/annee/${anneeId}?page=${page}`, {
         headers: this.getAuthHeaders(),
       });
 
