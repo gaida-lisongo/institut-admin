@@ -49,7 +49,7 @@ const ClasseDetail = ({ cycle, classe, annee, onBack }: ClasseProps) => {
   ) => {
     try {
       const res = await fetch(
-        `http://192.168.1.65:4003/api/v1/etudiant/parcours/${id}`,
+        `https://server-gr.he-section.site/api/v1/etudiant/parcours/${id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -71,7 +71,7 @@ const ClasseDetail = ({ cycle, classe, annee, onBack }: ClasseProps) => {
   const deleteInscrit = async (id: string) => {
     if (!confirm("Voulez-vous vraiment supprimer cette inscription ?")) return;
     try {
-      await fetch(`http://192.168.1.65:4003/api/v1/etudiant/parcours/${id}`, {
+      await fetch(`https://server-gr.he-section.site/api/v1/etudiant/parcours/${id}`, {
         method: "DELETE",
       });
       setInscriptions((prev) => prev.filter((i) => i._id !== id));
