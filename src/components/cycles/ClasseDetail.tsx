@@ -5,6 +5,7 @@ import { Annee } from "@/services/AnneeService";
 import { Classe, Cycle } from "@/services/CycleService";
 import { Etudiant } from "@/types/etudiant";
 import { exportEtudiantsExcel } from "@/utils/exportEtudiants";
+import CycleService from "@/services/CycleService";
 
 interface ClasseProps {
   cycle: Cycle;
@@ -29,18 +30,18 @@ const ClasseDetail = ({ cycle, classe, annee, onBack }: ClasseProps) => {
   const [inscriptions, setInscriptions] = useState<Inscription[]>([]);
   const [search, setSearch] = useState("");
 
-  const fetchInscrits = async () => {
-    try {
-      const request = await fetch(
-        `http://192.168.1.65:4003/api/v1/etudiant/parcours/classe/${classe._id}/annee/${annee._id}`
-      );
-      const response = await request.json();
-      if (!response.success) throw new Error(response.message);
-      setInscriptions(response.data || []);
-    } catch (error) {
-      console.error("Erreur de chargement :", error);
-    }
-  };
+  // const fetchInscrits = async () => {
+  //   try {
+  //     const request = await fetch(
+  //       `http://192.168.1.65:4003/api/v1/etudiant/parcours/classe/${classe._id}/annee/${annee._id}`
+  //     );
+  //     const response = await request.json();
+  //     if (!response.success) throw new Error(response.message);
+  //     setInscriptions(response.data || []);
+  //   } catch (error) {
+  //     console.error("Erreur de chargement :", error);
+  //   }
+  // };
 
   const updateInscrit = async (
     id: string,
@@ -82,16 +83,9 @@ const ClasseDetail = ({ cycle, classe, annee, onBack }: ClasseProps) => {
   useEffect(() => {
     const fetchAndSort = async () => {
         try {
-        const request = await fetch(
-            `http://192.168.1.65:4003/api/v1/etudiant/parcours/classe/${classe._id}/annee/${annee._id}`
-        );
-        const response = await request.json();
-        if (!response.success) throw new Error(response.message);
-
-        const sorted = (response.data || []).sort((a : Inscription, b: Inscription) =>
-            a.etudiant.nom.localeCompare(b.etudiant.nom)
-        );
-        setInscriptions(sorted);
+        const request = await CycleService.fetchInscrits(classe._id!, annee._id!);
+        console.log("")
+        setInscriptions(request);
         } catch (error) {
         console.error("Erreur de chargement :", error);
         }

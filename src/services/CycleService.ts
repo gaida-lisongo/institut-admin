@@ -1,4 +1,5 @@
 import useAuthStore from "@/stores/authStore";
+import { Inscription } from "./SemestreService";
 
 export interface Classe {
   _id?: string;
@@ -89,6 +90,29 @@ class CycleService {
     } catch (error) {
       console.error("Erreur lors de la récupération des cycles de la section:", error);
       throw error;
+    }
+  }
+
+  async fetchInscrits(classeId: string, anneeId: string): Promise<any[]> {
+    try {
+      const response = await fetch(`https://server-gr.he-section.site/api/v1/etudiant/parcours/classe/${classeId}/annee/${anneeId}`, {
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (!data.success) throw new Error(data.message);
+
+      const sorted = (data.data || []).sort((a: any, b: any) =>
+        a.etudiant.nom.localeCompare(b.etudiant.nom)
+      );
+      return sorted;
+    } catch (error) {
+      console.error("Erreur de chargement:", error);
+      return [];
     }
   }
 
