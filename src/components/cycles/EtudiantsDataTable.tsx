@@ -28,67 +28,24 @@ interface Inscription {
 
 const EtudiantsDataTable = ({ cycle, classe, annee, onBack }: EtudiantsDataTableProps) => {
   const [inscriptions, setInscriptions] = useState<Inscription[]>([]);
-  const [allInscriptions, setAllInscriptions] = useState<Inscription[]>([]);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasNextPage, setHasNextPage] = useState(true);
-  const [hasPrevPage, setHasPrevPage] = useState(false);
-  const [totalItems, setTotalItems] = useState(0);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  
-  const observerRef = useRef<IntersectionObserver | null>(null);
-  const lastElementRef = useRef<HTMLTableRowElement | null>(null);
 
-  // Fonction pour charger les données d'une page
-  const fetchPageData = useCallback(async (page: number, append: boolean = false) => {
-    if (append) {
-      setIsLoadingMore(true);
-    } else {
-      setIsLoading(true);
-    }
+  // Fonction simple pour charger une page
+  const fetchPageData = useCallback(async (page: number) => {
+    setIsLoading(true);
 
     try {
       const data = await CycleService.fetchInscrits(classe._id!, annee._id!, page.toString());
-      
-      if (append) {
-        setInscriptions(prev => [...prev, ...data]);
-        setAllInscriptions(prev => [...prev, ...data]);
-      } else {
-        setInscriptions(data);
-        setAllInscriptions(data);
-      }
-
-      // Mise à jour des états de pagination - toujours permettre la navigation
-      setHasNextPage(true); // Toujours permettre d'aller à la page suivante
-      setHasPrevPage(true); // Toujours permettre de revenir en arrière
-      
-      if (!append) {
-        setTotalItems(data.length + (page - 1) * 100); // Estimation
-      }
+      setInscriptions(data);
     } catch (error) {
       console.error("Erreur de chargement :", error);
     } finally {
       setIsLoading(false);
-      setIsLoadingMore(false);
     }
   }, [classe._id, annee._id]);
 
-  // Intersection Observer pour le scroll infini
-  const lastElementCallback = useCallback((node: HTMLTableRowElement | null) => {
-    if (isLoadingMore) return;
-    if (observerRef.current) observerRef.current.disconnect();
-    
-    observerRef.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && !isLoadingMore) {
-        const nextPage = currentPage + 1;
-        setCurrentPage(nextPage);
-        fetchPageData(nextPage, true);
-      }
-    });
-    
-    if (node) observerRef.current.observe(node);
-  }, [isLoadingMore, currentPage, fetchPageData]);
 
   // Chargement initial
   useEffect(() => {
@@ -96,19 +53,13 @@ const EtudiantsDataTable = ({ cycle, classe, annee, onBack }: EtudiantsDataTable
   }, [fetchPageData]);
 
   // Filtrage local pour la recherche
-  useEffect(() => {
-    if (search.trim() === "") {
-      setInscriptions(allInscriptions);
-    } else {
-      const filtered = allInscriptions.filter((i) => {
-        const name = `${i.etudiant.nom} ${i.etudiant.post_nom || ""} ${i.etudiant.prenom || ""}`.toLowerCase();
-        const matricule = i.etudiant.matricule?.toLowerCase() || "";
-        const searchTerm = search.toLowerCase();
-        return name.includes(searchTerm) || matricule.includes(searchTerm);
-      });
-      setInscriptions(filtered);
-    }
-  }, [search, allInscriptions]);
+  const filteredInscriptions = inscriptions.filter((i) => {
+    if (search.trim() === "") return true;
+    const name = `${i.etudiant.nom} ${i.etudiant.post_nom || ""} ${i.etudiant.prenom || ""}`.toLowerCase();
+    const matricule = i.etudiant.matricule?.toLowerCase() || "";
+    const searchTerm = search.toLowerCase();
+    return name.includes(searchTerm) || matricule.includes(searchTerm);
+  });
 
   // Actions
   const updateInscrit = async (id: string, status: "PENDING" | "OK" | "NO") => {
@@ -126,7 +77,6 @@ const EtudiantsDataTable = ({ cycle, classe, annee, onBack }: EtudiantsDataTable
 
       // Mise à jour locale
       setInscriptions(prev => prev.map(i => i._id === id ? { ...i, status } : i));
-      setAllInscriptions(prev => prev.map(i => i._id === id ? { ...i, status } : i));
     } catch (error) {
       console.error("Erreur de mise à jour :", error);
     }
@@ -139,7 +89,6 @@ const EtudiantsDataTable = ({ cycle, classe, annee, onBack }: EtudiantsDataTable
         method: "DELETE",
       });
       setInscriptions(prev => prev.filter(i => i._id !== id));
-      setAllInscriptions(prev => prev.filter(i => i._id !== id));
     } catch (error) {
       console.error("Erreur de suppression :", error);
     }
@@ -211,7 +160,7 @@ const EtudiantsDataTable = ({ cycle, classe, annee, onBack }: EtudiantsDataTable
 
           <button
             onClick={() => exportEtudiantsExcel(
-              allInscriptions.map(i => i.etudiant), 
+              inscriptions.map(i => i.etudiant), 
               `${classe.designation}_${annee.debut}-${annee.fin}`
             )}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -237,11 +186,11 @@ const EtudiantsDataTable = ({ cycle, classe, annee, onBack }: EtudiantsDataTable
           <div className="flex items-center gap-4 text-sm text-gray-600">
             <span>Page {currentPage}</span>
             <span>•</span>
-            <span>{inscriptions.length} étudiants affichés</span>
+            <span>{filteredInscriptions.length} étudiants affichés</span>
             {search && (
               <>
                 <span>•</span>
-                <span>sur {allInscriptions.length} total</span>
+                <span>Recherche active</span>
               </>
             )}
           </div>
@@ -260,7 +209,7 @@ const EtudiantsDataTable = ({ cycle, classe, annee, onBack }: EtudiantsDataTable
         </button>
 
         <div className="text-sm text-gray-600">
-          Scroll vers le bas pour charger plus d'étudiants
+          Navigation par boutons uniquement
         </div>
 
         <button
@@ -300,15 +249,13 @@ const EtudiantsDataTable = ({ cycle, classe, annee, onBack }: EtudiantsDataTable
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {inscriptions.map((inscription, index) => {
+              {filteredInscriptions.map((inscription, index) => {
                 const { etudiant, status, _id, createdAt } = inscription;
-                const isLast = index === inscriptions.length - 1;
                 
                 return (
                   <tr 
                     key={_id} 
                     className="hover:bg-gray-50 transition-colors"
-                    ref={isLast ? lastElementCallback : null}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -379,16 +326,9 @@ const EtudiantsDataTable = ({ cycle, classe, annee, onBack }: EtudiantsDataTable
           </table>
         </div>
 
-        {/* Indicateur de chargement pour le scroll infini */}
-        {isLoadingMore && (
-          <div className="flex items-center justify-center py-8 border-t">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-600 mr-2" />
-            <span className="text-gray-600">Chargement de plus d'étudiants...</span>
-          </div>
-        )}
 
         {/* Message si aucun résultat */}
-        {inscriptions.length === 0 && !isLoading && (
+        {filteredInscriptions.length === 0 && !isLoading && (
           <div className="text-center py-12">
             <div className="text-gray-400 mb-4">
               <Search size={48} className="mx-auto" />
@@ -404,7 +344,7 @@ const EtudiantsDataTable = ({ cycle, classe, annee, onBack }: EtudiantsDataTable
       {/* Footer avec informations de pagination */}
       <div className="mt-6 flex justify-center items-center text-sm text-gray-600">
         <div>
-          Page {currentPage} • {inscriptions.length} étudiants affichés
+          Page {currentPage} • {filteredInscriptions.length} étudiants affichés
         </div>
       </div>
     </div>
