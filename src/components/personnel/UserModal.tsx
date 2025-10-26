@@ -11,6 +11,7 @@ interface UserModalProps {
   mode: 'create' | 'edit' | 'view';
   defaultCategorie?: Personnel['categorie'];
   defaultProvince?: string;
+  defaultProvinceName?: string;
   onClose: () => void;
 }
 
@@ -19,6 +20,7 @@ const UserModal: React.FC<UserModalProps> = ({
   mode,
   defaultCategorie,
   defaultProvince,
+  defaultProvinceName,
   onClose
 }) => {
   const { addPersonnel, updatePersonnel, isLoading } = usePersonnelStore();
@@ -59,7 +61,7 @@ const UserModal: React.FC<UserModalProps> = ({
         lieu_naissance: user.lieu_naissance || '',
         date_naissance: user.date_naissance ? new Date(user.date_naissance).toISOString().split('T')[0] : '',
         categorie: user.categorie || defaultCategorie || 'ACADEMIQUE',
-        province: typeof user.province === 'string' ? user.province : user.province?._id || defaultProvince || '',
+        province: defaultProvince || '',
         grade: user.grade || '',
         niveau: user.niveau || ''
       });
@@ -276,28 +278,6 @@ const UserModal: React.FC<UserModalProps> = ({
               >
                 <option value="M">Masculin</option>
                 <option value="F">Féminin</option>
-              </select>
-            </div>
-
-            {/* Province */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Province *
-              </label>
-              <select
-                name="province"
-                value={formData.province}
-                onChange={handleInputChange}
-                required
-                disabled={mode === 'view'}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white disabled:opacity-50"
-              >
-                <option value="">Sélectionner une province</option>
-                {provinces.map((province) => (
-                  <option key={province._id} value={province._id}>
-                    {province.designation}
-                  </option>
-                ))}
               </select>
             </div>
 

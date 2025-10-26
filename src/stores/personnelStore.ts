@@ -27,7 +27,7 @@ interface PersonnelStore {
   isAuthLoading: boolean;
   
   // Actions
-  loadPersonnels: () => Promise<void>;
+  loadPersonnels: (provinceId?: String | null, page?: Number, limit?: Number) => Promise<void>;
   loadPersonnelStats: () => Promise<void>;
   getPersonnelsByCategorie: (categorie: Personnel['categorie']) => Personnel[];
   getPersonnelsByProvince: (provinceId: string) => Personnel[];
@@ -69,11 +69,11 @@ export const usePersonnelStore = create<PersonnelStore>()(
       isAuthLoading: false,
 
       // Actions
-      loadPersonnels: async () => {
+      loadPersonnels: async (provinceId='', page = 1, limit = 1500) => {
         set({ isLoading: true, error: null });
         try {
           const token = localStorage.getItem('token');
-          const response = await fetch(`${API_URL}/users`, {
+          const response = await fetch(`${API_URL}/users?province=${provinceId}&page=${page}&limit=${limit}`, {
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${token}`,

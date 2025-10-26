@@ -242,6 +242,8 @@ const UsersCardManager: React.FC<UsersCardManagerProps> = ({
   // Filtrer les personnels par catégorie, province et recherche
   const filteredPersonnels = useMemo(() => {
     return personnels.filter(personnel => {
+      console.log("Current user : ", personnel);
+      
       const matchCategorie = personnel.categorie === categorie;
       const matchProvince = typeof personnel.province === 'string' 
         ? personnel.province === provinceId 
@@ -595,6 +597,7 @@ const UsersCardManager: React.FC<UsersCardManagerProps> = ({
           mode={modalMode}
           defaultCategorie={categorie}
           defaultProvince={provinceId}
+          defaultProvinceName={provinceName}
           onClose={() => {
             setShowUserModal(false);
             setSelectedUser(null);
