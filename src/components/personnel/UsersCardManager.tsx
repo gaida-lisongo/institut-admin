@@ -612,6 +612,7 @@ const UsersCardManager: React.FC<UsersCardManagerProps> = ({
             setShowUserCard(false);
             setSelectedUser(null);
           }}
+          
         />
       )}
     </div>
