@@ -1,6 +1,6 @@
 import { Personnel } from "@/types/personnel";
 import { io, Socket } from "socket.io-client";
-const ServerUrl = "https://server-esursi.he-section.site/api/v1";
+const ServerUrl = "https://server-esursi.he-section.site";
 
 export interface Message {
     _id: string; // Changé de number à string pour MongoDB ObjectId
