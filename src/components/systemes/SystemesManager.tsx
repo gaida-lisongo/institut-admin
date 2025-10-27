@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Systeme } from '@/types/systemes';
+import { Systeme, SystemeFormData } from '@/types/systemes';
+import { useSystemeStore } from '@/stores/systemeStore';
 import SystemeDashboard from './SystemeDashboard';
+import CreateSystemeForm from './CreateSystemeForm';
 
 // Composant temporaire pour SystemeCard
 const SystemeCard: React.FC<{ systeme: Systeme; onViewDetails: () => void }> = ({ systeme, onViewDetails }) => (
@@ -42,22 +44,6 @@ const SystemeCard: React.FC<{ systeme: Systeme; onViewDetails: () => void }> = (
     </div>
 );
 
-// Composant temporaire pour SystemeCreateCard
-const SystemeCreateCard: React.FC<{ onSuccess: () => void; onCancel: () => void }> = ({ onSuccess, onCancel }) => (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Créer un nouveau système</h3>
-        <p className="text-gray-600 dark:text-gray-400 mb-4">Fonctionnalité de création en cours de développement...</p>
-        <div className="flex space-x-3">
-            <button onClick={onCancel} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg">
-                Annuler
-            </button>
-            <button onClick={onSuccess} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
-                Créer
-            </button>
-        </div>
-    </div>
-);
-
 interface SystemesManagerProps {
     systemes: Systeme[];
     searchTerm: string;
@@ -71,6 +57,20 @@ const SystemesManager: React.FC<SystemesManagerProps> = ({
 }) => {
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [selectedSysteme, setSelectedSysteme] = useState<Systeme | null>(null);
+    const { createSysteme, loading } = useSystemeStore();
+
+    // Fonction pour gérer la création d'un système
+    const handleCreateSysteme = async (data: SystemeFormData) => {
+        try {
+            await createSysteme(data);
+            console.log('Système créé avec succès');
+            setShowCreateForm(false);
+            // Optionnel: afficher une notification de succès
+        } catch (error) {
+            console.error('Erreur lors de la création du système:', error);
+            // Optionnel: afficher une notification d'erreur
+        }
+    };
 
     // Si un système est sélectionné, afficher le dashboard
     if (selectedSysteme) {
@@ -129,9 +129,10 @@ const SystemesManager: React.FC<SystemesManagerProps> = ({
             {/* Formulaire de création */}
             {showCreateForm && (
                 <div className="mb-8">
-                    <SystemeCreateCard 
-                        onSuccess={() => setShowCreateForm(false)}
+                    <CreateSystemeForm 
+                        onSubmit={handleCreateSysteme}
                         onCancel={() => setShowCreateForm(false)}
+                        isLoading={loading}
                     />
                 </div>
             )}
