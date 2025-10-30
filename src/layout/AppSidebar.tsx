@@ -61,6 +61,11 @@ const navItems: NavItem[] = [
       { name: "404 Error", path: "/error-404", pro: false },
     ],
   },
+  {
+    name: "Agents",
+    icon: <UserCircleIcon />,
+    path: "/agents",
+  }
 ];
 
 const othersItems: NavItem[] = [
