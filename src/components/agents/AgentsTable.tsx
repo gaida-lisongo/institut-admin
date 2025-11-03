@@ -11,15 +11,20 @@ import Badge from "../ui/badge/Badge";
 import { useAgentStore } from "@/stores/agentStore";
 import { useEffect, useState } from "react";
 import { Agent } from "@/types/userTypes";
-import { Search, Plus, Edit, Trash2, User } from "lucide-react";
+import { Search, Plus, Edit, Trash2, User, Shield, GraduationCap } from "lucide-react";
 import AgentCreateModal from "./AgentCreateModal";
 import AgentEditModal from "./AgentEditModal";
+import AutorisationManager from "./AutorisationManager";
+import ParcoursManager from "./ParcoursManager";
+import Loader from "../common/Loader";
 
 export default function AgentsTable() {
   const { agents, fetchAgents, agentsLoading, agentsError, deleteAgent } = useAgentStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAutorisationManagerOpen, setIsAutorisationManagerOpen] = useState(false);
+  const [isParcoursManagerOpen, setIsParcoursManagerOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
 
   useEffect(() => {
@@ -44,6 +49,16 @@ export default function AgentsTable() {
     setIsEditModalOpen(true);
   };
 
+  const handleManageAutorisations = (agent: Agent) => {
+    setSelectedAgent(agent);
+    setIsAutorisationManagerOpen(true);
+  };
+
+  const handleManageParcours = (agent: Agent) => {
+    setSelectedAgent(agent);
+    setIsParcoursManagerOpen(true);
+  };
+
   const handleDelete = async (agent: Agent) => {
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer l'agent ${agent.identites.nom} ${agent.identites.postNom} ?`)) {
       try {
@@ -64,10 +79,7 @@ export default function AgentsTable() {
 
   if (agentsLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2">Chargement des agents...</span>
-      </div>
+      <Loader sujet="des agents" />
     );
   }
 
@@ -215,13 +227,27 @@ export default function AgentsTable() {
                       </Badge>
                     </TableCell>
                     <TableCell className="py-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleEdit(agent)}
                           className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
                           title="Modifier"
                         >
                           <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleManageAutorisations(agent)}
+                          className="p-1 text-green-600 hover:text-green-800 hover:bg-green-50 rounded"
+                          title="Gérer les autorisations"
+                        >
+                          <Shield className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleManageParcours(agent)}
+                          className="p-1 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded"
+                          title="Gérer les parcours"
+                        >
+                          <GraduationCap className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(agent)}
@@ -250,6 +276,24 @@ export default function AgentsTable() {
         isOpen={isEditModalOpen}
         onClose={() => {
           setIsEditModalOpen(false);
+          setSelectedAgent(null);
+        }}
+        agent={selectedAgent}
+      />
+
+      <AutorisationManager
+        isOpen={isAutorisationManagerOpen}
+        onClose={() => {
+          setIsAutorisationManagerOpen(false);
+          setSelectedAgent(null);
+        }}
+        agent={selectedAgent}
+      />
+
+      <ParcoursManager
+        isOpen={isParcoursManagerOpen}
+        onClose={() => {
+          setIsParcoursManagerOpen(false);
           setSelectedAgent(null);
         }}
         agent={selectedAgent}
