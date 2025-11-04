@@ -6,12 +6,14 @@ import { Classe, Cycle } from "@/services/CycleService";
 import { Etudiant } from "@/types/etudiant";
 import { exportEtudiantsExcel } from "@/utils/exportEtudiants";
 import CycleService from "@/services/CycleService";
-import { ChevronLeft, ChevronRight, Search, Download, Loader2, Check, X, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, Download, Loader2, Check, X, Trash2, Upload } from "lucide-react";
+import { Section } from "@/stores/sectionStore";
 
 interface EtudiantsDataTableProps {
   cycle: Cycle;
   classe: Classe;
   annee: Annee;
+  section: Section;
   onBack: () => void;
 }
 
@@ -26,18 +28,25 @@ interface Inscription {
   createdAt: Date;
 }
 
-const EtudiantsDataTable = ({ cycle, classe, annee, onBack }: EtudiantsDataTableProps) => {
+const API_URL = process.env.NEXT_PUBLIC_SERVER_API_URL;
+
+const EtudiantsDataTable = ({ cycle, classe, annee, section, onBack }: EtudiantsDataTableProps) => {
   const [inscriptions, setInscriptions] = useState<Inscription[]>([]);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importTotal, setImportTotal] = useState(0);
+  const [importDone, setImportDone] = useState(0);
+  const [importOk, setImportOk] = useState(0);
+  const [importErr, setImportErr] = useState(0);
 
-  // Fonction simple pour charger une page
-  const fetchPageData = useCallback(async (page: number) => {
+  // Charger tous les inscrits (pagination locale)
+  const loadAllInscrits = useCallback(async () => {
     setIsLoading(true);
-
     try {
-      const data = await CycleService.fetchInscrits(classe._id!, annee._id!, page.toString());
+      const data = await CycleService.fetchInscrits(classe._id!, annee._id!);
       setInscriptions(data);
     } catch (error) {
       console.error("Erreur de chargement :", error);
@@ -46,11 +55,11 @@ const EtudiantsDataTable = ({ cycle, classe, annee, onBack }: EtudiantsDataTable
     }
   }, [classe._id, annee._id]);
 
-
-  // Chargement initial
+  // Chargement initial (tout en une fois)
   useEffect(() => {
-    fetchPageData(1);
-  }, [fetchPageData]);
+    console.log("Base url : ", API_URL);
+    loadAllInscrits();
+  }, [loadAllInscrits]);
 
   // Filtrage local pour la recherche
   const filteredInscriptions = inscriptions.filter((i) => {
@@ -61,11 +70,126 @@ const EtudiantsDataTable = ({ cycle, classe, annee, onBack }: EtudiantsDataTable
     return name.includes(searchTerm) || matricule.includes(searchTerm);
   });
 
+  // Pagination locale
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+  const totalItems = filteredInscriptions.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const current = Math.min(currentPage, totalPages);
+  const startIdx = (current - 1) * itemsPerPage;
+  const endIdx = Math.min(startIdx + itemsPerPage, totalItems);
+  const paginatedInscriptions = filteredInscriptions.slice(startIdx, endIdx);
+
+  // S'assurer que la page reste valide quand le filtre change
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+
+  // Réinitialiser à la première page lorsque la recherche change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  // Import CSV to enroll by matricule
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportClick = () => fileInputRef.current?.click();
+
+  const parseCsvText = (text: string): string[] => {
+    const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+    if (lines.length === 0) return [];
+    const header = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ""));
+    // Try to find Matricule column (case-insensitive)
+    let idx = header.findIndex(h => h.toLowerCase() === "matricule");
+    if (idx === -1) {
+      // Fallback: attempt to detect by common variations
+      idx = header.findIndex(h => h.toLowerCase().includes("matric"));
+    }
+    if (idx === -1) return [];
+    const matricules: string[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const row = lines[i].split(",");
+      if (!row[idx]) continue;
+      const value = row[idx].trim().replace(/^"|"$/g, "");
+      if (value) matricules.push(value);
+    }
+    // Dedupe
+    return Array.from(new Set(matricules));
+  };
+
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const matricules = parseCsvText(text);
+      if (matricules.length === 0) {
+        console.warn("Aucun matricule trouvé dans le fichier CSV");
+        return;
+      }
+      await processImport(matricules);
+      // reset input so same file can be selected again
+      e.target.value = "";
+    } catch (err) {
+      console.error("Erreur lors de l'import CSV:", err);
+    }
+  };
+
+  const addInscription = async (matricules: string[]) => {
+    try {
+      const newParcours = matricules.map(async (matricule) => {
+        return await CycleService.createInscriptionClasse({
+          matricule,
+          classeId: classe._id!,
+          anneeId: annee._id!,
+          faculte: section?.description?.sigle || "",
+        });
+      });
+
+      const results = await Promise.all(newParcours);
+      setInscriptions(prev => [...prev, ...results]);
+    } catch (error) {
+      console.error("Erreur de mise à jour :", error);
+    }
+  };
+
+  const processImport = async (matricules: string[]) => {
+    setImportOpen(true);
+    setIsImporting(true);
+    setImportTotal(matricules.length);
+    setImportDone(0);
+    setImportOk(0);
+    setImportErr(0);
+    for (const matricule of matricules) {
+      try {
+        const res = await CycleService.createInscriptionClasse({
+          matricule,
+          classeId: classe._id!,
+          anneeId: annee._id!,
+          faculte: section?.description?.sigle || "",
+        });
+        if (res && (res.data || res._id)) {
+          const item = res.data || res;
+          setInscriptions(prev => [...prev, item]);
+          setImportOk(v => v + 1);
+        } else {
+          setImportErr(v => v + 1);
+        }
+      } catch (e) {
+        setImportErr(v => v + 1);
+      } finally {
+        setImportDone(v => v + 1);
+      }
+    }
+    setIsImporting(false);
+  };
+
   // Actions
   const updateInscrit = async (id: string, status: "PENDING" | "OK" | "NO") => {
     try {
       const res = await fetch(
-        `https://server-gr.he-section.site/api/v1/etudiant/parcours/${id}`,
+        `${API_URL}/etudiant/parcours/${id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -85,7 +209,7 @@ const EtudiantsDataTable = ({ cycle, classe, annee, onBack }: EtudiantsDataTable
   const deleteInscrit = async (id: string) => {
     if (!confirm("Voulez-vous vraiment supprimer cette inscription ?")) return;
     try {
-      await fetch(`https://server-gr.he-section.site/api/v1/etudiant/parcours/${id}`, {
+      await fetch(`${API_URL}/etudiant/parcours/${id}`, {
         method: "DELETE",
       });
       setInscriptions(prev => prev.filter(i => i._id !== id));
@@ -98,15 +222,13 @@ const EtudiantsDataTable = ({ cycle, classe, annee, onBack }: EtudiantsDataTable
     if (currentPage > 1) {
       const prevPage = currentPage - 1;
       setCurrentPage(prevPage);
-      fetchPageData(prevPage);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const goToNextPage = () => {
-    const nextPage = currentPage + 1;
+    const nextPage = Math.min(currentPage + 1, totalPages);
     setCurrentPage(nextPage);
-    fetchPageData(nextPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -140,6 +262,33 @@ const EtudiantsDataTable = ({ cycle, classe, annee, onBack }: EtudiantsDataTable
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
+      {importOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+            <h2 className="text-lg font-semibold mb-4">Importation des étudiants</h2>
+            <div className="mb-2 text-sm text-gray-600">{importDone} / {importTotal} traités</div>
+            <div className="w-full h-3 bg-gray-200 rounded">
+              <div
+                className="h-3 bg-emerald-600 rounded"
+                style={{ width: `${importTotal ? Math.round((importDone / importTotal) * 100) : 0}%` }}
+              />
+            </div>
+            <div className="mt-3 flex items-center gap-4 text-sm">
+              <span className="text-emerald-700">Succès: {importOk}</span>
+              <span className="text-red-700">Échecs: {importErr}</span>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                disabled={isImporting}
+                onClick={() => setImportOpen(false)}
+                className={`px-4 py-2 rounded ${isImporting ? 'bg-gray-300 text-gray-600' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+              >
+                {isImporting ? 'En cours…' : 'Fermer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -153,21 +302,39 @@ const EtudiantsDataTable = ({ cycle, classe, annee, onBack }: EtudiantsDataTable
           
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900">
-              {cycle.designation} - {classe.designation}
+              {cycle.designation} <span className="text-gray-600">{section?.description?.sigle}</span> - {classe.designation}
+              
             </h1>
             <p className="text-gray-600">Année académique {annee.debut}-{annee.fin}</p>
           </div>
 
-          <button
-            onClick={() => exportEtudiantsExcel(
-              inscriptions.map(i => i.etudiant), 
-              `${classe.designation}_${annee.debut}-${annee.fin}`
-            )}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Download size={20} />
-            Exporter Excel
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => exportEtudiantsExcel(
+                inscriptions.map(i => i.etudiant), 
+                `${classe.designation}_${annee.debut}-${annee.fin}`
+              )}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Download size={20} />
+              Exporter Excel
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={onFileChange}
+            />
+            <button
+              onClick={handleImportClick}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+              title="Importer CSV"
+            >
+              <Upload size={20} />
+              Importer CSV
+            </button>
+          </div>
         </div>
 
         {/* Barre de recherche et statistiques */}
@@ -182,11 +349,27 @@ const EtudiantsDataTable = ({ cycle, classe, annee, onBack }: EtudiantsDataTable
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-          
+
           <div className="flex items-center gap-4 text-sm text-gray-600">
-            <span>Page {currentPage}</span>
+            <div className="flex items-center gap-2">
+              <span>Par page:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                className="border border-gray-300 rounded px-2 py-1 text-sm"
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+                <option value={200}>200</option>
+              </select>
+            </div>
             <span>•</span>
-            <span>{filteredInscriptions.length} étudiants affichés</span>
+            <span>
+              {totalItems > 0 ? `${startIdx + 1}-${endIdx} / ${totalItems}` : `0 / 0`} étudiants
+            </span>
+            <span>•</span>
+            <span>Page {current} / {totalPages}</span>
             {search && (
               <>
                 <span>•</span>
@@ -249,7 +432,7 @@ const EtudiantsDataTable = ({ cycle, classe, annee, onBack }: EtudiantsDataTable
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredInscriptions.map((inscription, index) => {
+              {paginatedInscriptions.map((inscription, index) => {
                 const { etudiant, status, _id, createdAt } = inscription;
                 
                 return (
@@ -260,7 +443,7 @@ const EtudiantsDataTable = ({ cycle, classe, annee, onBack }: EtudiantsDataTable
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
-                          {etudiant.photo ? (
+                          {etudiant?.photo ? (
                             <img
                               className="h-10 w-10 rounded-full object-cover"
                               src={etudiant.photo}

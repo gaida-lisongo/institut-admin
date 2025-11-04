@@ -27,9 +27,10 @@ export interface CycleFormData {
   sectionId: string;
   classes: Omit<Classe, '_id'>[];
 }
+const API_URL = process.env.NEXT_PUBLIC_SERVER_API_URL;
 
 class CycleService {
-  private baseUrl = "https://server-gr.he-section.site/api/v1/enseignement";
+  private baseUrl = API_URL + "/enseignement";
 
   private getAuthHeaders(): HeadersInit {
     const token = useAuthStore.getState().token;
@@ -93,9 +94,9 @@ class CycleService {
     }
   }
 
-  async fetchInscrits(classeId: string, anneeId: string, page: string = '1'): Promise<any[]> {
+  async fetchInscrits(classeId: string, anneeId: string): Promise<any[]> {
     try {
-      const response = await fetch(`https://server-gr.he-section.site/api/v1/etudiant/parcours/classe/${classeId}/annee/${anneeId}?page=${page}`, {
+      const response = await fetch(`${API_URL}/etudiant/parcours/classe/${classeId}/annee/${anneeId}`, {
         headers: this.getAuthHeaders(),
       });
 
@@ -113,6 +114,30 @@ class CycleService {
     } catch (error) {
       console.error("Erreur de chargement:", error);
       return [];
+    }
+  }
+
+  async createInscriptionClasse(data: {
+    matricule: string;
+    classeId: string;
+    anneeId: string;
+    faculte: string
+  }): Promise<any> {
+    try {
+      const response = await fetch(`${API_URL}/etudiant/parcours`, {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la création de l'inscription:", error);
+      throw error;
     }
   }
 

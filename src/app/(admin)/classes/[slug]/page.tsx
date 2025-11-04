@@ -96,7 +96,7 @@ const ClassesPage = () => {
             return <div>Aucune classe trouvée</div>;
         }
         
-        return <ClasseDetail cycle={cycle} classe={classe} annee={annee} onBack={() => setViewer('cycles')} />
+        return <ClasseDetail cycle={cycle} classe={classe} annee={annee} sectionId={sectionId} onBack={() => setViewer('cycles')} />
     }
     
     return (
