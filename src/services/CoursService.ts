@@ -159,24 +159,24 @@ class CoursService {
   }
 
   // CRUD pour les travaux
-  async createTravail(coursId: string, travail: Omit<Travail, '_id'>): Promise<Travail> {
-    try {
-      const response = await fetch(`${this.baseUrl}/cours/${coursId}/travaux`, {
-        method: "POST",
-        headers: this.getAuthHeaders(),
-        body: JSON.stringify(travail),
-      });
+  // async createTravail(coursId: string, travail: Omit<Travail, '_id'>): Promise<Travail> {
+  //   try {
+  //     const response = await fetch(`${this.baseUrl}/cours/${coursId}/travaux`, {
+  //       method: "POST",
+  //       headers: this.getAuthHeaders(),
+  //       body: JSON.stringify(travail),
+  //     });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+  //     if (!response.ok) {
+  //       throw new Error(`HTTP error! status: ${response.status}`);
+  //     }
 
-      return await response.json();
-    } catch (error) {
-      console.error("Erreur lors de la création du travail:", error);
-      throw error;
-    }
-  }
+  //     return await response.json();
+  //   } catch (error) {
+  //     console.error("Erreur lors de la création du travail:", error);
+  //     throw error;
+  //   }
+  // }
 
   async updateTravail(coursId: string, travailId: string, travail: Partial<Travail>): Promise<Travail> {
     try {
@@ -308,6 +308,37 @@ class CoursService {
       return await response.json();
     } catch (error) {
       console.error("Erreur lors de la mise à jour du plan par charge:", error);
+      throw error;
+    }
+  }
+
+  async createTravail(
+    {
+      coursId,
+      questionnaire,
+      anneeId,
+      produitId
+    } : {
+      coursId: string;
+      questionnaire: string;
+      anneeId: string;
+      produitId: string;
+    }
+  ) {
+    try {
+      const response = await fetch(`${this.baseUrl}/travail`, {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ questionnaire, anneeId, coursId, produitId }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json() as Travail;
+    } catch (error) {
+      console.error("Erreur lors de la création du travail:", error);
       throw error;
     }
   }

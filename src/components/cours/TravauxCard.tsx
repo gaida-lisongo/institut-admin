@@ -4,6 +4,7 @@ import { Travail } from "@/services/CoursService";
 import CoursService from "@/services/CoursService";
 import DataTable, { Column } from "@/components/common/DataTable";
 import TravailModal from "./TravailModal";
+import ResolutionsModal from "./ResolutionsModal";
 
 interface TravauxCardProps {
   travaux: Travail[];
@@ -26,6 +27,8 @@ const TravauxCard: React.FC<TravauxCardProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTravail, setEditingTravail] = useState<Travail | undefined>();
   const [isLoading, setIsLoading] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewingTravail, setViewingTravail] = useState<Travail | undefined>();
 
   const columns: Column<Travail>[] = [
     {
@@ -90,6 +93,11 @@ const TravauxCard: React.FC<TravauxCardProps> = ({
     setIsModalOpen(true);
   };
 
+  const handleView = (travail: Travail) => {
+    setViewingTravail(travail);
+    setIsViewModalOpen(true);
+  };
+
   const handleDelete = async (travail: Travail) => {
     if (!travail._id) return;
     
@@ -120,7 +128,7 @@ const TravauxCard: React.FC<TravauxCardProps> = ({
     }
   };
 
-  const handleSave = async (travailData: Omit<Travail, '_id'> | Partial<Travail>) => {
+  const handleSave = async (travailData: Partial<Travail>) => {
     setIsLoading(true);
     try {
       let updatedTravaux: any[];
@@ -138,27 +146,26 @@ const TravauxCard: React.FC<TravauxCardProps> = ({
           const { _id, ...cleanData } = t;
           return cleanData;
         });
+
+        
+
+        // Mettre à jour le cours entier avec les nouveaux travaux
+        const updatedCours = await CoursService.updateCours(coursId, { travaux: updatedTravaux });
+        
+        // Récupérer les travaux avec les nouveaux IDs générés par MongoDB
+        setLocalTravaux(updatedCours.travaux || []);
+        onTravauxUpdate?.(updatedCours.travaux || []);
       } else {
-        // Création - ajouter un nouveau travail sans _id (MongoDB le générera)
-        const newTravail = {
-          ...travailData as Omit<Travail, '_id'>
-        };
         
         // Nettoyer tous les travaux existants (enlever les _id)
         const cleanedExistingTravaux = localTravaux.map(t => {
-          const { _id, ...cleanData } = t;
-          return cleanData;
+          return t;
         });
         
-        updatedTravaux = [...cleanedExistingTravaux, newTravail];
+        updatedTravaux = [...cleanedExistingTravaux, travailData];
+        setLocalTravaux(updatedTravaux);
+        onTravauxUpdate?.(updatedTravaux);
       }
-
-      // Mettre à jour le cours entier avec les nouveaux travaux
-      const updatedCours = await CoursService.updateCours(coursId, { travaux: updatedTravaux });
-      
-      // Récupérer les travaux avec les nouveaux IDs générés par MongoDB
-      setLocalTravaux(updatedCours.travaux || []);
-      onTravauxUpdate?.(updatedCours.travaux || []);
       setIsModalOpen(false);
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error);
@@ -183,6 +190,7 @@ const TravauxCard: React.FC<TravauxCardProps> = ({
         onAdd={handleAdd}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onView={handleView}
         addButtonText="Nouveau travail"
       />
 
@@ -193,6 +201,14 @@ const TravauxCard: React.FC<TravauxCardProps> = ({
         travail={editingTravail}
         anneeId={anneeId}
         sectionId={sectionId}
+        coursId={coursId}
+      />
+
+      <ResolutionsModal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        travailId={viewingTravail?._id || ""}
+        travailTitle={viewingTravail?.produit?.designation || ""}
       />
 
       {isLoading && (
