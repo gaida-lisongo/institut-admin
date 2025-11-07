@@ -28,6 +28,9 @@ export default function EtudiantModal({
     nationalite: "",
     lieu_naissance: "",
     date_naissance: "",
+    adresse: "",
+    telephone: "",
+    email: "",
     matricule: "",
     secure: "",
     solde: 0,
@@ -49,6 +52,9 @@ export default function EtudiantModal({
         date_naissance: etudiant.date_naissance instanceof Date 
           ? etudiant.date_naissance.toISOString().split('T')[0]
           : etudiant.date_naissance ? etudiant.date_naissance.split('T')[0] : "",
+        adresse: etudiant.adresse || "",
+        telephone: etudiant.telephone || "",
+        email: etudiant.email || "",
         matricule: etudiant.matricule,
         secure: etudiant.secure,
         solde: etudiant.solde || 0,
@@ -63,6 +69,9 @@ export default function EtudiantModal({
         nationalite: "",
         lieu_naissance: "",
         date_naissance: "",
+        adresse: "",
+        telephone: "",
+        email: "",
         matricule: "",
         secure: "",
         solde: 0,
@@ -259,6 +268,54 @@ export default function EtudiantModal({
               onChange={(e) => setFormData(prev => ({ ...prev, solde: parseFloat(e.target.value) || 0 }))}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
             />
+          </div>
+        </div>
+
+        {/* Informations de contact */}
+        <div className="border-t pt-4">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
+            Informations de contact
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Adresse
+              </label>
+              <input
+                type="text"
+                value={formData.adresse}
+                onChange={(e) => setFormData(prev => ({ ...prev, adresse: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                placeholder="Ex: 123 Avenue de la Liberté, Kinshasa"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Téléphone
+              </label>
+              <input
+                type="tel"
+                value={formData.telephone}
+                onChange={(e) => setFormData(prev => ({ ...prev, telephone: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                placeholder="Ex: +243 123 456 789"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                placeholder="Ex: etudiant@example.com"
+              />
+            </div>
           </div>
         </div>
 

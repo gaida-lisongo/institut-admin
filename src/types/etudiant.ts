@@ -12,6 +12,9 @@ export interface Etudiant {
   nationalite: string;
   lieu_naissance: string;
   date_naissance: Date | string;
+  adresse?: string;
+  telephone?: string;
+  email?: string;
   matricule: string;
   secure: string; // mot de passe
   solde?: number;
@@ -30,6 +33,9 @@ export interface EtudiantFormData {
   nationalite: string;
   lieu_naissance: string;
   date_naissance: string;
+  adresse?: string;
+  telephone?: string;
+  email?: string;
   matricule: string;
   secure: string;
   solde: number;
@@ -44,6 +50,9 @@ export interface EtudiantCSVTemplate {
   nationalite: string;
   lieu_naissance: string;
   date_naissance: string;
+  adresse?: string;
+  telephone?: string;
+  email?: string;
   matricule: string;
   secure: string;
   solde: string;

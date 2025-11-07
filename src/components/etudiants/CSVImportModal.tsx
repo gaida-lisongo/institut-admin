@@ -56,6 +56,9 @@ export default function CSVImportModal({
         nationalite: "",
         lieu_naissance: "",
         date_naissance: "",
+        adresse: "",
+        telephone: "",
+        email: "",
         matricule: "",
         secure: "",
         solde: 0,
@@ -94,6 +97,15 @@ export default function CSVImportModal({
             case 'date de naissance':
               etudiant.date_naissance = value;
               break;
+            case 'adresse':
+              etudiant.adresse = value;
+              break;
+            case 'telephone':
+              etudiant.telephone = value;
+              break;
+            case 'email':
+              etudiant.email = value;
+              break;
             case 'matricule':
               etudiant.matricule = value;
               break;
@@ -119,10 +131,13 @@ export default function CSVImportModal({
         etudiant.nationalite = values[4] || '';
         etudiant.lieu_naissance = values[5] || '';
         etudiant.date_naissance = values[6] || '';
-        etudiant.matricule = values[7] || '';
-        etudiant.secure = values[8] || '';
-        etudiant.solde = parseFloat(values[9]) || 0;
-        etudiant.photo = values[10] || '';
+        etudiant.adresse = values[7] || '';
+        etudiant.telephone = values[8] || '';
+        etudiant.email = values[9] || '';
+        etudiant.matricule = values[10] || '';
+        etudiant.secure = values[11] || '';
+        etudiant.solde = parseFloat(values[12]) || 0;
+        etudiant.photo = values[13] || '';
       }
 
       console.log("Processing student:", etudiant);
@@ -248,9 +263,9 @@ export default function CSVImportModal({
   };
 
   const downloadTemplate = () => {
-    const template = `nom,post_nom,prenom,sexe,nationalite,lieu_naissance,date_naissance,matricule,secure,solde,photo
-Dupont,Martin,Jean,M,Française,Paris,1995-05-15,ETU123456,motdepasse,1000.00,
-Smith,Johnson,Marie,F,Belge,Bruxelles,1998-08-22,ETU789012,password123,1500.50,`;
+    const template = `nom,post_nom,prenom,sexe,nationalite,lieu_naissance,date_naissance,adresse,telephone,email,matricule,secure,solde,photo
+Dupont,Martin,Jean,M,Française,Paris,1995-05-15,"123 Avenue de la Liberté",+243123456789,jean.dupont@example.com,ETU123456,motdepasse,1000.00,
+Smith,Johnson,Marie,F,Belge,Bruxelles,1998-08-22,"456 Rue de la Paix",+243987654321,marie.smith@example.com,ETU789012,password123,1500.50,`;
     
     const blob = new Blob([template], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -324,6 +339,9 @@ Smith,Johnson,Marie,F,Belge,Bruxelles,1998-08-22,ETU789012,password123,1500.50,`
               <li>• nationalite</li>
               <li>• lieu_naissance</li>
               <li>• date_naissance (YYYY-MM-DD)</li>
+              <li>• adresse</li>
+              <li>• telephone</li>
+              <li>• email</li>
               <li>• matricule (généré si vide)</li>
               <li>• secure (généré si vide)</li>
               <li>• solde (nombre)</li>

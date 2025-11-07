@@ -164,6 +164,9 @@ export class EtudiantService {
       'nationalite',
       'lieu_naissance',
       'date_naissance',
+      'adresse',
+      'telephone',
+      'email',
       'matricule',
       'secure',
       'solde'
@@ -177,6 +180,9 @@ export class EtudiantService {
       'Congolaise',
       'Kinshasa',
       '2000-05-15',
+      '123 Avenue de la Liberté, Kinshasa',
+      '+243 123 456 789',
+      'jean.mukendi@example.com',
       'ETU001',
       'MotDePasse123!',
       '50000'
@@ -240,9 +246,12 @@ export class EtudiantService {
         nationalite: values[4] || '',
         lieu_naissance: values[5] || '',
         date_naissance: values[6] || '',
-        matricule: values[7] || '',
-        secure: values[8] || '',
-        solde: parseFloat(values[9]) || 0
+        adresse: values[7] || '',
+        telephone: values[8] || '',
+        email: values[9] || '',
+        matricule: values[10] || '',
+        secure: values[11] || '',
+        solde: parseFloat(values[12]) || 0
       };
 
       // Validation basique
@@ -265,6 +274,9 @@ export class EtudiantService {
       'nationalite',
       'lieu_naissance',
       'date_naissance',
+      'adresse',
+      'telephone',
+      'email',
       'matricule',
       'secure',
       'solde',
@@ -284,6 +296,9 @@ export class EtudiantService {
         etudiant.date_naissance instanceof Date 
           ? etudiant.date_naissance.toISOString().split('T')[0]
           : etudiant.date_naissance,
+        etudiant.adresse,
+        etudiant.telephone,
+        etudiant.email,
         etudiant.matricule,
         etudiant.secure,
         etudiant.solde,

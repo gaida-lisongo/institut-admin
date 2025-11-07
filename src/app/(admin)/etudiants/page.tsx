@@ -143,6 +143,33 @@ export default function EtudiantsPage() {
       ),
     },
     {
+      key: "email" as keyof Etudiant,
+      header: "Email",
+      render: (etudiant: Etudiant) => (
+        <span className="text-gray-600 dark:text-gray-400">
+          {etudiant.email || 'Non spécifié'}
+        </span>
+      ),
+    },
+    {
+      key: "telephone" as keyof Etudiant,
+      header: "Téléphone",
+      render: (etudiant: Etudiant) => (
+        <span className="text-gray-600 dark:text-gray-400">
+          {etudiant.telephone || 'Non spécifié'}
+        </span>
+      ),
+    },
+    {
+      key: "adresse" as keyof Etudiant,
+      header: "Adresse",
+      render: (etudiant: Etudiant) => (
+        <span className="text-gray-600 dark:text-gray-400">
+          {etudiant.adresse || 'Non spécifiée'}
+        </span>
+      ),
+    },
+    {
       key: "date_naissance" as keyof Etudiant,
       header: "Date de naissance",
       render: (etudiant: Etudiant) => {
