@@ -5,8 +5,9 @@ import { Annee } from "@/services/AnneeService";
 import { Classe, Cycle } from "@/services/CycleService";
 import { Etudiant } from "@/types/etudiant";
 import { exportEtudiantsExcel } from "@/utils/exportEtudiants";
+import { PdfCard } from "@/utils/PdfCard";
 import CycleService from "@/services/CycleService";
-import { ChevronLeft, ChevronRight, Search, Download, Loader2, Check, X, Trash2, Upload } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, Download, Loader2, Check, X, Trash2, Upload, CreditCard } from "lucide-react";
 import { Section } from "@/stores/sectionStore";
 
 interface EtudiantsDataTableProps {
@@ -218,6 +219,29 @@ const EtudiantsDataTable = ({ cycle, classe, annee, section, onBack }: Etudiants
     }
   };
 
+  const generateStudentCards = async () => {
+    try {
+      // Préparer les données des étudiants
+      const studentsData = inscriptions.map(inscription => ({
+        etudiant: inscription.etudiant,
+        institution: section?.description?.designation || 'Institut Supérieur',
+        annee: `${annee.debut}-${annee.fin}`,
+        classe: classe.designation
+      }));
+
+      // Générer le PDF
+      await PdfCard.generateStudentCards(studentsData, {
+        institution: section?.description?.designation || 'Institut Supérieur',
+        annee: `${annee.debut}-${annee.fin}`,
+        classe: classe.designation,
+        fileName: `cartes_${classe.designation}_${annee.debut}-${annee.fin}.pdf`
+      });
+    } catch (error) {
+      console.error("Erreur lors de la génération des cartes:", error);
+      alert("Une erreur s'est produite lors de la génération des cartes d'étudiant.");
+    }
+  };
+
   const goToPrevPage = () => {
     if (currentPage > 1) {
       const prevPage = currentPage - 1;
@@ -318,6 +342,15 @@ const EtudiantsDataTable = ({ cycle, classe, annee, section, onBack }: Etudiants
             >
               <Download size={20} />
               Exporter Excel
+            </button>
+            <button
+              onClick={generateStudentCards}
+              disabled={inscriptions.length === 0}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Générer les cartes d'étudiant"
+            >
+              <CreditCard size={20} />
+              Cartes PDF
             </button>
             <input
               ref={fileInputRef}
