@@ -23,7 +23,8 @@ interface AuthStore extends AuthState {
     courses: {
       charges: ChargeWithDetails[];
       commandes: ProduitWithDetails[];
-    }
+    },
+    juries: JuryTitulaire | null;
   };
   setHasHydrated: (hasHydrated: boolean) => void;
   setMenuData: (menuData: any) => void;
@@ -132,17 +133,15 @@ const useAuthStore = create<AuthStore>()(
           try {
             const reqUnites = await AgentService.getUnitsByAgent(id);
             const reqCourses = await AgentService.getCoursesByAgent(id);
-            set({ menuData: { 
+            const data = { 
               unites: reqUnites.data, 
-              courses: reqCourses.data
-            } });
-            set({ isLoading: false });
-
-            return {
-              unites: reqUnites.data,
               courses: reqCourses.data,
               juries: null
-            }
+            };
+            set({ menuData: data });
+            set({ isLoading: false });
+
+            return data;
           } catch (error) {
             set({ isLoading: false });
             return null;
