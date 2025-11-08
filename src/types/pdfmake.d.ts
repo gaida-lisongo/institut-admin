@@ -1,14 +1,4 @@
 declare module 'pdfmake/build/pdfmake' {
-  import { TCreatedPdf } from 'pdfmake/build/pdfmake';
-  
-  const pdfMake: {
-    vfs: any;
-    fonts?: any;
-    createPdf(documentDefinitions: any): TCreatedPdf;
-  };
-  
-  export default pdfMake;
-  
   export interface TCreatedPdf {
     download(defaultFileName?: string, cb?: () => void, options?: any): void;
     open(options?: any, win?: Window | null): void;
@@ -17,7 +7,17 @@ declare module 'pdfmake/build/pdfmake' {
     getBase64(cb: (result: string) => void, options?: any): void;
     getBuffer(cb: (result: Buffer) => void, options?: any): void;
     getBlob(cb: (result: Blob) => void, options?: any): void;
+    [key: string]: any;
   }
+  
+  const pdfMake: {
+    vfs: any;
+    fonts?: any;
+    createPdf(documentDefinitions: any): TCreatedPdf;
+    [key: string]: any;
+  };
+  
+  export default pdfMake;
 }
 
 declare module 'pdfmake/build/vfs_fonts' {
@@ -25,58 +25,57 @@ declare module 'pdfmake/build/vfs_fonts' {
     pdfMake: {
       vfs: any;
     };
+    vfs: any;
   };
   export default pdfFonts;
 }
 
 declare module 'pdfmake/interfaces' {
-  export type PageSize = 'A4' | 'A3' | 'A5' | 'LETTER' | 'LEGAL';
-  export type PageOrientation = 'portrait' | 'landscape';
-  export type Alignment = 'left' | 'right' | 'center' | 'justify';
+  export type PageSize = 'A4' | 'A3' | 'A5' | 'LETTER' | 'LEGAL' | any;
+  export type PageOrientation = 'portrait' | 'landscape' | any;
+  export type Alignment = 'left' | 'right' | 'center' | 'justify' | any;
   
-  export interface Content {
-    text?: string | string[];
-    image?: string;
-    width?: number | string | 'auto' | '*';
-    height?: number | 'auto';
-    columns?: Content[];
-    stack?: Content[];
-    table?: {
-      widths?: (number | string | 'auto' | '*')[];
-      heights?: (number | string | 'auto' | '*')[];
-      body: Content[][];
-    };
+  // Type ultra-permissif pour Content
+  export type Content = {
+    text?: any;
+    image?: any;
+    width?: any;
+    height?: any;
+    columns?: any;
+    stack?: any;
+    table?: any;
     layout?: any;
-    style?: string | string[];
-    alignment?: Alignment;
-    margin?: number | [number, number] | [number, number, number, number];
-    bold?: boolean;
-    fontSize?: number;
-    color?: string;
-    fillColor?: string;
-    pageBreak?: 'before' | 'after';
-    columnGap?: number;
+    style?: any;
+    alignment?: any;
+    margin?: any;
+    bold?: any;
+    fontSize?: any;
+    color?: any;
+    fillColor?: any;
+    pageBreak?: any;
+    columnGap?: any;
     [key: string]: any;
-  }
+  };
   
-  export interface Style {
-    fontSize?: number;
-    bold?: boolean;
-    italics?: boolean;
-    alignment?: Alignment;
-    color?: string;
-    background?: string;
-    margin?: number | [number, number] | [number, number, number, number];
+  export type Style = {
+    fontSize?: any;
+    bold?: any;
+    italics?: any;
+    alignment?: any;
+    color?: any;
+    background?: any;
+    margin?: any;
+    font?: any;
     [key: string]: any;
-  }
+  };
   
-  export interface TDocumentDefinitions {
-    content: Content | Content[];
-    styles?: { [name: string]: Style };
-    pageSize?: PageSize | { width: number; height: number };
-    pageOrientation?: PageOrientation;
-    pageMargins?: number | [number, number] | [number, number, number, number];
-    defaultStyle?: Style;
+  export type TDocumentDefinitions = {
+    content?: any;
+    styles?: any;
+    pageSize?: any;
+    pageOrientation?: any;
+    pageMargins?: any;
+    defaultStyle?: any;
     [key: string]: any;
-  }
+  };
 }

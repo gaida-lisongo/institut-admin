@@ -224,14 +224,14 @@ const EtudiantsDataTable = ({ cycle, classe, annee, section, onBack }: Etudiants
       // Préparer les données des étudiants
       const studentsData = inscriptions.map(inscription => ({
         etudiant: inscription.etudiant,
-        institution: section?.description?.designation || 'Institut Supérieur',
+        institution: section?.description?.sigle || 'HE',
         annee: `${annee.debut}-${annee.fin}`,
         classe: classe.designation
       }));
 
       // Générer le PDF
       await PdfCard.generateStudentCards(studentsData, {
-        institution: section?.description?.designation || 'Institut Supérieur',
+        institution: section?.description?.sigle || 'HE',
         annee: `${annee.debut}-${annee.fin}`,
         classe: classe.designation,
         fileName: `cartes_${classe.designation}_${annee.debut}-${annee.fin}.pdf`

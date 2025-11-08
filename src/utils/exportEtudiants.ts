@@ -1,9 +1,9 @@
-import ExcelJS from "exceljs";
+import { Workbook } from "exceljs";
 import { saveAs } from "file-saver";
 import { Etudiant } from "@/types/etudiant";
 
 export const exportEtudiantsExcel = async (etudiants: Etudiant[], promotion: string) => {
-  const workbook = new ExcelJS.Workbook();
+  const workbook = new Workbook();
   const worksheet = workbook.addWorksheet("Inscrits");
 
   // --- Header ---
@@ -40,5 +40,6 @@ export const exportEtudiantsExcel = async (etudiants: Etudiant[], promotion: str
 
   // --- Export ---
   const buffer = await workbook.xlsx.writeBuffer();
-  saveAs(new Blob([buffer]), `Inscrits_${promotion}.xlsx`);
+  const blob = new Blob([buffer as BlobPart], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  saveAs(blob, `Inscrits_${promotion}.xlsx`);
 };

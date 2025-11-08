@@ -51,7 +51,7 @@ export class PdfCard {
   private static async createStudentCard(data: StudentCardData): Promise<Content> {
     const { etudiant, institution = 'Institut Supérieur', annee = '', classe = '' } = data;
     // Construct url : protocol + host + path
-    const url = `${window.location.protocol}//${window.location.host}/scanning/${etudiant?._id}`;
+    const url = `https://${institution.toLowerCase()}.inbtp.net/scanning/${etudiant?._id}`;
     const qrCodeData = await this.generateQRCode(url);
     
     const nomComplet = `${etudiant.nom} ${etudiant.post_nom} ${etudiant.prenom}`.toUpperCase();
@@ -66,7 +66,7 @@ export class PdfCard {
               stack: [
                 // En-tête
                 {
-                  text: institution,
+                  text: `Section : ${institution}`,
                   style: 'cardHeader',
                   alignment: 'center',
                   margin: [0, 2, 0, 2]
