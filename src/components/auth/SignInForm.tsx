@@ -278,7 +278,7 @@ export default function SignInForm() {
               <div className="space-y-6">
                 <div>
                   <Label>
-                    Matricule <span className="text-error-500">*</span>
+                    Matricule de connexion <span className="text-error-500">*</span>
                   </Label>
                   <input
                     ref={matriculeRef}

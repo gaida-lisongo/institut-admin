@@ -177,27 +177,6 @@ const AppSidebar: React.FC = () => {
 
   }, [menuData]);
 
-  const makeMenuJuries = React.useCallback((): NavItem[] => {
-    const { juries } = menuData;
-    
-    let anneeJuries: NavItem[] = [];
-    let uniqueAnnees: any[] = [];
-
-    juries?.jurys.forEach(j => {
-      //check if chearge is existing in uniqueAnnees
-      if(!uniqueAnnees.find(a => a._id === j.annee._id)) {
-        uniqueAnnees.push({ _id: j.annee._id, debut: j.annee.debut, fin: j.annee.fin });
-      }
-    });
-
-    uniqueAnnees.forEach(a => {
-      anneeJuries.push({ name: `Année ${a.debut}-${a.fin}`, path: `/jurys/${a._id}`, icon: <ListIcon /> });
-    });
-
-    const anneeFilterByName = [...anneeJuries].sort((a, b) => a.name.localeCompare(b.name));
-    return anneeFilterByName;
-  }, [menuData]);
-
   const renderMenuItems = (
     navItems: NavItem[],
     menuKey: string
@@ -353,11 +332,6 @@ const AppSidebar: React.FC = () => {
         role: "titulaire",
         category: "Charges Horaires",
         menu: []
-      },
-      {
-        role: "jury",
-        category: "Bureaux du Jury",
-        menu: []
       }
     ];
 
@@ -373,11 +347,6 @@ const AppSidebar: React.FC = () => {
         allMenus.push({
           ...tp,
           menu: makeMenuCours()
-        });
-      } else if (tp.role === "jury") {
-        allMenus.push({
-          ...tp,
-          menu: makeMenuJuries()
         });
       }
     });
@@ -402,7 +371,7 @@ const AppSidebar: React.FC = () => {
     }));
 
     console.log("Menu Admin created:", allMenus);
-  }, [makeMenuUnites, makeMenuCours, makeMenuJuries, menuData]);
+  }, [makeMenuUnites, makeMenuCours, menuData]);
 
   // Charger les données du menu au montage du composant
   useEffect(() => {
