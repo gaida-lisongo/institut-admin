@@ -11,9 +11,11 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  User
+  User,
+  FileSpreadsheet
 } from 'lucide-react';
 import TravailService, { Resolution } from '@/services/TravailService';
+import { exportResolutionsToExcel } from '@/utils/ExportREsolutions';
 
 interface ResolutionsModalProps {
   isOpen: boolean;
@@ -35,6 +37,7 @@ const ResolutionsModal: React.FC<ResolutionsModalProps> = ({
   const [editingNote, setEditingNote] = useState<{ [key: string]: number | string }>({});
   const [savingNote, setSavingNote] = useState<string | null>(null);
   const [deletingResolution, setDeletingResolution] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (isOpen && travailId) {
@@ -156,6 +159,28 @@ const ResolutionsModal: React.FC<ResolutionsModalProps> = ({
     }
   };
 
+  const handleExportExcel = async () => {
+    if (resolutions.length === 0) {
+      alert('Aucune résolution à exporter');
+      return;
+    }
+
+    setExporting(true);
+    try {
+      await exportResolutionsToExcel({
+        resolutions: resolutions, // Exporter TOUTES les résolutions
+        travailTitle,
+        travailId
+      });
+      alert('Export Excel réussi!');
+    } catch (error) {
+      console.error('Erreur lors de l\'export:', error);
+      alert('Erreur lors de l\'export Excel');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const getStatusBadge = (status: 'PENDING' | 'OK' | 'NO') => {
     switch (status) {
       case 'OK':
@@ -215,15 +240,29 @@ const ResolutionsModal: React.FC<ResolutionsModalProps> = ({
 
           {/* Search Bar */}
           <div className="px-6 py-4 border-b border-gray-200 dark:border-strokedark">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Rechercher un étudiant (nom, prénom, matricule)..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-strokedark rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-blacksection dark:text-white"
-              />
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Rechercher un étudiant (nom, prénom, matricule)..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-strokedark rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-blacksection dark:text-white"
+                />
+              </div>
+              <button
+                onClick={handleExportExcel}
+                disabled={exporting || resolutions.length === 0}
+                className="inline-flex items-center px-4 py-2 border border-green-300 rounded-lg text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {exporting ? (
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                ) : (
+                  <FileSpreadsheet className="w-5 h-5 mr-2" />
+                )}
+                Exporter Excel
+              </button>
             </div>
           </div>
 
